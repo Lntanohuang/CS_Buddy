@@ -206,7 +206,7 @@ src/
 import axios from 'axios'
 
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // 例: http://localhost:8080/api/v1
+  baseURL: import.meta.env.VITE_API_BASE_URL, // 例: http://localhost:8090/api/v1
   timeout: 15000
 })
 
@@ -704,7 +704,7 @@ Spring Boot 通过 HTTP 与 LangGraph 服务通信。AI 层暴露以下内部接
 public class AIClientService {
 
     @Value("${zhiban.ai.base-url}")
-    private String aiBaseUrl;   // 例: http://localhost:8000
+    private String aiBaseUrl;   // 例: http://localhost:8010
 
     private final RestTemplate restTemplate;
     private final WebClient webClient;  // 用于 SSE 流式
@@ -1652,19 +1652,19 @@ graph TB
     end
 
     subgraph Nginx["Nginx 反向代理"]
-        NG[Nginx<br/>:80 / :443<br/>SSL 终结 + 静态资源]
+        NG[Nginx<br/>:90 / :453<br/>SSL 终结 + 静态资源]
     end
 
     subgraph Services["应用服务"]
         VUE[Vue 前端静态文件<br/>由 Nginx 直接提供]
-        SB[Spring Boot<br/>:8080<br/>×2 实例]
-        AI[LangGraph 服务<br/>:8000<br/>×1 实例]
+        SB[Spring Boot<br/>:8090<br/>×2 实例]
+        AI[LangGraph 服务<br/>:8010<br/>×1 实例]
     end
 
     subgraph DataStores["数据服务"]
-        MYSQL_S[(MySQL :3306)]
-        REDIS_S[(Redis :6379)]
-        ES_S[(Elasticsearch :9200)]
+        MYSQL_S[(MySQL :3316)]
+        REDIS_S[(Redis :6389)]
+        ES_S[(Elasticsearch :9210)]
     end
 
     USER -->|HTTPS| NG
@@ -1696,26 +1696,26 @@ graph TB
 
 ```yaml
 server:
-  port: 8080
+  port: 8090
 
 spring:
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/zhiban?useSSL=true&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3316}/zhiban?useSSL=true&serverTimezone=Asia/Shanghai
     username: ${MYSQL_USER:zhiban}
     password: ${MYSQL_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      port: ${REDIS_PORT:6389}
       password: ${REDIS_PASSWORD:}
   elasticsearch:
-    uris: ${ES_URIS:http://localhost:9200}
+    uris: ${ES_URIS:http://localhost:9210}
     username: ${ES_USERNAME:elastic}
     password: ${ES_PASSWORD:}
 
 zhiban:
   ai:
-    base-url: ${AI_SERVICE_URL:http://localhost:8000}
+    base-url: ${AI_SERVICE_URL:http://localhost:8010}
     timeout-ms: 15000
   jwt:
     secret: ${JWT_SECRET}
@@ -1738,11 +1738,11 @@ LLM_MAX_TOKENS=4096
 
 # 服务配置
 SERVICE_HOST=0.0.0.0
-SERVICE_PORT=8000
+SERVICE_PORT=8010
 LOG_LEVEL=INFO
 
 # Elasticsearch（向量检索 + 行为日志读取）
-ES_URL=http://localhost:9200
+ES_URL=http://localhost:9210
 ES_USERNAME=elastic
 ES_PASSWORD=
 
@@ -1778,7 +1778,7 @@ cd ai-service
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env                  # 填写 LLM_API_KEY
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8010
 
 # 4. 启动后端
 cd server
@@ -1787,8 +1787,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 # 5. 启动前端
 cd web
 npm install
-cp .env.example .env.local            # 配置 VITE_API_BASE_URL=http://localhost:8080/api/v1
-npm run dev                           # 默认 http://localhost:5173
+cp .env.example .env.local            # 配置 VITE_API_BASE_URL=http://localhost:8090/api/v1
+npm run dev                           # 默认 http://localhost:5183
 ```
 
 **Docker Compose（基础设施）**：
@@ -1800,7 +1800,7 @@ services:
   mysql:
     image: mysql:8.0
     ports:
-      - "3306:3306"
+      - "3316:3316"
     environment:
       MYSQL_ROOT_PASSWORD: root123
       MYSQL_DATABASE: zhiban
@@ -1812,13 +1812,13 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6389:6389"
     command: redis-server --requirepass ""
 
   elasticsearch:
     image: elasticsearch:8.15.0
     ports:
-      - "9200:9200"
+      - "9210:9210"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

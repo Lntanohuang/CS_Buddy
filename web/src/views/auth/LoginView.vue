@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
-
 const loading = shallowRef(false)
 
 const form = reactive({
@@ -32,89 +31,179 @@ async function handleLogin() {
 
 <template>
   <div class="login-page">
-    <el-card class="login-card" shadow="hover">
+    <div class="login-card">
       <div class="login-header">
-        <h1>智伴</h1>
-        <p class="subtitle">你的 AI 学伴，懂你的学习节奏</p>
+        <span class="logo-leaf">🌿</span>
+        <h1 class="logo-name">智伴</h1>
+        <p class="tagline">你的 AI 学伴，懂你的学习节奏</p>
       </div>
 
-      <el-form :model="form" label-position="top" @submit.prevent="handleLogin">
-        <el-form-item label="邮箱">
-          <el-input v-model="form.email" type="email" placeholder="请输入邮箱" />
-        </el-form-item>
-
-        <el-form-item label="密码">
-          <el-input
+      <form class="login-form" @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label class="form-label">邮箱</label>
+          <input
+            v-model="form.email"
+            type="email"
+            class="form-input"
+            placeholder="name@example.com"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input
             v-model="form.password"
             type="password"
-            placeholder="请输入密码"
-            show-password
+            class="form-input"
+            placeholder="输入密码"
           />
-        </el-form-item>
+        </div>
+        <button type="submit" class="submit-btn" :disabled="loading">
+          <span v-if="loading" class="spinner"></span>
+          <span v-else>登录</span>
+        </button>
+      </form>
 
-        <el-form-item>
-          <el-button
-            type="primary"
-            :loading="loading"
-            native-type="submit"
-            class="login-btn"
-          >
-            登录
-          </el-button>
-        </el-form-item>
-      </el-form>
-
-      <div class="login-footer">
-        <span>还没有账号？</span>
-        <router-link to="/register">立即注册</router-link>
-      </div>
-    </el-card>
+      <p class="login-footer">
+        还没有账号？<router-link to="/register" class="link">立即注册</router-link>
+      </p>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .login-page {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0ecff 0%, #f5f7fa 100%);
+  background: var(--bg-primary);
+  padding: 24px;
 }
 
 .login-card {
-  width: 400px;
+  width: 100%;
+  max-width: 380px;
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 40px;
 }
 
-.login-header h1 {
+.logo-leaf {
   font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.logo-name {
+  font-size: 28px;
   font-weight: 700;
-  color: #409eff;
+  color: var(--text-primary);
+  letter-spacing: 1px;
   margin-bottom: 8px;
 }
 
-.subtitle {
-  color: #909399;
+.tagline {
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
-.login-btn {
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-input {
   width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-input::placeholder {
+  color: var(--border-strong);
+}
+
+.form-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.1);
+}
+
+.submit-btn {
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: var(--bg-card);
+  font-size: 15px;
+  font-weight: 550;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--bg-card);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .login-footer {
   text-align: center;
+  margin-top: 28px;
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
-.login-footer a {
-  color: #409eff;
-  text-decoration: none;
-  margin-left: 4px;
+.link {
+  color: var(--accent-primary);
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+.link:hover {
+  text-decoration: underline;
 }
 </style>

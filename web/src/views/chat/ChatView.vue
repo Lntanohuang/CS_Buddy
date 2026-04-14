@@ -26,6 +26,16 @@ function handleSend(text: string) {
 function formatSessionTime(dateStr: string) {
   const date = new Date(dateStr)
   const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHr = Math.floor(diffMs / 3600000)
+  const diffDay = Math.floor(diffMs / 86400000)
+
+  if (diffMin < 1) return '刚刚'
+  if (diffMin < 60) return `${diffMin}分钟前`
+  if (diffHr < 24) return `${diffHr}小时前`
+  if (diffDay < 7) return `${diffDay}天前`
+
   const isToday = date.toDateString() === now.toDateString()
   if (isToday) {
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
@@ -36,34 +46,36 @@ function formatSessionTime(dateStr: string) {
 
 <template>
   <div class="chat-view">
-    <!-- Left panel: session list -->
-    <aside class="chat-view__sidebar">
-      <div class="chat-view__sidebar-header">
-        <el-button type="primary" @click="handleCreateSession" class="new-session-btn">
-          + 新对话
-        </el-button>
+    <!-- Left sidebar -->
+    <aside class="chat-sidebar">
+      <div class="chat-sidebar__header">
+        <button class="new-session-btn" @click="handleCreateSession">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span>新对话</span>
+        </button>
       </div>
 
-      <el-menu
-        :default-active="activeSessionId"
-        class="chat-view__session-menu"
-        @select="handleSelectSession"
-      >
-        <el-menu-item
+      <div class="chat-sidebar__section-label">对话记录</div>
+
+      <div class="chat-sidebar__list">
+        <button
           v-for="session in sessions"
           :key="session.session_id"
-          :index="session.session_id"
+          class="session-card"
+          :class="{ 'session-card--active': session.session_id === activeSessionId }"
+          @click="handleSelectSession(session.session_id)"
         >
-          <div class="session-item">
-            <span class="session-item__title">{{ session.title }}</span>
-            <span class="session-item__time">{{ formatSessionTime(session.updated_at) }}</span>
-          </div>
-        </el-menu-item>
-      </el-menu>
+          <span class="session-card__title">{{ session.title }}</span>
+          <span class="session-card__time">{{ formatSessionTime(session.updated_at) }}</span>
+        </button>
+      </div>
     </aside>
 
-    <!-- Right panel: messages + input -->
-    <main class="chat-view__main">
+    <!-- Right main area -->
+    <main class="chat-main">
       <ChatMessageList
         :messages="activeMessages"
         :is-streaming="isStreaming"
@@ -81,59 +93,123 @@ function formatSessionTime(dateStr: string) {
   display: flex;
   height: 100%;
   overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
 }
 
-.chat-view__sidebar {
-  width: 260px;
+/* Sidebar */
+.chat-sidebar {
+  width: 280px;
   flex-shrink: 0;
-  border-right: 1px solid var(--el-border-color-lighter);
+  border-right: 1px solid var(--bg-hover);
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--bg-card);
 }
 
-.chat-view__sidebar-header {
-  padding: 12px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+.chat-sidebar__header {
+  padding: 16px;
 }
 
 .new-session-btn {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--accent-primary);
+  color: var(--bg-card)fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(74, 124, 111, 0.25);
 }
 
-.chat-view__session-menu {
+.new-session-btn:hover {
+  box-shadow: 0 4px 14px rgba(74, 124, 111, 0.35);
+  transform: translateY(-1px);
+}
+
+.new-session-btn:active {
+  transform: translateY(0);
+}
+
+.chat-sidebar__section-label {
+  padding: 8px 20px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.chat-sidebar__list {
   flex: 1;
   overflow-y: auto;
-  border-right: none;
+  padding: 4px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.chat-view__session-menu .el-menu-item {
-  height: auto;
-  line-height: normal;
-  padding: 12px 16px !important;
-}
-
-.session-item {
+/* Session cards */
+.session-card {
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 100%;
-  overflow: hidden;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-.session-item__title {
-  font-size: 14px;
+.session-card:hover {
+  background: var(--bg-primary);
+}
+
+.session-card--active {
+  background: var(--accent-primary-light);
+  border-left-color: var(--accent-primary);
+}
+
+.session-card--active:hover {
+  background: var(--accent-primary-light);
+}
+
+.session-card__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
-.session-item__time {
+.session-card--active .session-card__title {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.session-card__time {
   font-size: 11px;
-  color: var(--el-text-color-placeholder);
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
-.chat-view__main {
+/* Main content */
+.chat-main {
   flex: 1;
   display: flex;
   flex-direction: column;

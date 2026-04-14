@@ -1,44 +1,146 @@
-* {
+/* ============================================
+   学伴 (ZhiBan) Design System
+   Notion 的克制 + Apple 的品质 + 教育的温度
+   ============================================ */
+
+:root {
+  /* 背景 */
+  --bg-primary: #FAFAF8;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F7F6F3;
+  --bg-sidebar: #F7F6F3;
+  --bg-modal-overlay: rgba(55, 53, 47, 0.6);
+
+  /* 文字 */
+  --text-primary: #37352F;
+  --text-secondary: #9B9A97;
+  --text-tertiary: #73726E;
+
+  /* 强调 */
+  --accent-primary: #4A7C6F;
+  --accent-primary-hover: #3D6A5E;
+  --accent-primary-light: #EDF5F2;
+  --accent-secondary: #E8C07A;
+  --accent-secondary-light: #FDF6E8;
+
+  /* 边框 */
+  --border: #EBEBEA;
+  --border-strong: #D3D3D0;
+
+  /* 状态 */
+  --status-success: #4A7C6F;
+  --status-error: #C4554D;
+  --status-error-light: #FDF0EF;
+  --status-warning: #E8C07A;
+  --status-warning-light: #FDF6E8;
+
+  /* 阴影 — Notion 风格以边框为主，阴影仅用于浮层 */
+  --shadow-sm: 0 1px 2px rgba(55, 53, 47, 0.06);
+  --shadow-md: 0 4px 12px rgba(55, 53, 47, 0.08);
+  --shadow-lg: 0 12px 36px rgba(55, 53, 47, 0.12);
+
+  /* 字体 */
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+
+  /* 间距 — 4px 基础单元 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-16: 64px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+/* ============================================
+   Reset
+   ============================================ */
+
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 html, body, #app {
   height: 100%;
-  font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-body);
 }
 
 body {
-  background: #f5f7fa;
-  color: #303133;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.65;
 }
 
-/* Markdown content styles */
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  margin: 16px 0 8px;
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--accent-primary-hover);
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D3D3D0; border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+* { scrollbar-width: thin; scrollbar-color: #D3D3D0 transparent; }
+
+/* ============================================
+   Markdown Body
+   ============================================ */
+
+.markdown-body {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text-primary);
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  margin: 20px 0 8px;
   font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
 }
 
 .markdown-body h2 { font-size: 1.3em; }
 .markdown-body h3 { font-size: 1.1em; }
 
-.markdown-body p {
-  margin: 8px 0;
-  line-height: 1.7;
-}
+.markdown-body p { margin: 8px 0; }
 
-.markdown-body ul,
-.markdown-body ol {
+.markdown-body ul, .markdown-body ol {
   padding-left: 20px;
   margin: 8px 0;
 }
 
 .markdown-body li {
   margin: 4px 0;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .markdown-body table {
@@ -47,46 +149,143 @@ body {
   width: 100%;
 }
 
-.markdown-body th,
-.markdown-body td {
-  border: 1px solid #dcdfe6;
+.markdown-body th, .markdown-body td {
+  border: 1px solid var(--border);
   padding: 8px 12px;
   text-align: left;
+  font-size: 14px;
 }
 
 .markdown-body th {
-  background: #f5f7fa;
+  background: var(--bg-primary);
   font-weight: 600;
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .markdown-body blockquote {
-  border-left: 4px solid #409eff;
+  border-left: 3px solid var(--accent-primary);
   padding: 8px 16px;
   margin: 12px 0;
-  background: #ecf5ff;
-  color: #606266;
-  border-radius: 0 4px 4px 0;
+  background: var(--accent-primary-light);
+  color: var(--text-tertiary);
 }
 
-.markdown-body pre.hljs {
-  border-radius: 8px;
+.markdown-body pre, .markdown-body pre.hljs {
+  background: #2F3437;
+  color: #E8E6E3;
+  border-radius: var(--radius-md);
   padding: 16px;
   margin: 12px 0;
   overflow-x: auto;
-  background: #f6f8fa;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .markdown-body code {
-  font-family: 'Fira Code', 'Consolas', monospace;
-  background: #f0f2f5;
+  font-family: var(--font-mono);
+  background: var(--bg-hover);
+  color: var(--status-error);
   padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.9em;
+  border-radius: var(--radius-sm);
+  font-size: 0.88em;
 }
 
-.markdown-body pre.hljs code {
+.markdown-body pre code, .markdown-body pre.hljs code {
   background: none;
+  color: inherit;
   padding: 0;
+  font-size: inherit;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+
+.markdown-body hr {
+  border: none;
+  height: 1px;
+  background: var(--border);
+  margin: 20px 0;
+}
+
+/* ============================================
+   Element Plus Overrides
+   ============================================ */
+
+.el-button {
+  border-radius: var(--radius-md) !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.el-button--primary {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.el-button--primary:hover, .el-button--primary:focus {
+  background: var(--accent-primary-hover) !important;
+  border-color: var(--accent-primary-hover) !important;
+}
+
+.el-input__wrapper {
+  border-radius: var(--radius-md) !important;
+  transition: all 0.15s ease !important;
+  box-shadow: 0 0 0 1px var(--border) inset !important;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--border-strong) inset !important;
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--accent-primary) inset, 0 0 0 3px var(--accent-primary-light) !important;
+}
+
+.el-card {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.el-form-item__label {
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+}
+
+/* ============================================
+   Animations — 克制，不超过 0.4s
+   ============================================ */
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Page transition */
+.page-enter-active, .page-leave-active {
+  transition: opacity 0.2s ease;
+}
+.page-enter-from, .page-leave-to {
+  opacity: 0;
 }

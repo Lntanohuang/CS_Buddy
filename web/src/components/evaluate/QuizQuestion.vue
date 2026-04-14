@@ -28,138 +28,385 @@ function onAnswerChange(val: string) {
 </script>
 
 <template>
-  <div class="quiz-question">
+  <div
+    class="quiz-question"
+    :class="{
+      'is-correct': disabled && question.is_correct === true,
+      'is-wrong': disabled && question.is_correct === false,
+    }"
+  >
+    <!-- Header row -->
     <div class="question-header">
-      <span class="question-index">第 {{ index + 1 }} 题</span>
-      <el-tag size="small" type="info">
-        {{ question.type === 'SINGLE_CHOICE' ? '单选' : question.type === 'FILL_BLANK' ? '填空' : '编程' }}
-      </el-tag>
+      <div class="header-left">
+        <span class="question-badge">{{ index + 1 }}</span>
+        <span class="type-pill">
+          {{ question.type === 'SINGLE_CHOICE' ? '选择题' : question.type === 'FILL_BLANK' ? '填空题' : '编程题' }}
+        </span>
+      </div>
+      <!-- Result badge in header -->
+      <span v-if="disabled && question.is_correct === true" class="result-badge result-badge--correct">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        正确
+      </span>
+      <span v-else-if="disabled && question.is_correct === false" class="result-badge result-badge--wrong">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        错误
+      </span>
     </div>
 
+    <!-- Question content -->
     <div class="question-content">{{ question.content }}</div>
 
-    <!-- Single Choice -->
-    <el-radio-group
-      v-if="question.type === 'SINGLE_CHOICE'"
-      :model-value="userAnswer"
-      :disabled="disabled"
-      class="options-group"
-      @update:model-value="onAnswerChange($event as string)"
-    >
-      <el-radio
+    <!-- Single Choice options -->
+    <div v-if="question.type === 'SINGLE_CHOICE'" class="options-list">
+      <label
         v-for="opt in question.options"
         :key="opt.key"
-        :value="opt.key"
-        class="option-item"
+        class="option-card"
+        :class="{
+          'is-selected': userAnswer === opt.key,
+          'is-disabled': disabled,
+          'is-correct-answer': disabled && question.correct_answer === opt.key,
+          'is-wrong-answer': disabled && userAnswer === opt.key && question.is_correct === false,
+        }"
       >
-        {{ opt.key }}. {{ opt.value }}
-      </el-radio>
-    </el-radio-group>
+        <input
+          type="radio"
+          :name="`q-${question.question_id}`"
+          :value="opt.key"
+          :checked="userAnswer === opt.key"
+          :disabled="disabled"
+          class="option-radio"
+          @change="onAnswerChange(opt.key)"
+        />
+        <span class="option-key">{{ opt.key }}</span>
+        <span class="option-text">{{ opt.value }}</span>
+        <!-- Correct/wrong icon -->
+        <svg v-if="disabled && question.correct_answer === opt.key" class="option-icon option-icon--correct" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--status-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg v-else-if="disabled && userAnswer === opt.key && question.is_correct === false" class="option-icon option-icon--wrong" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--status-error)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </label>
+    </div>
 
-    <!-- Fill Blank -->
-    <el-input
-      v-else-if="question.type === 'FILL_BLANK'"
-      :model-value="userAnswer"
-      :disabled="disabled"
-      placeholder="请输入答案"
-      @update:model-value="onAnswerChange($event as string)"
-    />
-
-    <!-- Result indicator (shown after submission) -->
-    <div v-if="disabled && question.is_correct !== undefined" class="result-indicator">
-      <div v-if="question.is_correct" class="result-correct">
-        <el-icon color="#67c23a"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.808 536.384-99.52-99.584a38.4 38.4 0 1 0-54.336 54.336l126.72 126.72a38.272 38.272 0 0 0 54.336 0l262.4-262.464a38.4 38.4 0 1 0-54.336-54.336L456.192 600.384z"/></svg></el-icon>
-        <span>正确</span>
-      </div>
-      <div v-else class="result-wrong">
-        <el-icon color="#f56c6c"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm0 393.664L407.936 353.6a38.4 38.4 0 1 0-54.336 54.336L457.664 512 353.6 616.064a38.4 38.4 0 1 0 54.336 54.336L512 566.336 616.064 670.4a38.4 38.4 0 1 0 54.336-54.336L566.336 512 670.4 407.936a38.4 38.4 0 1 0-54.336-54.336L512 457.664z"/></svg></el-icon>
-        <span>错误</span>
-        <span class="correct-answer">正确答案：{{ question.correct_answer }}</span>
-        <div v-if="question.explanation" class="explanation">
-          {{ question.explanation }}
-        </div>
+    <!-- Fill Blank input -->
+    <div v-else-if="question.type === 'FILL_BLANK'" class="fill-blank-wrapper">
+      <input
+        type="text"
+        class="fill-input"
+        :class="{
+          'fill-input--correct': disabled && question.is_correct === true,
+          'fill-input--wrong': disabled && question.is_correct === false,
+        }"
+        :value="userAnswer"
+        :disabled="disabled"
+        placeholder="输入你的答案"
+        @input="onAnswerChange(($event.target as HTMLInputElement).value)"
+      />
+      <div v-if="disabled && question.is_correct === false" class="correct-answer-line">
+        正确答案：<strong>{{ question.correct_answer }}</strong>
       </div>
     </div>
+
+    <!-- Explanation (shown after submission for wrong answers) -->
+    <Transition name="fade-slide">
+      <div v-if="disabled && question.is_correct === false && question.explanation" class="explanation-box">
+        <div class="explanation-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A7C6F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <div class="explanation-content">
+          <span class="explanation-label">解析</span>
+          <p class="explanation-text">{{ question.explanation }}</p>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
 .quiz-question {
-  padding: 20px;
-  border: 1px solid var(--el-border-color-lighter, #e4e7ed);
-  border-radius: 8px;
-  background: #fff;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+.quiz-question.is-correct {
+  border-color: var(--status-success);
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+}
+
+.quiz-question.is-wrong {
+  border-color: var(--status-error);
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Header */
 .question-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.question-index {
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--el-text-color-primary);
-}
-
-.question-content {
-  font-size: 15px;
-  line-height: 1.6;
+  justify-content: space-between;
   margin-bottom: 16px;
-  white-space: pre-wrap;
 }
 
-.options-group {
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.question-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: var(--bg-card)fff;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.result-badge--correct {
+  background: var(--accent-primary-light);
+  color: var(--status-success);
+}
+
+.result-badge--wrong {
+  background: var(--status-error-light);
+  color: var(--status-error);
+}
+
+/* Question content */
+.question-content {
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  white-space: pre-wrap;
+  font-weight: 500;
+}
+
+/* Options */
+.options-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.option-item {
-  height: auto;
-  line-height: 1.5;
-}
-
-.result-indicator {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--el-border-color-lighter, #e4e7ed);
-}
-
-.result-correct {
+.option-card {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: #67c23a;
-  font-weight: 600;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.result-wrong {
-  display: flex;
-  flex-wrap: wrap;
+.option-card:hover:not(.is-disabled) {
+  border-color: var(--accent-primary-light);
+  background: var(--accent-secondary-light);
+}
+
+.option-card.is-selected:not(.is-disabled) {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+.option-card.is-disabled {
+  cursor: default;
+}
+
+.option-card.is-correct-answer {
+  border-color: var(--status-success);
+  background: var(--accent-primary-light);
+}
+
+.option-card.is-wrong-answer {
+  border-color: var(--status-error);
+  background: var(--status-error-light);
+}
+
+.option-radio {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.option-key {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #f56c6c;
-  font-weight: 600;
-}
-
-.correct-answer {
-  margin-left: 8px;
-  color: var(--el-text-color-regular);
-  font-weight: 400;
-}
-
-.explanation {
-  width: 100%;
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: #fef0f0;
-  border-radius: 4px;
-  color: var(--el-text-color-regular);
-  font-weight: 400;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  color: var(--text-tertiary);
   font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.option-card.is-selected .option-key {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--bg-card)fff;
+}
+
+.option-card.is-correct-answer .option-key {
+  border-color: var(--status-success);
+  background: var(--status-success);
+  color: var(--bg-card)fff;
+}
+
+.option-card.is-wrong-answer .option-key {
+  border-color: var(--status-error);
+  background: var(--status-error);
+  color: var(--bg-card)fff;
+}
+
+.option-text {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text-primary);
   line-height: 1.5;
+}
+
+.option-icon {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Fill blank */
+.fill-blank-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fill-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: var(--text-primary);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.fill-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.fill-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.1);
+}
+
+.fill-input:disabled {
+  background: var(--bg-primary);
+  cursor: default;
+}
+
+.fill-input--correct {
+  border-color: var(--status-success);
+  background: var(--accent-primary-light);
+}
+
+.fill-input--wrong {
+  border-color: var(--status-error);
+  background: var(--status-error-light);
+}
+
+.correct-answer-line {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  padding-left: 4px;
+}
+
+.correct-answer-line strong {
+  color: var(--status-success);
+  font-weight: 600;
+}
+
+/* Explanation */
+.explanation-box {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  border-left: 3px solid #4A7C6F;
+  border-radius: 0 8px 8px 0;
+}
+
+.explanation-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.explanation-content {
+  flex: 1;
+}
+
+.explanation-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.explanation-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  white-space: pre-wrap;
+}
+
+/* Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>

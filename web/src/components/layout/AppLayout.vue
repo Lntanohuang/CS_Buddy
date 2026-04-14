@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
+import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ChatDotRound, Guide, EditPen, User } from '@element-plus/icons-vue'
 
@@ -8,15 +9,16 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const menuItems = [
-  { title: 'Chat', icon: ChatDotRound, route: '/app/chat' },
-  { title: 'Learning Path', icon: Guide, route: '/app/path' },
-  { title: 'Evaluation', icon: EditPen, route: '/app/evaluate' },
-  { title: 'Profile', icon: User, route: '/app/profile' },
+  { title: '智能对话', icon: ChatDotRound, route: '/app/chat' },
+  { title: '学习路径', icon: Guide, route: '/app/path' },
+  { title: '知识测评', icon: EditPen, route: '/app/evaluate' },
+  { title: '个人中心', icon: User, route: '/app/profile' },
 ]
 
-function handleMenuSelect(index: string) {
-  router.push(index)
-}
+const userInitials = computed(() => {
+  const name = authStore.nickname || '?'
+  return name.charAt(0).toUpperCase()
+})
 
 function handleLogout() {
   authStore.logout()
@@ -28,33 +30,39 @@ function handleLogout() {
   <div class="app-layout">
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <h1>智伴</h1>
+        <span class="logo-leaf">🌿</span>
+        <span class="logo-name">智伴</span>
       </div>
-      <el-menu
-        :default-active="route.path"
-        class="sidebar-menu"
-        @select="handleMenuSelect"
-      >
-        <el-menu-item v-for="item in menuItems" :key="item.route" :index="item.route">
-          <el-icon><component :is="item.icon" /></el-icon>
+
+      <nav class="sidebar-nav">
+        <router-link
+          v-for="item in menuItems"
+          :key="item.route"
+          :to="item.route"
+          class="nav-item"
+          :class="{ 'is-active': route.path === item.route }"
+        >
+          <el-icon :size="17"><component :is="item.icon" /></el-icon>
           <span>{{ item.title }}</span>
-        </el-menu-item>
-      </el-menu>
+        </router-link>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="user-avatar">{{ userInitials }}</div>
+          <span class="user-name">{{ authStore.nickname || '用户' }}</span>
+        </div>
+        <button class="logout-btn" @click="handleLogout">退出</button>
+      </div>
     </aside>
 
-    <div class="main-wrapper">
-      <header class="top-bar">
-        <div class="top-bar-spacer" />
-        <div class="top-bar-right">
-          <span class="user-nickname">{{ authStore.nickname }}</span>
-          <el-button text @click="handleLogout">退出登录</el-button>
-        </div>
-      </header>
-
-      <main class="main-content">
-        <RouterView />
-      </main>
-    </div>
+    <main class="main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="page" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
+    </main>
   </div>
 </template>
 
@@ -62,82 +70,133 @@ function handleLogout() {
 .app-layout {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: #1d1e1f;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  padding: 16px 12px;
 }
 
 .sidebar-logo {
-  height: 56px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 8px;
+  padding: 4px 12px 20px;
 }
 
-.sidebar-logo h1 {
-  color: #fff;
-  font-size: 22px;
+.logo-leaf {
+  font-size: 20px;
+}
+
+.logo-name {
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 2px;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
 }
 
-.sidebar-menu {
-  border-right: none;
-  background: transparent;
-  flex: 1;
-}
-
-.sidebar-menu .el-menu-item {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.sidebar-menu .el-menu-item:hover,
-.sidebar-menu .el-menu-item.is-active {
-  color: #fff;
-  background: rgba(64, 158, 255, 0.2);
-}
-
-.main-wrapper {
+.sidebar-nav {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: 2px;
 }
 
-.top-bar {
-  height: 56px;
-  flex-shrink: 0;
+.nav-item {
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.top-bar-spacer {
-  flex: 1;
-}
-
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.user-nickname {
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
   font-size: 14px;
-  color: #606266;
+  font-weight: 450;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-item.is-active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-weight: 550;
+}
+
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.user-name {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 450;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.logout-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .main-content {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: 32px;
+  background: var(--bg-primary);
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
 }
 </style>

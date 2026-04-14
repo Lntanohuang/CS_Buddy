@@ -11,11 +11,7 @@ const authStore = useAuthStore()
 const activeStep = shallowRef(0)
 const loading = shallowRef(false)
 
-const basicForm = reactive({
-  nickname: '',
-  email: '',
-  password: '',
-})
+const basicForm = reactive({ nickname: '', email: '', password: '' })
 
 const surveyForm: SurveyData = reactive({
   learning_goal: 'INTEREST',
@@ -25,6 +21,33 @@ const surveyForm: SurveyData = reactive({
   subjects: [],
 })
 
+const goalOptions = [
+  { value: 'EXAM_PREP', label: '备考', icon: '📝' },
+  { value: 'INTEREST', label: '兴趣学习', icon: '💡' },
+  { value: 'SKILL_UP', label: '技能提升', icon: '🚀' },
+]
+
+const levelOptions = [
+  { value: 'BEGINNER', label: '入门', icon: '🌱' },
+  { value: 'ELEMENTARY', label: '初级', icon: '🌿' },
+  { value: 'INTERMEDIATE', label: '中级', icon: '🌳' },
+  { value: 'ADVANCED', label: '高级', icon: '🏔' },
+]
+
+const styleOptions = [
+  { value: 'VIDEO', label: '视频', icon: '🎬' },
+  { value: 'TEXT', label: '文字', icon: '📖' },
+  { value: 'PRACTICE', label: '实践', icon: '🔧' },
+  { value: 'MIXED', label: '混合', icon: '🎯' },
+]
+
+const subjectOptions = [
+  { value: '数据结构', icon: '🧩' },
+  { value: '算法', icon: '⚙️' },
+  { value: 'Python', icon: '🐍' },
+  { value: '英语', icon: '🌍' },
+]
+
 function goToStep2() {
   if (!basicForm.nickname || !basicForm.email || !basicForm.password) {
     ElMessage.warning('请填写所有必填项')
@@ -33,23 +56,23 @@ function goToStep2() {
   activeStep.value = 1
 }
 
-function completeWithSurvey() {
-  activeStep.value = 2
+function toggleSubject(subject: string) {
+  const idx = surveyForm.subjects.indexOf(subject)
+  if (idx >= 0) surveyForm.subjects.splice(idx, 1)
+  else surveyForm.subjects.push(subject)
 }
 
-function skipSurvey() {
-  activeStep.value = 2
-}
+function completeWithSurvey() { activeStep.value = 2 }
+function skipSurvey() { activeStep.value = 2 }
 
 async function handleFinish() {
   loading.value = true
   try {
-    const hasSurvey = surveyForm.subjects.length > 0 || activeStep.value === 2
     authStore.register({
       nickname: basicForm.nickname,
       email: basicForm.email,
       password: basicForm.password,
-      survey: hasSurvey ? { ...surveyForm } : null,
+      survey: surveyForm.subjects.length > 0 ? { ...surveyForm } : null,
     })
     ElMessage.success('注册成功，欢迎使用智伴！')
     router.push('/app/chat')
@@ -61,122 +84,101 @@ async function handleFinish() {
 
 <template>
   <div class="register-page">
-    <el-card class="register-card" shadow="hover">
+    <div class="register-card">
       <div class="register-header">
-        <h1>智伴</h1>
-        <p class="subtitle">创建你的学习账号</p>
+        <span class="logo-leaf">🌿</span>
+        <h1 class="logo-name">创建账号</h1>
+        <p class="tagline">开始你的个性化学习之旅</p>
       </div>
 
-      <el-steps :active="activeStep" align-center class="register-steps">
-        <el-step title="基础信息" />
-        <el-step title="学习偏好" />
-        <el-step title="完成" />
-      </el-steps>
+      <!-- Step indicator -->
+      <div class="steps">
+        <div v-for="(s, i) in ['基础信息', '学习偏好', '完成']" :key="i" class="step" :class="{ active: activeStep === i, done: activeStep > i }">
+          <div class="step-dot">{{ activeStep > i ? '✓' : i + 1 }}</div>
+          <span class="step-label">{{ s }}</span>
+        </div>
+      </div>
 
-      <!-- Step 1: Basic Info -->
+      <!-- Step 1: Basic info -->
       <div v-if="activeStep === 0" class="step-content">
-        <el-form :model="basicForm" label-position="top">
-          <el-form-item label="昵称">
-            <el-input v-model="basicForm.nickname" placeholder="请输入昵称" />
-          </el-form-item>
-          <el-form-item label="邮箱">
-            <el-input v-model="basicForm.email" type="email" placeholder="请输入邮箱" />
-          </el-form-item>
-          <el-form-item label="密码">
-            <el-input
-              v-model="basicForm.password"
-              type="password"
-              placeholder="请输入密码"
-              show-password
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" class="full-btn" @click="goToStep2">
-              下一步
-            </el-button>
-          </el-form-item>
-        </el-form>
+        <div class="form-group">
+          <label class="form-label">昵称</label>
+          <input v-model="basicForm.nickname" class="form-input" placeholder="你的名字" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">邮箱</label>
+          <input v-model="basicForm.email" type="email" class="form-input" placeholder="name@example.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">密码</label>
+          <input v-model="basicForm.password" type="password" class="form-input" placeholder="至少 6 位" />
+        </div>
+        <button class="submit-btn" @click="goToStep2">下一步</button>
       </div>
 
       <!-- Step 2: Survey -->
-      <div v-else-if="activeStep === 1" class="step-content">
-        <el-form :model="surveyForm" label-position="top">
-          <el-form-item label="学习目标">
-            <el-radio-group v-model="surveyForm.learning_goal">
-              <el-radio value="EXAM_PREP">备考</el-radio>
-              <el-radio value="INTEREST">兴趣</el-radio>
-              <el-radio value="SKILL_UP">技能提升</el-radio>
-            </el-radio-group>
-          </el-form-item>
+      <div v-if="activeStep === 1" class="step-content">
+        <div class="survey-section">
+          <p class="survey-label">学习目标</p>
+          <div class="option-grid cols-3">
+            <button v-for="opt in goalOptions" :key="opt.value" class="option-card" :class="{ selected: surveyForm.learning_goal === opt.value }" @click="surveyForm.learning_goal = opt.value as SurveyData['learning_goal']">
+              <span class="option-icon">{{ opt.icon }}</span>
+              <span class="option-text">{{ opt.label }}</span>
+            </button>
+          </div>
+        </div>
 
-          <el-form-item label="当前水平">
-            <el-radio-group v-model="surveyForm.current_level">
-              <el-radio value="BEGINNER">入门</el-radio>
-              <el-radio value="ELEMENTARY">初级</el-radio>
-              <el-radio value="INTERMEDIATE">中级</el-radio>
-              <el-radio value="ADVANCED">高级</el-radio>
-            </el-radio-group>
-          </el-form-item>
+        <div class="survey-section">
+          <p class="survey-label">当前水平</p>
+          <div class="option-grid cols-4">
+            <button v-for="opt in levelOptions" :key="opt.value" class="option-card" :class="{ selected: surveyForm.current_level === opt.value }" @click="surveyForm.current_level = opt.value as SurveyData['current_level']">
+              <span class="option-icon">{{ opt.icon }}</span>
+              <span class="option-text">{{ opt.label }}</span>
+            </button>
+          </div>
+        </div>
 
-          <el-form-item label="每日学习时间">
-            <el-select v-model="surveyForm.daily_time_minutes" style="width: 100%">
-              <el-option :value="15" label="15 分钟" />
-              <el-option :value="30" label="30 分钟" />
-              <el-option :value="60" label="60 分钟" />
-              <el-option :value="120" label="120 分钟" />
-            </el-select>
-          </el-form-item>
+        <div class="survey-section">
+          <p class="survey-label">偏好方式</p>
+          <div class="option-grid cols-4">
+            <button v-for="opt in styleOptions" :key="opt.value" class="option-card" :class="{ selected: surveyForm.preferred_style === opt.value }" @click="surveyForm.preferred_style = opt.value as SurveyData['preferred_style']">
+              <span class="option-icon">{{ opt.icon }}</span>
+              <span class="option-text">{{ opt.label }}</span>
+            </button>
+          </div>
+        </div>
 
-          <el-form-item label="偏好学习方式">
-            <el-radio-group v-model="surveyForm.preferred_style">
-              <el-radio value="VIDEO">视频</el-radio>
-              <el-radio value="TEXT">文字</el-radio>
-              <el-radio value="PRACTICE">实践</el-radio>
-              <el-radio value="MIXED">混合</el-radio>
-            </el-radio-group>
-          </el-form-item>
+        <div class="survey-section">
+          <p class="survey-label">感兴趣的科目</p>
+          <div class="option-grid cols-4">
+            <button v-for="opt in subjectOptions" :key="opt.value" class="option-card" :class="{ selected: surveyForm.subjects.includes(opt.value) }" @click="toggleSubject(opt.value)">
+              <span class="option-icon">{{ opt.icon }}</span>
+              <span class="option-text">{{ opt.value }}</span>
+            </button>
+          </div>
+        </div>
 
-          <el-form-item label="感兴趣的学科">
-            <el-checkbox-group v-model="surveyForm.subjects">
-              <el-checkbox value="数据结构" label="数据结构" />
-              <el-checkbox value="算法" label="算法" />
-              <el-checkbox value="Python" label="Python" />
-              <el-checkbox value="英语" label="英语" />
-            </el-checkbox-group>
-          </el-form-item>
-
-          <el-form-item>
-            <div class="step2-actions">
-              <el-button @click="activeStep = 0">上一步</el-button>
-              <el-button text @click="skipSurvey">跳过问卷</el-button>
-              <el-button type="primary" @click="completeWithSurvey">下一步</el-button>
-            </div>
-          </el-form-item>
-        </el-form>
+        <div class="step-actions">
+          <button class="submit-btn" @click="completeWithSurvey">完成注册</button>
+          <button class="text-btn" @click="skipSurvey">跳过，稍后设置</button>
+        </div>
       </div>
 
-      <!-- Step 3: Complete -->
-      <div v-else class="step-content step-complete">
-        <el-icon :size="64" color="#67c23a" class="success-icon">
-          <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-            <path
-              fill="currentColor"
-              d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.808 536.384-99.52-99.584a38.4 38.4 0 1 0-54.336 54.336l126.72 126.72a38.272 38.272 0 0 0 54.336 0l262.4-262.464a38.4 38.4 0 1 0-54.336-54.272L456.192 600.384z"
-            />
-          </svg>
-        </el-icon>
-        <h2>注册成功！</h2>
-        <p class="complete-desc">一切准备就绪，开始你的智能学习之旅吧</p>
-        <el-button type="primary" size="large" :loading="loading" @click="handleFinish">
-          开始学习
-        </el-button>
+      <!-- Step 3: Done -->
+      <div v-if="activeStep === 2" class="step-content done-content">
+        <div class="done-icon">🎉</div>
+        <h2 class="done-title">注册成功！</h2>
+        <p class="done-desc">一切就绪，开始你的学习之旅吧</p>
+        <button class="submit-btn" :disabled="loading" @click="handleFinish">
+          <span v-if="loading" class="spinner"></span>
+          <span v-else>进入智伴</span>
+        </button>
       </div>
 
-      <div class="register-footer">
-        <span>已有账号？</span>
-        <router-link to="/login">返回登录</router-link>
-      </div>
-    </el-card>
+      <p class="register-footer">
+        已有账号？<router-link to="/login" class="link">返回登录</router-link>
+      </p>
+    </div>
   </div>
 </template>
 
@@ -186,82 +188,203 @@ async function handleFinish() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0ecff 0%, #f5f7fa 100%);
-  padding: 40px 0;
+  background: var(--bg-primary);
+  padding: 24px;
 }
 
 .register-card {
-  width: 520px;
+  width: 100%;
+  max-width: 480px;
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 32px;
 }
 
-.register-header h1 {
-  font-size: 32px;
-  font-weight: 700;
-  color: #409eff;
-  margin-bottom: 8px;
-}
+.logo-leaf { font-size: 28px; display: block; margin-bottom: 10px; }
+.logo-name { font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.tagline { color: var(--text-secondary); font-size: 14px; }
 
-.subtitle {
-  color: #909399;
-  font-size: 14px;
-}
-
-.register-steps {
-  margin-bottom: 24px;
-}
-
-.step-content {
-  min-height: 200px;
-}
-
-.step2-actions {
+/* Steps */
+.steps {
   display: flex;
-  width: 100%;
-  gap: 8px;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 32px;
 }
 
-.step-complete {
+.step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 32px 0;
+  gap: 6px;
 }
 
-.step-complete h2 {
-  font-size: 20px;
-  color: #303133;
+.step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
 }
 
-.complete-desc {
-  color: #909399;
-  font-size: 14px;
+.step.active .step-dot {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--bg-card);
 }
 
-.success-icon {
-  margin-bottom: 8px;
+.step.done .step-dot {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
 }
 
-.full-btn {
+.step-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.step.active .step-label { color: var(--text-primary); font-weight: 500; }
+
+/* Form */
+.step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+
+.form-input {
   width: 100%;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+
+.form-input::placeholder { color: var(--border-strong); }
+.form-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(74,124,111,0.1); }
+
+/* Survey */
+.survey-section { display: flex; flex-direction: column; gap: 8px; }
+.survey-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+
+.option-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.option-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.option-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+.option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.option-card:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+
+.option-card.selected {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+.option-icon { font-size: 20px; }
+.option-text { font-size: 12px; color: var(--text-primary); font-weight: 450; }
+
+/* Buttons */
+.submit-btn {
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-primary);
+  color: var(--bg-card);
+  font-size: 15px;
+  font-weight: 550;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submit-btn:hover:not(:disabled) { background: var(--accent-primary-hover); }
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 8px;
+}
+
+.text-btn:hover { color: var(--text-primary); }
+
+.step-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Done */
+.done-content { align-items: center; padding: 24px 0; }
+.done-icon { font-size: 48px; margin-bottom: 8px; }
+.done-title { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.done-desc { color: var(--text-secondary); font-size: 14px; margin-bottom: 16px; }
+
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: var(--bg-card);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .register-footer {
   text-align: center;
-  margin-top: 16px;
+  margin-top: 28px;
   font-size: 14px;
-  color: #909399;
+  color: var(--text-secondary);
 }
 
-.register-footer a {
-  color: #409eff;
-  text-decoration: none;
-  margin-left: 4px;
+.link { color: var(--accent-primary); font-weight: 500; margin-left: 2px; }
+.link:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  .option-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
