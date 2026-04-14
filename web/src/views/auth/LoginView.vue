@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, shallowRef } from 'vue'
+import { reactive, shallowRef, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
@@ -20,9 +20,14 @@ async function handleLogin() {
   }
   loading.value = true
   try {
-    authStore.login(form.email, form.password)
+    await authStore.login(form.email, form.password)
+    // Ensure store state is flushed before guard checks run.
+    await nextTick()
+    await router.push({ path: '/app/chat' })
     ElMessage.success('登录成功')
-    router.push('/app/chat')
+  } catch (error) {
+    console.error('Login or navigation failed:', error)
+    ElMessage.error('登录失败，请稍后重试')
   } finally {
     loading.value = false
   }

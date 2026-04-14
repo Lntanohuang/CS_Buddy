@@ -278,18 +278,18 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
   padding: 10px 22px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   background: var(--accent-primary);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(74, 124, 111, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
 }
 
 .start-eval-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(74, 124, 111, 0.4);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 /* Empty state */
@@ -368,13 +368,13 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
   cursor: default;
 }
 
 .history-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -391,7 +391,7 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
 .history-score-num {
   font-size: 18px;
   font-weight: 800;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .history-info {
@@ -535,7 +535,7 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--overlay-dark);
   backdrop-filter: blur(4px);
 }
 
@@ -544,7 +544,7 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
   max-width: 90vw;
   background: var(--bg-card);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -610,7 +610,7 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
 
 .modal-select:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .modal-footer {
@@ -641,12 +641,12 @@ const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
 
 .modal-btn--primary {
   background: var(--accent-primary);
-  color: var(--bg-card)fff;
-  box-shadow: 0 2px 6px rgba(74, 124, 111, 0.3);
+  color: var(--bg-card);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent-primary) 30%, transparent);
 }
 
 .modal-btn--primary:hover:not(.is-disabled) {
-  box-shadow: 0 4px 10px rgba(74, 124, 111, 0.4);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 .modal-btn--primary.is-disabled {

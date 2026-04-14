@@ -60,7 +60,7 @@ const difficultyPillColor = (difficulty: string) => {
       <template v-if="node.status === 'COMPLETED'">
         <span class="status-circle status-completed">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M2.5 6L5 8.5L9.5 4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.5 6L5 8.5L9.5 4" stroke="var(--bg-card)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </span>
       </template>
@@ -158,7 +158,7 @@ const difficultyPillColor = (difficulty: string) => {
 }
 
 .path-node-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   border-color: var(--border-strong);
   transform: translateY(-1px);
 }
@@ -172,7 +172,7 @@ const difficultyPillColor = (difficulty: string) => {
 .path-node-card.status-in_progress {
   background: var(--accent-primary-light);
   border-color: var(--accent-primary-light);
-  border-left: 3px solid #4A7C6F;
+  border-left: 3px solid var(--accent-primary);
   animation: border-pulse 2s ease-in-out infinite;
 }
 
@@ -236,7 +236,7 @@ const difficultyPillColor = (difficulty: string) => {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 2px solid #4A7C6F;
+  border: 2px solid var(--accent-primary);
   animation: pulse-ring 2s ease-out infinite;
 }
 
@@ -342,12 +342,12 @@ const difficultyPillColor = (difficulty: string) => {
 
 .btn-primary {
   background: var(--accent-primary);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .btn-primary:hover {
   background: var(--accent-primary-hover);
-  box-shadow: 0 2px 8px rgba(74, 124, 111, 0.4);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 .btn-ghost {

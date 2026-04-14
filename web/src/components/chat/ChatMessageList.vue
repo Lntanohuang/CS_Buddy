@@ -113,7 +113,7 @@ const isEmpty = computed(() => props.messages.length === 0)
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(74, 124, 111, 0.1), rgba(232, 192, 122, 0.1));
+  background: var(--accent-primary-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -149,7 +149,7 @@ const isEmpty = computed(() => props.messages.length === 0)
   height: 32px;
   border-radius: 50%;
   background: var(--accent-secondary);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,7 +166,7 @@ const isEmpty = computed(() => props.messages.length === 0)
   border: 1px solid var(--border);
   border-radius: 16px;
   border-top-left-radius: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .typing-dot {

@@ -149,7 +149,7 @@ const typeLabel: Record<string, string> = {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .progress-text {
@@ -181,7 +181,7 @@ const typeLabel: Record<string, string> = {
 .progress-fill {
   height: 100%;
   border-radius: 3px;
-  background: linear-gradient(90deg, #4A7C6F, #E8C07A);
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
   transition: width 0.4s ease;
 }
 
@@ -210,18 +210,18 @@ const typeLabel: Record<string, string> = {
   padding: 14px 48px;
   font-size: 16px;
   font-weight: 600;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   background: var(--accent-primary);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(74, 124, 111, 0.3);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
 }
 
 .submit-btn:hover:not(.is-disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(74, 124, 111, 0.4);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-primary) 40%, transparent);
 }
 
 .submit-btn:active:not(.is-disabled) {

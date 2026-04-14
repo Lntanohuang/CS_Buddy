@@ -75,7 +75,7 @@ const renderedHtml = computed(() => render(props.content))
 }
 
 .markdown-renderer :deep(blockquote) {
-  border-left: 3px solid #4A7C6F;
+  border-left: 3px solid var(--accent-primary);
   margin: 0.75em 0;
   padding: 0.5em 1em;
   color: var(--text-tertiary);

@@ -110,7 +110,7 @@ function onAnswerChange(val: string) {
     <Transition name="fade-slide">
       <div v-if="disabled && question.is_correct === false && question.explanation" class="explanation-box">
         <div class="explanation-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A7C6F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         </div>
         <div class="explanation-content">
           <span class="explanation-label">解析</span>
@@ -127,18 +127,18 @@ function onAnswerChange(val: string) {
   background: var(--bg-card);
   border: 1.5px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .quiz-question.is-correct {
   border-color: var(--status-success);
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--status-success) 10%, transparent);
 }
 
 .quiz-question.is-wrong {
   border-color: var(--status-error);
-  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--status-error) 10%, transparent);
 }
 
 /* Header */
@@ -163,7 +163,7 @@ function onAnswerChange(val: string) {
   height: 28px;
   border-radius: 50%;
   background: var(--accent-primary);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
@@ -280,19 +280,19 @@ function onAnswerChange(val: string) {
 .option-card.is-selected .option-key {
   border-color: var(--accent-primary);
   background: var(--accent-primary);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .option-card.is-correct-answer .option-key {
   border-color: var(--status-success);
   background: var(--status-success);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .option-card.is-wrong-answer .option-key {
   border-color: var(--status-error);
   background: var(--status-error);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .option-text {
@@ -333,7 +333,7 @@ function onAnswerChange(val: string) {
 
 .fill-input:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .fill-input:disabled {
@@ -369,7 +369,7 @@ function onAnswerChange(val: string) {
   margin-top: 16px;
   padding: 14px 16px;
   background: var(--bg-primary);
-  border-left: 3px solid #4A7C6F;
+  border-left: 3px solid var(--accent-primary);
   border-radius: 0 8px 8px 0;
 }
 

@@ -8,15 +8,6 @@ export interface RegisterRequest {
   nickname: string
   email: string
   password: string
-  survey: SurveyData | null
-}
-
-export interface SurveyData {
-  learning_goal: 'EXAM_PREP' | 'INTEREST' | 'SKILL_UP'
-  current_level: 'BEGINNER' | 'ELEMENTARY' | 'INTERMEDIATE' | 'ADVANCED'
-  daily_time_minutes: number
-  preferred_style: 'VIDEO' | 'TEXT' | 'PRACTICE' | 'MIXED'
-  subjects: string[]
 }
 
 export interface AuthUser {
@@ -26,19 +17,24 @@ export interface AuthUser {
   access_token: string
   refresh_token: string
   expires_in: number
+  has_profile: boolean
 }
 
-// ---- Profile ----
+// ---- Profile (7 dimensions) ----
 export interface UserProfile {
   user_id: string
+  major: string                              // 专业背景
+  knowledge_mastery: Record<string, number>  // 知识基础
+  cognitive_style: 'THEORETICAL' | 'PRACTICAL' | 'VISUAL' | 'MIXED' // 认知风格
+  error_patterns: string[]                   // 易错点偏好
+  preferred_style: string                    // 学习风格
+  daily_time_minutes: number                 // 学习节奏
+  learning_goal: string                      // 学习目标
   current_level: string
-  learning_goal: string
-  preferred_style: string
-  daily_time_minutes: number
-  knowledge_mastery: Record<string, number>
   weak_points: string[]
   style_weights: Record<string, number>
   subjects: string[]
+  profile_complete: boolean
   updated_at: string
 }
 
@@ -47,6 +43,7 @@ export interface ChatSession {
   session_id: string
   title: string
   status: string
+  session_type: 'NORMAL' | 'WELCOME'
   message_count: number
   created_at: string
   updated_at: string
@@ -58,19 +55,9 @@ export interface ChatMessage {
   role: 'USER' | 'ASSISTANT'
   content: string
   intent?: string
+  resource_type?: 'doc' | 'mindmap' | 'quiz' | 'video' | 'code' | 'mermaid'
   metadata?: Record<string, unknown>
   created_at: string
-}
-
-export interface SSEChunk {
-  type: 'token' | 'metadata' | 'resource_card' | 'done' | 'heartbeat'
-  content?: string
-  agent?: string
-  knowledge_point?: string
-  title?: string
-  difficulty?: string
-  est_minutes?: number
-  message_id?: string
 }
 
 // ---- Learning Path ----
@@ -106,6 +93,9 @@ export interface Evaluation {
   knowledge_point: string
   score?: number
   mastery_level?: number
+  learning_efficiency?: number
+  progress_trend?: 'UP' | 'STABLE' | 'DOWN'
+  weak_point_analysis?: string[]
   question_count: number
   correct_count?: number
   time_spent_seconds?: number
@@ -130,6 +120,17 @@ export interface EvalRecommendation {
   action: 'ADVANCE' | 'SUPPLEMENT' | 'RETREAT'
   message: string
   next_node_id?: string
+}
+
+// ---- Notification ----
+export interface Notification {
+  id: string
+  type: 'DAILY_RECOMMEND' | 'STUDY_REMINDER' | 'INACTIVE_RECALL' | 'EVAL_RESULT' | 'ACHIEVEMENT'
+  title: string
+  content: string
+  is_read: boolean
+  created_at: string
+  action_url?: string
 }
 
 // ---- Resource Feedback ----

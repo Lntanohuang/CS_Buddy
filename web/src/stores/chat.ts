@@ -4,12 +4,64 @@ import type { ChatSession, ChatMessage } from '@/types'
 import { mockSessions, mockMessages, mockStreamReply } from '@/mock/data'
 
 export const useChatStore = defineStore('chat', () => {
-  const sessions = ref<ChatSession[]>([...mockSessions])
-  const activeSessionId = shallowRef<string>(mockSessions[0].session_id)
-  const messagesBySession = ref<Record<string, ChatMessage[]>>({
-    [mockSessions[0].session_id]: [...mockMessages],
-    [mockSessions[1].session_id]: [],
-  })
+  const isValidSession = (session: unknown): session is ChatSession => {
+    if (!session || typeof session !== 'object') return false
+    const item = session as Partial<ChatSession>
+    return (
+      typeof item.session_id === 'string' &&
+      item.session_id.length > 0 &&
+      typeof item.title === 'string' &&
+      typeof item.status === 'string' &&
+      (item.session_type === 'NORMAL' || item.session_type === 'WELCOME') &&
+      typeof item.message_count === 'number' &&
+      typeof item.created_at === 'string' &&
+      typeof item.updated_at === 'string'
+    )
+  }
+
+  const isValidMessage = (message: unknown): message is ChatMessage => {
+    if (!message || typeof message !== 'object') return false
+    const item = message as Partial<ChatMessage>
+    return (
+      typeof item.message_id === 'string' &&
+      item.message_id.length > 0 &&
+      typeof item.session_id === 'string' &&
+      item.session_id.length > 0 &&
+      (item.role === 'USER' || item.role === 'ASSISTANT') &&
+      typeof item.content === 'string' &&
+      typeof item.created_at === 'string'
+    )
+  }
+
+  const now = new Date().toISOString()
+  const validSessions = mockSessions.filter(isValidSession)
+  const validMessages = mockMessages.filter(isValidMessage)
+
+  const seededSessions: ChatSession[] = validSessions.length > 0
+    ? validSessions.map((session) => ({ ...session }))
+    : [{
+        session_id: `sess_bootstrap_${Date.now()}`,
+        title: '新对话',
+        status: 'ACTIVE',
+        session_type: 'NORMAL',
+        message_count: 0,
+        created_at: now,
+        updated_at: now,
+      }]
+
+  const seededMessagesBySession = seededSessions.reduce<Record<string, ChatMessage[]>>(
+    (acc, session) => {
+      acc[session.session_id] = validMessages
+        .filter((msg) => msg.session_id === session.session_id)
+        .map((msg) => ({ ...msg }))
+      return acc
+    },
+    {},
+  )
+
+  const sessions = ref<ChatSession[]>(seededSessions)
+  const activeSessionId = shallowRef<string>(seededSessions[0].session_id)
+  const messagesBySession = ref<Record<string, ChatMessage[]>>(seededMessagesBySession)
   const isStreaming = shallowRef(false)
 
   const activeSession = computed(() =>
@@ -21,6 +73,7 @@ export const useChatStore = defineStore('chat', () => {
   )
 
   function selectSession(id: string) {
+    if (!messagesBySession.value[id]) return
     activeSessionId.value = id
   }
 
@@ -30,6 +83,7 @@ export const useChatStore = defineStore('chat', () => {
       session_id: id,
       title: '新对话',
       status: 'ACTIVE',
+      session_type: 'NORMAL',
       message_count: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -40,7 +94,12 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function sendMessage(content: string) {
+    if (!activeSessionId.value) {
+      createSession()
+    }
     const sid = activeSessionId.value
+    if (!sid) return
+
     const userMsg: ChatMessage = {
       message_id: `msg_${Date.now()}`,
       session_id: sid,

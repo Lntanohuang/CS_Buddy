@@ -1,10 +1,10 @@
 # 智伴（ZhiBan）技术设计文档（TDD）
 
-> **文档版本**：v1.1  
+> **文档版本**：v2.0  
 > **创建日期**：2026-04-13  
 > **作者**：架构团队  
 > **状态**：Draft — 待评审  
-> **关联文档**：[PRD v1.0](./PRD.md)
+> **关联文档**：[PRD v2.0](./PRD.md)
 
 ---
 
@@ -26,7 +26,7 @@
 ```mermaid
 graph TB
     subgraph Client["前端层 (Vue 3 + Vite)"]
-        UI[Web UI]
+        UI[Web UI<br/>含 Mermaid.js 渲染]
     end
 
     subgraph Gateway["API 网关层 (Spring Boot)"]
@@ -40,56 +40,78 @@ graph TB
         PS[ProfileService<br/>画像管理]
         LS[LearningService<br/>学习记录]
         CS[ChatService<br/>对话管理]
-        ES[EvalService<br/>评估管理]
+        ES_SVC[EvalService<br/>评估管理]
         RS[ResourceService<br/>资源管理]
         PPS[PathService<br/>路径管理]
+        PUSH[PushService<br/>推送服务]
         AIC[AIClient<br/>AI层HTTP客户端]
     end
 
     subgraph AI["AI 多智能体层 (Python + LangGraph)"]
         ORCH[OrchestratorAgent<br/>总调度]
-        PROF[ProfileAgent<br/>画像分析]
-        RES[ResourceGenAgent<br/>资源生成]
+        PROF[ProfileAgent<br/>画像分析 + 长期记忆]
+        DOC[DocAgent<br/>文档生成]
+        MIND[MindmapAgent<br/>思维导图生成]
+        QUIZ[QuizAgent<br/>练习题生成]
+        VIDEO[VideoAgent<br/>教学视频生成]
+        CODE[CodeAgent<br/>代码示例生成]
         PATH[PathPlannerAgent<br/>路径规划]
         EVAL[EvaluatorAgent<br/>效果评估]
         LLM[LLM Provider<br/>大模型API]
+    end
+
+    subgraph Sidecar["Sidecar 服务"]
+        REMOTION[Remotion 渲染服务<br/>Node.js :8020]
+        TTS[讯飞 TTS API]
     end
 
     subgraph Data["数据层"]
         MYSQL[(MySQL 8.0<br/>结构化业务数据)]
         REDIS[(Redis 7<br/>缓存 + 会话)]
         ELASTIC[(Elasticsearch 8<br/>日志 + 全文检索 + 向量检索)]
+        FS[文件系统<br/>profiles/user_id/memory.md]
+        OSS[对象存储<br/>视频 + 图片]
     end
 
     UI -->|REST / SSE| AUTH
     AUTH --> API
     AUTH --> SSE
-    API --> US & PS & LS & CS & ES & RS & PPS
+    API --> US & PS & LS & CS & ES_SVC & RS & PPS & PUSH
     SSE --> CS
     CS --> AIC
     RS --> AIC
-    ES --> AIC
+    ES_SVC --> AIC
     PPS --> AIC
     PS --> AIC
+    PUSH --> AIC
     AIC -->|HTTP / SSE| ORCH
-    ORCH --> PROF & RES & PATH & EVAL
-    PROF & RES & PATH & EVAL --> LLM
+    ORCH --> PROF & DOC & MIND & QUIZ & VIDEO & CODE & PATH & EVAL
+    PROF & DOC & MIND & QUIZ & CODE & PATH & EVAL --> LLM
+    VIDEO --> LLM
+    VIDEO -->|HTTP| REMOTION
+    VIDEO --> TTS
+    DOC & CODE -.->|可选| LLM
 
-    US & PS & LS & ES & PPS --> MYSQL
+    US & PS & LS & ES_SVC & PPS & PUSH --> MYSQL
     PS & CS --> REDIS
     LS & RS --> ELASTIC
     AIC --> ELASTIC
+    PROF --> FS
+    PROF --> ELASTIC
+    VIDEO --> OSS
+    DOC & CODE -.->|可选图片| OSS
 ```
 
 ### 1.2 各层职责说明
 
 | 层级 | 技术栈 | 职责 |
 |------|--------|------|
-| **前端层** | Vue 3 + Vite + Pinia + Vue Router | 用户界面渲染、交互逻辑、SSE 流式消息接收、本地状态管理 |
+| **前端层** | Vue 3 + Vite + Pinia + Vue Router | 用户界面渲染、交互逻辑、SSE 流式消息接收、Mermaid 图表渲染、本地状态管理 |
 | **API 网关层** | Spring Boot 3.x | 统一入口、JWT 认证鉴权、请求路由、限流、参数校验 |
-| **业务逻辑层** | Spring Boot 3.x | 核心业务逻辑编排、数据持久化、与 AI 层通信协调 |
-| **AI 多智能体层** | Python 3.11+ / LangChain / LangGraph | 多 Agent 协作调度、LLM 调用、个性化生成逻辑 |
-| **数据层** | MySQL + Redis + Elasticsearch | 结构化数据存储、缓存加速、日志存储 + 全文检索 + 向量检索 |
+| **业务逻辑层** | Spring Boot 3.x | 核心业务逻辑编排、数据持久化、推送服务、与 AI 层通信协调 |
+| **AI 多智能体层** | Python 3.11+ / LangChain / LangGraph | 9 Agent 协作调度（含 5 个资源生成 Agent）、LLM 调用、个性化生成逻辑、长期记忆管理 |
+| **Sidecar 服务** | Node.js + Remotion + 讯飞 TTS | 教学视频渲染、语音合成 |
+| **数据层** | MySQL + Redis + ES + 文件系统 + 对象存储 | 结构化数据存储、缓存加速、向量检索、用户记忆 MD 文件、视频/图片存储 |
 
 ### 1.3 关键技术选型及理由
 
@@ -99,17 +121,22 @@ graph TB
 | 构建工具 | Vite 5 | 开发热更新极快，生产构建基于 Rollup 体积小 |
 | 状态管理 | Pinia | Vue 3 官方推荐，类型安全，轻量 |
 | UI 组件库 | Element Plus | 中文生态成熟，组件丰富，适合后台管理类界面 |
-| Markdown 渲染 | markdown-it + highlight.js | 支持代码高亮、数学公式（配合 KaTeX 插件），满足学习内容展示 |
+| Markdown 渲染 | markdown-it + highlight.js + Mermaid.js | 支持代码高亮、数学公式（KaTeX）、Mermaid 图表渲染 |
+| 思维导图渲染 | 前端自定义组件（基于 D3.js 或类似库） | 将 MindmapAgent 返回的 JSON 结构渲染为可交互思维导图 |
 | 后端框架 | Spring Boot 3.x (Java 17+) | 企业级成熟框架，生态完善，天然支持 SSE 流式响应 |
 | ORM | MyBatis-Plus | 灵活 SQL 控制能力强，自带分页 / 逻辑删除 / 自动填充 |
 | AI 框架 | LangChain + LangGraph | LangGraph 原生支持有状态多 Agent 工作流，节点级重试与人工干预 |
-| 关系数据库 | MySQL 8.0 | 成熟可靠，支撑用户、画像、评估等结构化数据 |
+| 视频渲染 | Remotion (React + Node.js) | 程序化视频生成框架，支持代码动画、文字覆盖、图表场景 |
+| 语音合成 | 讯飞 TTS API | 中文语音质量高，支持多种音色，延迟低 |
+| 关系数据库 | MySQL 8.0 | 成熟可靠，支撑用户、画像、评估、通知等结构化数据 |
 | 缓存 | Redis 7 | 高性能 KV 存储，用于会话管理、画像缓存、限流计数 |
-| 搜索与向量引擎 | Elasticsearch 8.x | 统一承担行为日志存储、全文检索（IK 中文分词）、向量检索（dense_vector + kNN），一套引擎覆盖三类需求，减少组件数量 |
+| 搜索与向量引擎 | Elasticsearch 8.x | 统一承担行为日志存储、全文检索（IK 中文分词）、向量检索（dense_vector + kNN），一套引擎覆盖三类需求 |
 | Embedding 模型 | text-embedding-3-small (OpenAI) 或 bge-base-zh-v1.5 (本地) | 知识点和资源向量化，供语义检索使用 |
 | 流式通信 | SSE (Server-Sent Events) | 单向服务端推流，比 WebSocket 轻量，足以满足 LLM 逐 token 输出场景 |
+| 对象存储 | 阿里云 OSS / MinIO (本地开发) | 存储生成的视频、AI 图片等大文件 |
+| AI 图片生成 | DALL-E / Stable Diffusion（可选） | 辅助生成教学图解，MVP 阶段可关闭 |
 
-> ⚠️ **假设**：Embedding 模型 MVP 阶段使用 OpenAI text-embedding-3-small（1536 维，成本低），后续可切换到本地部署的 bge-base-zh-v1.5 以降低延迟和成本。待确认团队对本地模型部署的能力。
+> **假设**：Embedding 模型 MVP 阶段使用 OpenAI text-embedding-3-small（1536 维，成本低），后续可切换到本地部署的 bge-base-zh-v1.5 以降低延迟和成本。待确认团队对本地模型部署的能力。
 
 ---
 
@@ -122,8 +149,8 @@ graph TB
 ```
 /                           → 落地页（未登录重定向到 /login）
 /login                      → 登录页
-/register                   → 注册页（含偏好问卷）
-/register/survey            → 偏好问卷页（注册流程第二步）
+/register                   → 注册页（仅 email + password，简化注册）
+/welcome                    → 引导式欢迎对话页（注册后自动跳转，通过对话建立初始画像）
 
 /app                        → 主布局（需登录，侧边栏 + 顶栏）
 /app/chat                   → 智能对话页（核心页面）
@@ -133,6 +160,7 @@ graph TB
 /app/evaluate/:evalId       → 单次评估详情
 /app/dashboard              → 学习仪表盘（P1）
 /app/profile                → 个人中心 + 画像查看/修改
+/app/notifications          → 通知中心
 /app/settings               → 系统设置
 
 /teacher                    → 教师工作台布局（P1）
@@ -154,50 +182,100 @@ src/
 │   │   └── EvalView.vue        # 评估中心
 │   ├── auth/
 │   │   ├── LoginView.vue
-│   │   └── RegisterView.vue
-│   └── profile/
-│       └── ProfileView.vue
+│   │   ├── RegisterView.vue    # 简化注册（仅 email + password）
+│   │   └── WelcomeView.vue     # 引导式欢迎对话（建立初始画像）
+│   ├── profile/
+│   │   └── ProfileView.vue
+│   └── notification/
+│       └── NotificationView.vue # 通知中心页
 ├── components/                 # 可复用组件
 │   ├── chat/
 │   │   ├── ChatMessageList.vue    # 消息列表（含流式渲染）
 │   │   ├── ChatInput.vue          # 输入框 + 发送按钮
 │   │   ├── MessageBubble.vue      # 单条消息气泡
-│   │   └── ResourceCard.vue       # 嵌入式资源卡片
+│   │   ├── ResourceCard.vue       # 嵌入式资源卡片
+│   │   ├── VideoCard.vue          # 视频资源卡片（嵌入播放器）
+│   │   └── CodeBlock.vue          # 代码示例块（含运行结果展示）
 │   ├── path/
 │   │   ├── PathTimeline.vue       # 路径时间线可视化
 │   │   └── PathNodeCard.vue       # 路径节点卡片
 │   ├── evaluate/
 │   │   ├── QuizPanel.vue          # 答题面板
-│   │   ├── QuizQuestion.vue       # 单题组件
-│   │   └── EvalReport.vue         # 评估报告
+│   │   ├── QuizQuestion.vue       # 单题组件（支持选择/填空/代码题）
+│   │   └── EvalReport.vue         # 评估报告（含多维度分析图表）
+│   ├── resource/
+│   │   ├── MindmapViewer.vue      # 思维导图渲染组件（JSON → 可交互图）
+│   │   └── DocViewer.vue          # 文档查看器
+│   ├── notification/
+│   │   ├── NotificationBell.vue   # 顶栏通知铃铛（未读角标）
+│   │   ├── NotificationList.vue   # 通知列表
+│   │   └── RecommendCard.vue      # 今日推荐卡片（登录时展示）
 │   ├── common/
-│   │   ├── MarkdownRenderer.vue   # Markdown 渲染器
+│   │   ├── MarkdownRenderer.vue   # Markdown 渲染器（集成 Mermaid.js）
+│   │   ├── MermaidDiagram.vue     # Mermaid 图表渲染组件
 │   │   ├── LoadingStream.vue      # 流式加载动画
 │   │   └── FeedbackButtons.vue    # 有用/没用反馈组件
 │   └── layout/
 │       ├── AppLayout.vue          # 主布局
 │       ├── Sidebar.vue            # 侧边栏
-│       └── TopNav.vue             # 顶部导航
+│       └── TopNav.vue             # 顶部导航（含通知铃铛）
 ├── stores/                     # Pinia 状态管理
 │   ├── useAuthStore.ts            # 认证状态
 │   ├── useChatStore.ts            # 对话状态 + SSE 流管理
 │   ├── usePathStore.ts            # 学习路径状态
-│   └── useProfileStore.ts        # 用户画像状态
+│   ├── useProfileStore.ts         # 用户画像状态
+│   └── useNotificationStore.ts    # 通知状态
 ├── api/                        # API 调用层
 │   ├── http.ts                    # Axios 实例 + 拦截器
 │   ├── auth.ts                    # 认证相关接口
 │   ├── chat.ts                    # 对话相关接口
 │   ├── path.ts                    # 路径相关接口
 │   ├── evaluate.ts                # 评估相关接口
-│   └── profile.ts                 # 画像相关接口
+│   ├── profile.ts                 # 画像相关接口
+│   └── notification.ts            # 通知相关接口
 ├── composables/                # 组合式函数
 │   ├── useSSE.ts                  # SSE 流式连接管理
-│   └── useMarkdown.ts             # Markdown 渲染逻辑
+│   ├── useMarkdown.ts             # Markdown 渲染逻辑（含 Mermaid）
+│   └── useMindmap.ts              # 思维导图数据解析与渲染
 └── router/
     └── index.ts                   # 路由定义 + 导航守卫
 ```
 
-#### 2.1.3 与后端的接口调用方式
+#### 2.1.3 Mermaid 图表集成
+
+前端 `MarkdownRenderer.vue` 集成 Mermaid.js，当 LLM 回复中包含 Mermaid 代码块时自动渲染为可视化图表。
+
+```typescript
+// composables/useMarkdown.ts
+import MarkdownIt from 'markdown-it'
+import mermaid from 'mermaid'
+
+mermaid.initialize({ startOnLoad: false, theme: 'default' })
+
+export function useMarkdown() {
+  const md = new MarkdownIt({ html: false, linkify: true })
+
+  // 自定义 fence 规则：检测 mermaid 代码块
+  const defaultFence = md.renderer.rules.fence!
+  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]
+    if (token.info.trim() === 'mermaid') {
+      const id = `mermaid-${idx}-${Date.now()}`
+      return `<div class="mermaid-container" id="${id}">${token.content}</div>`
+    }
+    return defaultFence(tokens, idx, options, env, self)
+  }
+
+  // 渲染完成后初始化 Mermaid
+  async function renderMermaidBlocks() {
+    await mermaid.run({ querySelector: '.mermaid-container' })
+  }
+
+  return { md, renderMermaidBlocks }
+}
+```
+
+#### 2.1.4 与后端的接口调用方式
 
 **常规请求**：Axios HTTP 客户端，统一封装请求/响应拦截器。
 
@@ -230,7 +308,7 @@ http.interceptors.response.use(
 )
 ```
 
-**流式请求**（对话场景）：使用浏览器原生 `EventSource` 或 `fetch` + `ReadableStream` 接收 SSE。
+**流式请求**（对话场景）：使用浏览器原生 `fetch` + `ReadableStream` 接收 SSE。
 
 ```typescript
 // composables/useSSE.ts
@@ -279,6 +357,7 @@ com.zhiban.server
 │   ├── SecurityConfig.java            # Spring Security + JWT 配置
 │   ├── CorsConfig.java               # 跨域配置
 │   ├── RedisConfig.java              # Redis 序列化配置
+│   ├── SchedulingConfig.java         # 定时任务配置
 │   └── RestTemplateConfig.java       # AI 层 HTTP 客户端配置
 ├── common/                         # 公共模块
 │   ├── result/
@@ -295,7 +374,8 @@ com.zhiban.server
 │   ├── ProfileController.java        # 画像查询 / 修改
 │   ├── PathController.java           # 学习路径
 │   ├── EvalController.java           # 评估
-│   └── ResourceController.java       # 资源管理
+│   ├── ResourceController.java       # 资源管理
+│   └── NotificationController.java   # 通知管理
 ├── service/                        # Service 层（业务逻辑）
 │   ├── AuthService.java
 │   ├── ChatService.java
@@ -303,6 +383,8 @@ com.zhiban.server
 │   ├── PathService.java
 │   ├── EvalService.java
 │   ├── ResourceService.java
+│   ├── NotificationService.java      # 通知服务
+│   ├── PushService.java              # 主动推送服务（定时任务）
 │   └── AIClientService.java          # 封装对 AI 层的 HTTP 调用
 ├── model/                          # 数据模型
 │   ├── entity/                       # 数据库实体
@@ -313,23 +395,30 @@ com.zhiban.server
 │   │   ├── ChatSession.java
 │   │   ├── ChatMessage.java
 │   │   ├── Evaluation.java
-│   │   └── EvalQuestion.java
+│   │   ├── EvalQuestion.java
+│   │   └── Notification.java         # 通知实体
 │   ├── dto/                          # 请求/响应 DTO
 │   │   ├── auth/
 │   │   ├── chat/
 │   │   ├── profile/
 │   │   ├── path/
-│   │   └── eval/
+│   │   ├── eval/
+│   │   └── notification/
 │   └── vo/                           # 视图对象
 ├── mapper/                         # MyBatis-Plus Mapper
 │   ├── UserMapper.java
 │   ├── UserProfileMapper.java
 │   ├── LearningPathMapper.java
+│   ├── NotificationMapper.java
 │   └── ...
+├── scheduler/                      # 定时任务
+│   ├── PushScheduler.java            # 主动推送定时任务
+│   └── ProfileSnapshotScheduler.java # 画像快照
 ├── es/                             # Elasticsearch 操作
 │   ├── LearningLogEsService.java      # 行为日志写入/查询
 │   ├── ResourceCacheEsService.java    # 资源缓存写入/语义检索
-│   └── KnowledgeVectorEsService.java  # 知识点向量检索
+│   ├── KnowledgeVectorEsService.java  # 知识点向量检索
+│   └── UserMemoryEsService.java       # 用户长期记忆向量检索
 └── ZhiBanApplication.java         # 启动类
 ```
 
@@ -339,26 +428,18 @@ com.zhiban.server
 
 | 方法 | 路径 | 描述 |
 |------|------|------|
-| POST | `/api/v1/auth/register` | 用户注册 |
+| POST | `/api/v1/auth/register` | 用户注册（仅 email + password） |
 | POST | `/api/v1/auth/login` | 用户登录 |
 | POST | `/api/v1/auth/refresh` | 刷新 Token |
 | POST | `/api/v1/auth/logout` | 注销登录 |
 
 **POST /api/v1/auth/register**
 
-请求：
+请求（简化版，不含 survey）：
 ```json
 {
-  "nickname": "小明",
   "email": "xiaoming@example.com",
-  "password": "Abc123456!",
-  "survey": {
-    "learning_goal": "EXAM_PREP",
-    "current_level": "BEGINNER",
-    "daily_time_minutes": 60,
-    "preferred_style": "PRACTICE",
-    "subjects": ["DATA_STRUCTURE", "ALGORITHM"]
-  }
+  "password": "Abc123456!"
 }
 ```
 
@@ -371,10 +452,14 @@ com.zhiban.server
     "user_id": "usr_a1b2c3d4",
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
     "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-    "expires_in": 7200
+    "expires_in": 7200,
+    "is_new_user": true,
+    "welcome_session_id": "sess_welcome_xyz"
   }
 }
 ```
+
+> 注：`is_new_user=true` 时前端跳转到 `/welcome` 页面，使用 `welcome_session_id` 发起引导式对话，ProfileAgent 从对话中提取画像特征。
 
 **POST /api/v1/auth/login**
 
@@ -397,10 +482,18 @@ com.zhiban.server
     "role": "STUDENT",
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
     "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-    "expires_in": 7200
+    "expires_in": 7200,
+    "has_profile": true,
+    "today_recommendation": {
+      "knowledge_point": "binary_tree",
+      "title": "二叉树遍历",
+      "message": "今天继续学习二叉树吧！上次你在前序遍历上表现不错。"
+    }
   }
 }
 ```
+
+> 注：`has_profile=false` 时前端跳转到 `/welcome` 继续引导对话。`today_recommendation` 为登录时推荐（由 PushService 调用 PathPlannerAgent 生成）。
 
 ##### 对话模块
 
@@ -429,9 +522,17 @@ data: {"type":"token","content":"排序"}
 
 data: {"type":"token","content":"（Quick Sort）是"}
 
-data: {"type":"metadata","agent":"ResourceGenAgent","knowledge_point":"quick_sort"}
+data: {"type":"metadata","agent":"DocAgent","knowledge_point":"quick_sort"}
 
-data: {"type":"resource_card","title":"快速排序","difficulty":"INTERMEDIATE","est_minutes":15}
+data: {"type":"resource_card","resource_type":"doc","title":"快速排序详解","difficulty":"INTERMEDIATE","est_minutes":15}
+
+data: {"type":"resource_card","resource_type":"mindmap","title":"排序算法思维导图","data":{...}}
+
+data: {"type":"resource_card","resource_type":"code","title":"快速排序 Python 实现","language":"python","code":"...","output":"..."}
+
+data: {"type":"resource_card","resource_type":"video","title":"快速排序动画讲解","video_url":"https://oss.zhiban.com/videos/xxx.mp4","duration_seconds":180}
+
+data: {"type":"mermaid","content":"graph TD\n  A[选取基准] --> B[分区]\n  B --> C[递归左半]\n  B --> D[递归右半]"}
 
 data: {"type":"done","message_id":"msg_m1n2o3"}
 ```
@@ -440,7 +541,7 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
 
 | 方法 | 路径 | 描述 |
 |------|------|------|
-| GET | `/api/v1/profile` | 获取当前用户画像 |
+| GET | `/api/v1/profile` | 获取当前用户画像（7 维度） |
 | PATCH | `/api/v1/profile` | 手动修改画像标签 |
 | GET | `/api/v1/profile/history` | 获取画像变更历史 |
 
@@ -453,10 +554,12 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
   "message": "success",
   "data": {
     "user_id": "usr_a1b2c3d4",
-    "current_level": "INTERMEDIATE",
+    "major": "计算机科学",
     "learning_goal": "EXAM_PREP",
     "preferred_style": "PRACTICE",
     "daily_time_minutes": 60,
+    "study_frequency": "DAILY",
+    "cognitive_style": "PRACTICAL",
     "knowledge_mastery": {
       "array": 0.85,
       "linked_list": 0.72,
@@ -467,11 +570,16 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
       "graph": 0.10
     },
     "weak_points": ["binary_tree", "graph"],
+    "error_patterns": [
+      {"pattern": "递归终止条件遗漏", "frequency": 5, "related_kps": ["binary_tree", "recursion"]},
+      {"pattern": "指针操作错误", "frequency": 3, "related_kps": ["linked_list"]}
+    ],
     "style_weights": {
       "code_example": 0.6,
       "analogy": 0.25,
       "text": 0.15
     },
+    "subjects": ["DATA_STRUCTURE", "ALGORITHM"],
     "updated_at": "2026-04-13T14:30:00Z"
   }
 }
@@ -482,7 +590,8 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
 请求：
 ```json
 {
-  "current_level": "ADVANCED",
+  "major": "软件工程",
+  "cognitive_style": "THEORETICAL",
   "knowledge_mastery": {
     "linked_list": 0.90
   }
@@ -551,7 +660,7 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
 |------|------|------|
 | POST | `/api/v1/evaluations` | 发起评估（指定知识点或路径阶段） |
 | POST | `/api/v1/evaluations/{evalId}/submit` | 提交评估答案 |
-| GET | `/api/v1/evaluations/{evalId}` | 获取评估结果 |
+| GET | `/api/v1/evaluations/{evalId}` | 获取评估结果（含多维度分析） |
 | GET | `/api/v1/evaluations` | 获取评估历史 |
 
 **POST /api/v1/evaluations**
@@ -593,14 +702,10 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
       },
       {
         "question_id": "q_003",
-        "type": "SINGLE_CHOICE",
-        "content": "以下哪种排序算法是稳定的？",
-        "options": [
-          {"key": "A", "value": "快速排序"},
-          {"key": "B", "value": "堆排序"},
-          {"key": "C", "value": "归并排序"},
-          {"key": "D", "value": "选择排序"}
-        ]
+        "type": "CODE",
+        "content": "请实现快速排序的 partition 函数",
+        "language": "python",
+        "template": "def partition(arr, low, high):\n    # 请实现\n    pass"
       }
     ]
   }
@@ -615,13 +720,13 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
   "answers": [
     {"question_id": "q_001", "answer": "B"},
     {"question_id": "q_002", "answer": "O(n)"},
-    {"question_id": "q_003", "answer": "C"}
+    {"question_id": "q_003", "answer": "def partition(arr, low, high):\n    pivot = arr[high]\n    i = low - 1\n    for j in range(low, high):\n        if arr[j] <= pivot:\n            i += 1\n            arr[i], arr[j] = arr[j], arr[i]\n    arr[i+1], arr[high] = arr[high], arr[i+1]\n    return i + 1"}
   ],
-  "time_spent_seconds": 180
+  "time_spent_seconds": 300
 }
 ```
 
-响应：
+响应（多维度评估结果）：
 ```json
 {
   "code": 0,
@@ -630,7 +735,29 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
     "eval_id": "eval_e1f2g3",
     "score": 100,
     "total": 100,
-    "mastery_level": 0.85,
+    "assessment": {
+      "knowledge_mastery": 0.85,
+      "learning_efficiency": {
+        "time_spent_seconds": 300,
+        "accuracy": 1.0,
+        "efficiency_score": 0.92,
+        "comment": "答题速度快且准确率高，说明对排序知识掌握扎实"
+      },
+      "progress_trend": {
+        "previous_mastery": 0.55,
+        "current_mastery": 0.85,
+        "improvement": 0.30,
+        "trend": "IMPROVING",
+        "comment": "相比上次评估提升了 30%，进步显著"
+      },
+      "weak_point_analysis": [
+        {
+          "pattern": "无明显薄弱点",
+          "frequency": 0,
+          "suggestion": "可以挑战更高难度的题目"
+        }
+      ]
+    },
     "results": [
       {
         "question_id": "q_001",
@@ -647,8 +774,8 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
       {
         "question_id": "q_003",
         "correct": true,
-        "correct_answer": "C",
-        "explanation": "归并排序在合并过程中保持相同元素的相对顺序，因此是稳定排序。"
+        "correct_answer": "...",
+        "explanation": "partition 函数实现正确，使用了 Lomuto 分区方案。"
       }
     ],
     "recommendation": {
@@ -669,6 +796,7 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
 |------|------|------|
 | POST | `/api/v1/resources/feedback` | 提交资源反馈 |
 | GET | `/api/v1/resources/{resourceId}` | 获取已缓存资源 |
+| GET | `/api/v1/resources/video/{videoId}` | 获取视频资源（返回播放 URL） |
 
 **POST /api/v1/resources/feedback**
 
@@ -676,25 +804,143 @@ data: {"type":"done","message_id":"msg_m1n2o3"}
 ```json
 {
   "resource_id": "res_r1s2t3",
+  "resource_type": "doc",
   "message_id": "msg_m1n2o3",
   "feedback": "USEFUL",
   "comment": ""
 }
 ```
 
-#### 2.2.3 与 AI 层的通信协议设计
+##### 通知模块
+
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/v1/notifications` | 获取通知列表（分页） |
+| GET | `/api/v1/notifications/unread-count` | 获取未读通知数量 |
+| PATCH | `/api/v1/notifications/{notificationId}/read` | 标记单条通知已读 |
+| PATCH | `/api/v1/notifications/read-all` | 标记全部已读 |
+
+**GET /api/v1/notifications**
+
+响应：
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "notification_id": "notif_001",
+        "type": "STUDY_REMINDER",
+        "title": "该学习了",
+        "content": "今天推荐学习：二叉树遍历。上次你在这个知识点的掌握度是 30%，继续加油！",
+        "is_read": false,
+        "created_at": "2026-04-13T09:00:00Z"
+      },
+      {
+        "notification_id": "notif_002",
+        "type": "INACTIVE_REMINDER",
+        "title": "想你了",
+        "content": "你已经 3 天没学习了，知识会遗忘的哦！来复习一下链表吧。",
+        "is_read": true,
+        "created_at": "2026-04-10T10:00:00Z"
+      }
+    ],
+    "total": 15,
+    "page": 1,
+    "size": 20,
+    "pages": 1
+  }
+}
+```
+
+#### 2.2.3 PushService 主动推送服务设计
+
+```java
+@Service
+public class PushService {
+
+    @Autowired private NotificationService notificationService;
+    @Autowired private AIClientService aiClient;
+    @Autowired private UserMapper userMapper;
+    @Autowired private LearningPathMapper pathMapper;
+
+    /**
+     * 每日学习提醒 — 每天 09:00 执行
+     * 根据用户偏好学习时间发送个性化提醒
+     */
+    @Scheduled(cron = "0 0 9 * * ?")
+    public void dailyStudyReminder() {
+        List<User> activeUsers = userMapper.selectActiveStudents();
+        for (User user : activeUsers) {
+            // 调用 PathPlannerAgent 获取当前推荐节点
+            PathRecommendation rec = aiClient.callSync(
+                "/ai/v1/path/recommend",
+                Map.of("user_id", user.getUserId()),
+                PathRecommendation.class
+            );
+            notificationService.create(Notification.builder()
+                .userId(user.getUserId())
+                .type("STUDY_REMINDER")
+                .title("该学习了")
+                .content("今天推荐学习：" + rec.getKnowledgePointTitle()
+                    + "。" + rec.getEncouragement())
+                .build());
+        }
+    }
+
+    /**
+     * 不活跃用户提醒 — 每天 10:00 检查
+     * 3 天以上未登录的用户发送鼓励通知
+     */
+    @Scheduled(cron = "0 0 10 * * ?")
+    public void inactiveUserReminder() {
+        List<User> inactiveUsers = userMapper.selectInactiveUsers(3); // 3天未登录
+        for (User user : inactiveUsers) {
+            int daysInactive = calculateInactiveDays(user);
+            notificationService.create(Notification.builder()
+                .userId(user.getUserId())
+                .type("INACTIVE_REMINDER")
+                .title("想你了")
+                .content("你已经 " + daysInactive + " 天没学习了，"
+                    + "知识会遗忘的哦！来复习一下吧。")
+                .build());
+        }
+    }
+
+    /**
+     * 登录时推荐 — 由 AuthService.login() 调用
+     */
+    public PathRecommendation getLoginRecommendation(String userId) {
+        return aiClient.callSync(
+            "/ai/v1/path/recommend",
+            Map.of("user_id", userId),
+            PathRecommendation.class
+        );
+    }
+}
+```
+
+#### 2.2.4 与 AI 层的通信协议设计
 
 Spring Boot 通过 HTTP 与 LangGraph 服务通信。AI 层暴露以下内部接口：
 
 | 方法 | AI 层路径 | 描述 | 调用方式 |
 |------|----------|------|---------|
 | POST | `/ai/v1/chat` | 对话处理（流式） | SSE 流 |
+| POST | `/ai/v1/chat/welcome` | 欢迎引导对话（流式，ProfileAgent 主导） | SSE 流 |
 | POST | `/ai/v1/profile/analyze` | 画像分析/更新 | 同步 JSON |
+| POST | `/ai/v1/profile/extract` | 从对话中提取画像特征 | 同步 JSON |
 | POST | `/ai/v1/path/generate` | 生成学习路径 | 同步 JSON |
 | POST | `/ai/v1/path/adjust` | 调整学习路径 | 同步 JSON |
-| POST | `/ai/v1/evaluate/generate` | 生成评估题目 | 同步 JSON |
-| POST | `/ai/v1/evaluate/analyze` | 分析评估结果 | 同步 JSON |
-| POST | `/ai/v1/resource/generate` | 生成学习资源（流式），内部执行 ES 语义检索作为 RAG 上下文 | SSE 流 |
+| POST | `/ai/v1/path/recommend` | 获取当前推荐节点（用于推送） | 同步 JSON |
+| POST | `/ai/v1/evaluate/generate` | 生成评估题目（QuizAgent） | 同步 JSON |
+| POST | `/ai/v1/evaluate/analyze` | 分析评估结果（多维度） | 同步 JSON |
+| POST | `/ai/v1/resource/doc` | 生成文档资源（DocAgent，流式） | SSE 流 |
+| POST | `/ai/v1/resource/mindmap` | 生成思维导图（MindmapAgent） | 同步 JSON |
+| POST | `/ai/v1/resource/quiz` | 生成练习题（QuizAgent） | 同步 JSON |
+| POST | `/ai/v1/resource/video` | 生成教学视频（VideoAgent） | 异步 + 回调 |
+| POST | `/ai/v1/resource/code` | 生成代码示例（CodeAgent） | 同步 JSON |
 
 **通信协议约定**：
 
@@ -729,6 +975,16 @@ public class AIClientService {
             .retrieve()
             .bodyToFlux(String.class);
     }
+
+    /**
+     * 异步调用 AI 层（视频生成等耗时任务）
+     * 提交任务后立即返回 task_id，视频生成完成后通过回调通知
+     */
+    public String callAsync(String path, Object request) {
+        String url = aiBaseUrl + path;
+        Map<String, String> response = restTemplate.postForObject(url, request, Map.class);
+        return response.get("task_id");
+    }
 }
 ```
 
@@ -738,7 +994,8 @@ public class AIClientService {
 {
   "user_id": "usr_a1b2c3d4",
   "session_id": "sess_x1y2z3",
-  "profile": { /* 用户画像 JSON，由 Spring Boot 从缓存/DB 获取后传入 */ },
+  "profile": { /* 用户画像 JSON（7 维度），由 Spring Boot 从缓存/DB 获取后传入 */ },
+  "memory_context": { /* 可选：从 ES zhiban-user-memory 检索的相关记忆片段 */ },
   "payload": { /* 具体业务数据，因接口而异 */ },
   "config": {
     "model": "gpt-4o",
@@ -754,12 +1011,16 @@ public class AIClientService {
 ```json
 {
   "status": "success",
-  "agent": "ProfileAgent",
+  "agent": "DocAgent",
   "data": { /* 具体返回数据 */ },
+  "memory_updates": [
+    {"category": "preference", "content": "用户偏好通过代码示例学习排序算法"}
+  ],
   "metadata": {
     "model_used": "gpt-4o",
     "tokens_used": 1523,
-    "latency_ms": 2340
+    "latency_ms": 2340,
+    "agents_invoked": ["DocAgent", "CodeAgent"]
   }
 }
 ```
@@ -784,34 +1045,41 @@ class ZhiBanState(TypedDict):
     intent: Literal[
         "learn", "path_query", "evaluate",
         "profile_update", "progress_query", "chitchat",
-        "clarify"                               # 需要追问
+        "clarify",                              # 需要追问
+        "welcome"                               # 欢迎引导对话
     ]
     intent_confidence: float                    # 0.0 ~ 1.0
     matched_knowledge_points: list[dict]        # ES kNN 检索命中的知识点 [{"id":"quick_sort","score":0.92}]
     
     # ---- 用户画像 ----
-    profile: dict                               # 用户画像 JSON
+    profile: dict                               # 用户画像 JSON（7 维度）
     profile_updated: bool                       # 本轮是否更新了画像
+    memory_context: list[dict]                  # 从长期记忆检索的相关片段
     
     # ---- 学习路径 ----
     current_path: Optional[dict]                # 当前活跃路径
     current_node: Optional[dict]                # 当前学习节点
     path_adjustment: Optional[dict]             # 路径调整指令
     
-    # ---- 资源生成 ----
-    generated_resource: Optional[str]           # 生成的学习资源（Markdown）
+    # ---- 资源生成（5 个 Agent 各自的输出） ----
+    generated_doc: Optional[str]                # DocAgent: 文档内容（Markdown）
+    generated_mindmap: Optional[dict]           # MindmapAgent: 思维导图 JSON 结构
+    generated_quiz: Optional[list]              # QuizAgent: 练习题列表
+    generated_video_url: Optional[str]          # VideoAgent: 视频 URL（异步生成）
+    generated_code: Optional[dict]              # CodeAgent: 代码示例 {"code","language","output","explanation"}
     resource_metadata: Optional[dict]           # 资源元数据
     
     # ---- 评估 ----
     eval_questions: Optional[list]              # 生成的评估题目
     eval_answers: Optional[list]                # 用户提交的答案
-    eval_result: Optional[dict]                 # 评估结果分析
+    eval_result: Optional[dict]                 # 评估结果分析（含多维度）
     
     # ---- 输出 ----
     response_chunks: list[str]                  # 流式输出 chunks
     final_response: str                         # 最终完整回复
     
     # ---- 控制 ----
+    agents_to_invoke: list[str]                 # OrchestratorAgent 决定要调用的 Agent 列表
     error: Optional[str]                        # 错误信息
     retry_count: int                            # 当前重试次数
 ```
@@ -820,13 +1088,122 @@ class ZhiBanState(TypedDict):
 
 | Agent | 职责 | 输入（从 State 读取） | 输出（写入 State） | LLM 调用 |
 |-------|------|----------------------|-------------------|----------|
-| **OrchestratorAgent** | 意图识别、任务分解、路由调度、闲聊回复、结果组装。对 `learn` 意图，将用户消息向量化后从 ES `zhiban-knowledge-vectors` 索引中检索最匹配的知识点 | `user_message`, `session_id` | `intent`, `intent_confidence`, `matched_knowledge_points`, `final_response` | 是（意图分类 + 闲聊生成）+ ES kNN 检索 |
-| **ProfileAgent** | 画像查询、初始化、基于行为/评估数据更新画像 | `user_id`, `eval_result` | `profile`, `profile_updated` | 是（分析学习风格偏好） |
-| **ResourceGenAgent** | 根据画像和知识点生成个性化学习资源。生成前先从 ES `zhiban-resource-cache` 中语义检索已有资源作为参考（RAG），降低幻觉 | `profile`, `current_node`, `user_message` | `generated_resource`, `resource_metadata` | 是（核心生成逻辑）+ ES 语义检索 |
-| **PathPlannerAgent** | 生成学习路径、根据评估结果调整路径 | `profile`, `eval_result`, 知识图谱（外部加载） | `current_path`, `current_node`, `path_adjustment` | 是（路径优化推理） |
-| **EvaluatorAgent** | 生成评估题目、分析答案、输出评估报告。生成前从 ES `zhiban-eval-questions` 中检索相似题目去重 | `profile`, `current_node`, `eval_answers` | `eval_questions`, `eval_result` | 是（题目生成 + 错误分析）+ ES 去重检索 |
+| **OrchestratorAgent** | 意图识别、任务分解、路由调度（决定调用哪些 Agent）、闲聊回复、结果组装。对 `learn` 意图，将用户消息向量化后从 ES `zhiban-knowledge-vectors` 索引中检索最匹配的知识点 | `user_message`, `session_id` | `intent`, `intent_confidence`, `matched_knowledge_points`, `agents_to_invoke`, `final_response` | 是（意图分类 + 闲聊生成）+ ES kNN 检索 |
+| **ProfileAgent** | 画像查询、初始化（从引导对话中提取特征）、基于行为/评估数据更新画像。管理长期记忆（读 MD 文件 + ES 向量记忆，写新观察） | `user_id`, `eval_result`, `user_message`, `memory_context` | `profile`, `profile_updated`, `memory_context` | 是（分析学习风格偏好、提取对话特征） |
+| **DocAgent** | 根据画像和知识点生成个性化结构化课程文档（Markdown）。根据认知风格调整语言、示例、深度。可选调用 DALL-E 生成辅助图解 | `profile`, `current_node`, `user_message`, `memory_context` | `generated_doc`, `resource_metadata` | 是（核心生成逻辑）+ ES 语义检索（RAG）|
+| **MindmapAgent** | 生成知识点思维导图。输出结构化 JSON 供前端渲染，不生成图片 | `profile`, `current_node`, `matched_knowledge_points` | `generated_mindmap`, `resource_metadata` | 是（思维导图结构生成） |
+| **QuizAgent** | 生成练习题（单选 / 填空 / 代码题）。根据画像掌握度调整难度。查 ES `zhiban-eval-questions` 去重 | `profile`, `current_node`, `user_message` | `generated_quiz`, `resource_metadata` | 是（题目生成）+ ES 去重检索 |
+| **VideoAgent** | 生成教学视频。LLM 生成脚本 → 讯飞 TTS 合成音频 → Remotion 渲染视频 → 上传对象存储 | `profile`, `current_node`, `user_message` | `generated_video_url`, `resource_metadata` | 是（脚本生成）+ 讯飞 TTS + Remotion HTTP |
+| **CodeAgent** | 生成可执行代码示例（Python / Java / C++）。包含代码 + 行内注释 + 预期输出 + 分步讲解。可选调用 DALL-E 生成流程图 | `profile`, `current_node`, `user_message` | `generated_code`, `resource_metadata` | 是（代码生成 + 讲解） |
+| **PathPlannerAgent** | 生成学习路径、根据评估结果调整路径、提供登录推荐 | `profile`, `eval_result`, 知识图谱（外部加载） | `current_path`, `current_node`, `path_adjustment` | 是（路径优化推理） |
+| **EvaluatorAgent** | 生成评估题目、分析答案、输出多维度评估报告（知识掌握度 + 学习效率 + 进步趋势 + 弱点分析）。生成前从 ES `zhiban-eval-questions` 中检索相似题目去重 | `profile`, `current_node`, `eval_answers` | `eval_questions`, `eval_result` | 是（题目生成 + 错误分析）+ ES 去重检索 |
 
-#### 2.3.3 Agent 间的状态流转图
+#### 2.3.3 ProfileAgent 长期记忆系统设计
+
+**双存储架构**：
+
+```
+┌─────────────────────────────────────────────────────┐
+│  MD 文件: profiles/{user_id}/memory.md               │
+│  位置: AI 服务文件系统                                 │
+│  内容: 结构化摘要（用户特质、偏好、关键历史事件）         │
+│  Agent 每次对话开始时读取，对话结束后追加新观察           │
+│  格式: YAML front matter + Markdown sections          │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   ▼  互补
+┌─────────────────────────────────────────────────────┐
+│  ES 索引: zhiban-user-memory                         │
+│  内容: 向量嵌入的记忆片段，支持语义检索                  │
+│  每条记录: user_id, content, embedding, category,     │
+│           timestamp                                   │
+│  category: trait / preference / history               │
+│  用途: 语义检索相关记忆（"用户上次学排序时说了什么"）     │
+└─────────────────────────────────────────────────────┘
+```
+
+**Memory MD 文件格式示例**：
+
+```markdown
+---
+user_id: usr_a1b2c3d4
+last_updated: 2026-04-13T14:30:00Z
+---
+
+## 用户特质
+- 计算机科学专业大三学生
+- 偏好通过代码示例理解算法，不喜欢纯理论叙述
+- 对递归概念理解较慢，需要更多图示辅助
+
+## 学习偏好
+- 喜欢先看完整代码再逐行讲解
+- 倾向 Python 作为示例语言
+- 每次学习时长约 45 分钟，超过后注意力下降
+
+## 关键历史
+- [2026-04-10] 首次学习二叉树，反映前序遍历递归过程不直观
+- [2026-04-12] 排序算法评估得分 85%，快速排序 partition 理解到位
+- [2026-04-13] 主动要求练习链表题目，说明学习积极性高
+
+## 易错点
+- 递归终止条件经常遗漏（出现 3 次）
+- 链表指针操作顺序错误（出现 2 次）
+```
+
+**ProfileAgent 记忆读写流程**：
+
+```python
+class ProfileAgent:
+    async def load_memory(self, user_id: str) -> dict:
+        """对话开始时加载用户记忆"""
+        # 1. 读取 MD 文件（结构化摘要）
+        md_path = f"profiles/{user_id}/memory.md"
+        md_content = read_file(md_path) if file_exists(md_path) else ""
+        
+        # 2. 从 ES 检索语义相关记忆片段
+        relevant_memories = es_client.knn_search(
+            index="zhiban-user-memory",
+            query_vector=embed(user_message),
+            filter={"term": {"user_id": user_id}},
+            k=5
+        )
+        
+        return {
+            "structured_summary": md_content,
+            "relevant_memories": relevant_memories
+        }
+    
+    async def update_memory(self, user_id: str, conversation: list, observations: list):
+        """对话结束后更新记忆"""
+        # 1. 用 LLM 从对话中提取新观察
+        new_observations = await self.extract_observations(conversation)
+        
+        # 2. 追加到 MD 文件
+        md_path = f"profiles/{user_id}/memory.md"
+        append_to_file(md_path, format_observations(new_observations))
+        
+        # 3. 向量化后写入 ES
+        for obs in new_observations:
+            es_client.index(
+                index="zhiban-user-memory",
+                document={
+                    "user_id": user_id,
+                    "content": obs["content"],
+                    "embedding": embed(obs["content"]),
+                    "category": obs["category"],  # trait / preference / history
+                    "timestamp": datetime.utcnow()
+                }
+            )
+```
+
+**双通道画像更新机制**：
+
+| 通道 | 触发时机 | 数据来源 | 更新目标 | 说明 |
+|------|---------|---------|---------|------|
+| **通道 A：对话驱动** | 每次对话结束后 | ProfileAgent 从对话中提取新特征/观察 | MD 文件（追加）+ ES zhiban-user-memory（索引）| 捕获用户偏好、认知风格、学习习惯等软特征 |
+| **通道 B：行为驱动** | 评估完成 / 资源反馈 / 学习行为 | 评估分数、正确率、耗时、反馈等结构化数据 | MySQL user_profile（更新 JSON 字段）+ 清除 Redis 缓存 | 更新掌握度、易错点等硬指标 |
+
+#### 2.3.4 Agent 间的状态流转图
 
 **主对话流程**：
 
@@ -837,6 +1214,7 @@ stateDiagram-v2
     state Orchestrator {
         [*] --> IntentClassify: 意图识别
         IntentClassify --> RouteDecision: 返回 intent + confidence
+        RouteDecision --> DecideAgents: 决定调用哪些 Agent
     }
 
     Orchestrator --> ClarifyUser: intent == "clarify"\n(confidence < 0.6)
@@ -845,41 +1223,55 @@ stateDiagram-v2
     Orchestrator --> ChitchatReply: intent == "chitchat"
     ChitchatReply --> [*]: 直接回复
 
+    Orchestrator --> WelcomeFlow: intent == "welcome"
+    WelcomeFlow --> ProfileAgent_Extract: ProfileAgent 提取画像特征
+    ProfileAgent_Extract --> [*]: 返回引导对话回复
+
     Orchestrator --> ProfileAgent_Fetch: intent == "learn" / "evaluate" / "path_query"
     
-    ProfileAgent_Fetch --> ProfileCheck: 获取画像
+    ProfileAgent_Fetch --> ProfileCheck: 获取画像 + 加载长期记忆
 
     state ProfileCheck <<choice>>
-    ProfileCheck --> NeedSurvey: 画像不存在
+    ProfileCheck --> NeedWelcome: 画像不存在
     ProfileCheck --> RouteByIntent: 画像已就绪
 
-    NeedSurvey --> [*]: 引导填写问卷
+    NeedWelcome --> [*]: 引导进入欢迎对话
 
     state RouteByIntent <<choice>>
     RouteByIntent --> PathPlannerAgent: intent == "path_query" 或无活跃路径
-    RouteByIntent --> ResourceGenAgent: intent == "learn"
+    RouteByIntent --> ResourceDispatch: intent == "learn"
     RouteByIntent --> EvaluatorAgent_Gen: intent == "evaluate"
 
-    PathPlannerAgent --> ResourceGenAgent: 路径就绪，进入资源生成
-    ResourceGenAgent --> AssembleResponse: 资源生成完毕
+    state ResourceDispatch {
+        [*] --> InvokeAgents: 按 agents_to_invoke 并行调度
+        InvokeAgents --> DocAgent: 需要文档
+        InvokeAgents --> MindmapAgent: 需要思维导图
+        InvokeAgents --> QuizAgent: 需要练习题
+        InvokeAgents --> VideoAgent: 需要视频
+        InvokeAgents --> CodeAgent: 需要代码示例
+    }
+
+    PathPlannerAgent --> ResourceDispatch: 路径就绪，进入资源生成
+    ResourceDispatch --> AssembleResponse: 资源生成完毕
     
     EvaluatorAgent_Gen --> WaitForAnswers: 题目已生成
     WaitForAnswers --> EvaluatorAgent_Analyze: 用户提交答案
-    EvaluatorAgent_Analyze --> ProfileAgent_Update: 更新画像掌握度
+    EvaluatorAgent_Analyze --> ProfileAgent_Update: 更新画像掌握度 + 记忆
     ProfileAgent_Update --> PathAdjust: 评估驱动路径调整
     
     state PathAdjust <<choice>>
     PathAdjust --> PathPlannerAgent: mastery < 0.7 需调整
     PathAdjust --> AssembleResponse: mastery >= 0.7 继续
 
-    AssembleResponse --> [*]: 流式输出给用户
+    AssembleResponse --> MemoryUpdate: 组装完成
+    MemoryUpdate --> [*]: 更新长期记忆 → 流式输出给用户
 ```
 
 **评估后自适应调整流程**：
 
 ```mermaid
 flowchart TD
-    A[EvaluatorAgent 分析完成] --> B{掌握度判定}
+    A[EvaluatorAgent 多维度分析完成] --> B{掌握度判定}
     B -->|mastery >= 0.7| C[推进到下一节点]
     B -->|0.4 <= mastery < 0.7| D[插入补充练习节点]
     B -->|mastery < 0.4| E[回退到前置知识点]
@@ -888,12 +1280,38 @@ flowchart TD
     D --> F
     E --> F
     
-    F --> G[PathPlannerAgent 执行路径调整]
-    G --> H[OrchestratorAgent 组装回复]
-    H --> I[输出评估报告 + 下一步建议]
+    F --> G[更新 MySQL + 清除 Redis]
+    F --> H[追加长期记忆 MD + ES]
+    G --> I[PathPlannerAgent 执行路径调整]
+    H --> I
+    I --> J[PushService 更新推荐]
+    J --> K[OrchestratorAgent 组装回复]
+    K --> L[输出评估报告 + 多维度分析 + 下一步建议]
 ```
 
-#### 2.3.4 LangGraph 工作流构建代码
+**VideoAgent 视频生成流程**：
+
+```mermaid
+flowchart TD
+    A[VideoAgent 接收请求] --> B[LLM 生成视频脚本]
+    B --> C{脚本内容}
+    C --> D[旁白文本]
+    C --> E[场景描述]
+    C --> F[代码片段]
+    
+    D --> G[讯飞 TTS 合成音频]
+    E --> H[构建 Remotion 场景 Props]
+    F --> H
+    G --> H
+    
+    H --> I[HTTP 调用 Remotion 渲染服务 :8020]
+    I --> J[Remotion 渲染 React 组件为视频]
+    J --> K[生成 MP4 文件]
+    K --> L[上传对象存储]
+    L --> M[返回视频 URL]
+```
+
+#### 2.3.5 LangGraph 工作流构建代码
 
 ```python
 from langgraph.graph import StateGraph, END
@@ -901,43 +1319,68 @@ from langgraph.graph import StateGraph, END
 def build_chat_graph() -> StateGraph:
     graph = StateGraph(ZhiBanState)
 
-    # 添加节点
+    # 添加节点 — 9 个 Agent
     graph.add_node("orchestrator", orchestrator_node)
-    graph.add_node("profile_fetch", profile_fetch_node)
-    graph.add_node("profile_update", profile_update_node)
-    graph.add_node("path_planner", path_planner_node)
-    graph.add_node("resource_gen", resource_gen_node)
-    graph.add_node("evaluator_gen", evaluator_gen_node)
-    graph.add_node("evaluator_analyze", evaluator_analyze_node)
+    graph.add_node("profile_fetch", profile_fetch_node)        # ProfileAgent: 加载画像 + 记忆
+    graph.add_node("profile_update", profile_update_node)      # ProfileAgent: 更新画像 + 记忆
+    graph.add_node("profile_extract", profile_extract_node)    # ProfileAgent: 从对话提取特征
+    graph.add_node("path_planner", path_planner_node)          # PathPlannerAgent
+    graph.add_node("doc_gen", doc_gen_node)                    # DocAgent
+    graph.add_node("mindmap_gen", mindmap_gen_node)            # MindmapAgent
+    graph.add_node("quiz_gen", quiz_gen_node)                  # QuizAgent
+    graph.add_node("video_gen", video_gen_node)                # VideoAgent
+    graph.add_node("code_gen", code_gen_node)                  # CodeAgent
+    graph.add_node("evaluator_gen", evaluator_gen_node)        # EvaluatorAgent: 生成题目
+    graph.add_node("evaluator_analyze", evaluator_analyze_node)# EvaluatorAgent: 分析答案
+    graph.add_node("resource_dispatch", resource_dispatch_node)# 资源调度（并行调用多个 Agent）
     graph.add_node("assemble", assemble_response_node)
+    graph.add_node("memory_update", memory_update_node)        # 对话结束更新记忆
 
     # 入口
     graph.set_entry_point("orchestrator")
 
     # 条件边：意图路由
     graph.add_conditional_edges("orchestrator", route_by_intent, {
-        "chitchat": "assemble",          # 闲聊直接组装回复
-        "clarify": "assemble",           # 追问直接组装回复
-        "learn": "profile_fetch",        # 学习请求先获取画像
+        "chitchat": "assemble",
+        "clarify": "assemble",
+        "welcome": "profile_extract",       # 欢迎对话 → 提取画像
+        "learn": "profile_fetch",
         "path_query": "profile_fetch",
         "evaluate": "profile_fetch",
         "profile_update": "profile_update",
         "progress_query": "assemble",
     })
 
+    # 欢迎对话画像提取 → 组装
+    graph.add_edge("profile_extract", "assemble")
+
     # 画像获取后路由
     graph.add_conditional_edges("profile_fetch", route_after_profile, {
-        "need_survey": "assemble",
-        "learn": "resource_gen",
+        "need_welcome": "assemble",          # 画像不存在，引导进入欢迎
+        "learn": "resource_dispatch",        # 学习请求 → 资源调度
         "path_query": "path_planner",
         "evaluate": "evaluator_gen",
     })
 
-    # 路径规划完成后 → 资源生成
-    graph.add_edge("path_planner", "resource_gen")
+    # 资源调度节点 — 根据 agents_to_invoke 并行调用多个资源 Agent
+    graph.add_conditional_edges("resource_dispatch", route_resource_agents, {
+        "doc": "doc_gen",
+        "mindmap": "mindmap_gen",
+        "quiz": "quiz_gen",
+        "video": "video_gen",
+        "code": "code_gen",
+        "assemble": "assemble",              # 无需额外资源生成
+    })
 
-    # 资源生成完成后 → 组装
-    graph.add_edge("resource_gen", "assemble")
+    # 各资源 Agent 完成后 → 组装
+    graph.add_edge("doc_gen", "assemble")
+    graph.add_edge("mindmap_gen", "assemble")
+    graph.add_edge("quiz_gen", "assemble")
+    graph.add_edge("video_gen", "assemble")
+    graph.add_edge("code_gen", "assemble")
+
+    # 路径规划完成后 → 资源调度
+    graph.add_edge("path_planner", "resource_dispatch")
 
     # 评估题目生成 → 组装（返回题目给用户）
     graph.add_edge("evaluator_gen", "assemble")
@@ -951,13 +1394,161 @@ def build_chat_graph() -> StateGraph:
         "done": "assemble",
     })
 
-    # 组装完成 → 结束
-    graph.add_edge("assemble", END)
+    # 组装完成 → 更新长期记忆 → 结束
+    graph.add_edge("assemble", "memory_update")
+    graph.add_edge("memory_update", END)
 
     return graph.compile()
+
+
+def resource_dispatch_node(state: ZhiBanState) -> dict:
+    """
+    资源调度节点：根据 OrchestratorAgent 决定的 agents_to_invoke，
+    并行调用多个资源生成 Agent。
+    """
+    agents = state.get("agents_to_invoke", ["doc"])
+    # LangGraph 支持 fan-out / fan-in 模式
+    # 此节点设置标志，由条件边路由到各资源 Agent
+    return {"agents_to_invoke": agents}
+
+
+def route_resource_agents(state: ZhiBanState) -> list[str]:
+    """
+    根据 agents_to_invoke 返回需要并行调用的 Agent 节点名。
+    LangGraph 支持返回多个目标节点实现并行执行。
+    """
+    agents = state.get("agents_to_invoke", [])
+    mapping = {
+        "doc": "doc_gen",
+        "mindmap": "mindmap_gen",
+        "quiz": "quiz_gen",
+        "video": "video_gen",
+        "code": "code_gen",
+    }
+    targets = [mapping[a] for a in agents if a in mapping]
+    return targets if targets else ["assemble"]
 ```
 
-#### 2.3.5 异常处理与重试机制
+#### 2.3.6 VideoAgent 与 Remotion Sidecar 服务交互设计
+
+```python
+# agents/video_gen.py
+
+import httpx
+from xunfei_tts import XunfeiTTSClient
+
+class VideoAgent:
+    def __init__(self):
+        self.remotion_url = "http://localhost:8020"
+        self.tts_client = XunfeiTTSClient()
+        self.oss_client = OSSClient()
+    
+    async def generate_video(self, state: ZhiBanState) -> dict:
+        profile = state["profile"]
+        knowledge_point = state["current_node"]["knowledge_point"]
+        
+        # Step 1: LLM 生成视频脚本
+        script = await self.generate_script(knowledge_point, profile)
+        # script 结构: {
+        #   "title": "快速排序详解",
+        #   "scenes": [
+        #     {"type": "title", "text": "快速排序", "narration": "今天我们来学习快速排序算法"},
+        #     {"type": "code", "language": "python", "code": "def quick_sort(...):", 
+        #      "narration": "首先看一下快速排序的实现代码", "highlight_lines": [3,4,5]},
+        #     {"type": "diagram", "mermaid": "graph TD...", "narration": "整体流程如图所示"},
+        #   ],
+        #   "total_duration_estimate": 180
+        # }
+        
+        # Step 2: 讯飞 TTS 合成每个场景的音频
+        audio_urls = []
+        for scene in script["scenes"]:
+            audio_data = await self.tts_client.synthesize(
+                text=scene["narration"],
+                voice="xiaoyan",  # 讯飞语音类型
+                speed=5,
+                format="mp3"
+            )
+            audio_url = await self.oss_client.upload(audio_data, f"tts/{uuid4()}.mp3")
+            audio_urls.append(audio_url)
+        
+        # Step 3: 调用 Remotion 渲染服务
+        render_request = {
+            "composition": "TeachingVideo",
+            "props": {
+                "title": script["title"],
+                "scenes": script["scenes"],
+                "audio_urls": audio_urls,
+            },
+            "output_format": "mp4",
+            "fps": 30,
+            "width": 1920,
+            "height": 1080,
+        }
+        
+        async with httpx.AsyncClient(timeout=300) as client:
+            resp = await client.post(
+                f"{self.remotion_url}/render",
+                json=render_request
+            )
+            result = resp.json()
+            video_path = result["output_path"]
+        
+        # Step 4: 上传到对象存储
+        video_url = await self.oss_client.upload_file(video_path)
+        
+        return {
+            "generated_video_url": video_url,
+            "resource_metadata": {
+                "type": "video",
+                "title": script["title"],
+                "duration_seconds": script["total_duration_estimate"],
+                "knowledge_point": knowledge_point,
+            }
+        }
+```
+
+**Remotion 渲染服务（Node.js sidecar）**：
+
+```typescript
+// remotion-service/server.ts (Express + Remotion)
+import express from 'express';
+import { bundle } from '@remotion/bundler';
+import { renderMedia, selectComposition } from '@remotion/renderer';
+
+const app = express();
+app.use(express.json());
+
+app.post('/render', async (req, res) => {
+  const { composition, props, output_format, fps, width, height } = req.body;
+  
+  try {
+    const bundleLocation = await bundle(require.resolve('./src/index'));
+    const comp = await selectComposition({
+      serveUrl: bundleLocation,
+      id: composition,
+      inputProps: props,
+    });
+    
+    const outputPath = `/tmp/renders/${Date.now()}.${output_format}`;
+    await renderMedia({
+      composition: comp,
+      serveUrl: bundleLocation,
+      codec: output_format === 'mp4' ? 'h264' : 'vp8',
+      outputLocation: outputPath,
+      inputProps: props,
+    });
+    
+    res.json({ status: 'success', output_path: outputPath });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
+app.listen(8020, () => console.log('Remotion renderer on :8020'));
+```
+
+#### 2.3.7 异常处理与重试机制
 
 ```python
 import asyncio
@@ -990,9 +1581,16 @@ def with_retry(max_retries: int = 1, timeout_seconds: int = 15):
 
 # 使用示例
 @with_retry(max_retries=1, timeout_seconds=15)
-async def resource_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
-    """ResourceGenAgent 节点实现"""
-    # ... 调用 LLM 生成资源 ...
+async def doc_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
+    """DocAgent 节点实现"""
+    # ... 调用 LLM 生成文档 ...
+    pass
+
+# VideoAgent 特殊处理：超时时间更长（视频渲染耗时）
+@with_retry(max_retries=1, timeout_seconds=300)
+async def video_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
+    """VideoAgent 节点实现 — 视频生成耗时较长"""
+    # ... 调用 LLM + TTS + Remotion ...
     pass
 ```
 
@@ -1004,6 +1602,9 @@ async def resource_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
 | LLM API 限流（429） | 指数退避重试（1s → 2s → 4s），最多 3 次 | 提示用户稍后再试 |
 | LLM 返回格式异常 | 尝试 JSON 修复解析，失败则重新请求（调低 temperature） | 返回原始文本 |
 | Agent 内部异常 | 捕获异常，写入 State.error | OrchestratorAgent 检测 error 后返回兜底回复 |
+| VideoAgent 渲染失败 | Remotion 服务不可用时跳过视频生成 | 返回文档 + 代码替代，提示"视频生成中，稍后可查看" |
+| 讯飞 TTS 失败 | 重试 1 次 | 生成无音频的静默视频，或降级为纯文本脚本 |
+| 记忆文件读写失败 | 捕获 IO 异常 | 跳过记忆加载，使用纯 MySQL 画像数据 |
 | 知识图谱缺失 | PathPlannerAgent 检测到目标科目无图谱 | 返回"该科目正在建设中" |
 | 内容安全拦截 | OrchestratorAgent 预处理阶段过滤 | 提示用户调整输入 |
 
@@ -1021,38 +1622,52 @@ async def resource_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
 CREATE TABLE `user` (
     `id`            BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键',
     `user_id`       VARCHAR(32)     NOT NULL                 COMMENT '业务用户ID (usr_xxxx)',
-    `nickname`      VARCHAR(64)     NOT NULL                 COMMENT '昵称',
+    `nickname`      VARCHAR(64)     NULL                     COMMENT '昵称（可由引导对话中获取）',
     `email`         VARCHAR(128)    NOT NULL                 COMMENT '邮箱',
     `password_hash` VARCHAR(255)    NOT NULL                 COMMENT 'BCrypt密码哈希',
     `role`          VARCHAR(16)     NOT NULL DEFAULT 'STUDENT' COMMENT '角色: STUDENT / TEACHER',
     `status`        TINYINT         NOT NULL DEFAULT 1       COMMENT '状态: 1-正常 0-禁用 -1-注销',
+    `last_login_at` DATETIME        NULL                     COMMENT '最后登录时间（用于不活跃检测）',
     `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_id` (`user_id`),
-    UNIQUE KEY `uk_email` (`email`)
+    UNIQUE KEY `uk_email` (`email`),
+    KEY `idx_last_login` (`last_login_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 ```
 
-##### `user_profile` — 用户画像表
+##### `user_profile` — 用户画像表（7 维度）
 
 ```sql
 CREATE TABLE `user_profile` (
     `id`                BIGINT          NOT NULL AUTO_INCREMENT,
     `user_id`           VARCHAR(32)     NOT NULL                 COMMENT '用户ID',
-    `current_level`     VARCHAR(16)     NOT NULL DEFAULT 'BEGINNER' COMMENT '当前水平: BEGINNER/ELEMENTARY/INTERMEDIATE/ADVANCED',
-    `learning_goal`     VARCHAR(32)     NOT NULL DEFAULT 'INTEREST' COMMENT '学习目标: EXAM_PREP/INTEREST/SKILL_UP',
-    `preferred_style`   VARCHAR(16)     NOT NULL DEFAULT 'MIXED' COMMENT '偏好风格: VIDEO/TEXT/PRACTICE/MIXED',
-    `daily_time_minutes` INT            NOT NULL DEFAULT 60      COMMENT '每日可用学习时长(分钟)',
+    -- 维度 1: 专业背景
+    `major`             VARCHAR(64)     NULL                     COMMENT '专业/领域',
+    -- 维度 2: 知识基础（per 知识点掌握度）
     `knowledge_mastery` JSON            NOT NULL                 COMMENT '知识掌握度矩阵 {"array":0.85,"tree":0.3}',
+    -- 维度 3: 认知风格
+    `cognitive_style`   VARCHAR(32)     NOT NULL DEFAULT 'MIXED' COMMENT '认知风格: THEORETICAL/PRACTICAL/VISUAL/MIXED',
+    -- 维度 4: 易错点偏好
+    `error_patterns`    JSON            NULL                     COMMENT '高频错误模式 [{"pattern":"递归终止条件遗漏","frequency":5,"related_kps":["tree"]}]',
+    -- 维度 5: 学习风格
+    `preferred_style`   VARCHAR(16)     NOT NULL DEFAULT 'MIXED' COMMENT '偏好风格: VIDEO/TEXT/PRACTICE/MIXED',
+    -- 维度 6: 学习节奏
+    `daily_time_minutes` INT            NOT NULL DEFAULT 60      COMMENT '每日可用学习时长(分钟)',
+    `study_frequency`   VARCHAR(16)     NOT NULL DEFAULT 'DAILY' COMMENT '学习频率: DAILY/WEEKDAY/WEEKEND/FLEXIBLE',
+    -- 维度 7: 学习目标
+    `learning_goal`     VARCHAR(32)     NOT NULL DEFAULT 'INTEREST' COMMENT '学习目标: EXAM_PREP/INTEREST/SKILL_UP',
+    -- 其他
     `weak_points`       JSON            NULL                     COMMENT '薄弱知识点 ["tree","graph"]',
     `style_weights`     JSON            NULL                     COMMENT '风格权重 {"code_example":0.6}',
     `subjects`          JSON            NOT NULL                 COMMENT '学习科目 ["DATA_STRUCTURE"]',
+    `profile_complete`  TINYINT         NOT NULL DEFAULT 0       COMMENT '画像是否完整（引导对话完成后设为1）',
     `created_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户画像表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户画像表（7维度）';
 ```
 
 ##### `user_profile_snapshot` — 画像快照表（月度归档）
@@ -1121,6 +1736,7 @@ CREATE TABLE `chat_session` (
     `session_id`    VARCHAR(32)     NOT NULL,
     `user_id`       VARCHAR(32)     NOT NULL,
     `title`         VARCHAR(128)    NULL                     COMMENT '会话标题(取首条消息摘要)',
+    `session_type`  VARCHAR(16)     NOT NULL DEFAULT 'NORMAL' COMMENT '会话类型: NORMAL/WELCOME（引导对话）',
     `status`        VARCHAR(16)     NOT NULL DEFAULT 'ACTIVE',
     `message_count` INT             NOT NULL DEFAULT 0,
     `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1141,8 +1757,8 @@ CREATE TABLE `chat_message` (
     `role`          VARCHAR(16)     NOT NULL                 COMMENT 'USER / ASSISTANT',
     `content`       TEXT            NOT NULL                 COMMENT '消息内容(Markdown)',
     `intent`        VARCHAR(32)     NULL                     COMMENT '意图分类(仅ASSISTANT消息)',
-    `agent_chain`   VARCHAR(255)    NULL                     COMMENT 'Agent调度链: orchestrator->profile->resource',
-    `metadata`      JSON            NULL                     COMMENT '元数据(资源卡片、评估结果等)',
+    `agent_chain`   VARCHAR(255)    NULL                     COMMENT 'Agent调度链: orchestrator->profile->doc->code',
+    `metadata`      JSON            NULL                     COMMENT '元数据(资源卡片、评估结果、视频URL等)',
     `created_at`    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_message_id` (`message_id`),
@@ -1162,6 +1778,9 @@ CREATE TABLE `evaluation` (
     `path_node_id`      VARCHAR(32)     NULL,
     `score`             INT             NULL                     COMMENT '得分(0-100)',
     `mastery_level`     DECIMAL(3,2)    NULL                     COMMENT '掌握度(0.00-1.00)',
+    `learning_efficiency` JSON          NULL                     COMMENT '学习效率分析 {"time_spent":300,"accuracy":0.85,"efficiency_score":0.7}',
+    `progress_trend`    JSON            NULL                     COMMENT '进步趋势 {"previous":0.55,"current":0.85,"trend":"IMPROVING"}',
+    `weak_point_analysis` JSON          NULL                     COMMENT '弱点分析 [{"pattern":"...","frequency":3}]',
     `question_count`    INT             NOT NULL,
     `correct_count`     INT             NULL,
     `time_spent_seconds` INT            NULL,
@@ -1189,6 +1808,8 @@ CREATE TABLE `eval_question` (
     `explanation`       TEXT            NULL                     COMMENT '解析',
     `user_answer`       VARCHAR(512)    NULL                     COMMENT '用户答案',
     `is_correct`        TINYINT         NULL                     COMMENT '是否正确',
+    `language`          VARCHAR(16)     NULL                     COMMENT '编程语言（代码题）',
+    `code_template`     TEXT            NULL                     COMMENT '代码模板（代码题）',
     `order_num`         INT             NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_question_id` (`question_id`),
@@ -1203,6 +1824,7 @@ CREATE TABLE `resource_feedback` (
     `id`            BIGINT          NOT NULL AUTO_INCREMENT,
     `user_id`       VARCHAR(32)     NOT NULL,
     `resource_id`   VARCHAR(32)     NOT NULL,
+    `resource_type` VARCHAR(16)     NOT NULL DEFAULT 'doc'   COMMENT '资源类型: doc/mindmap/quiz/video/code',
     `message_id`    VARCHAR(32)     NULL,
     `feedback`      VARCHAR(16)     NOT NULL                 COMMENT 'USEFUL / NOT_USEFUL',
     `comment`       VARCHAR(512)    NULL,
@@ -1210,6 +1832,25 @@ CREATE TABLE `resource_feedback` (
     PRIMARY KEY (`id`),
     KEY `idx_user_resource` (`user_id`, `resource_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='资源反馈表';
+```
+
+##### `notification` — 通知表
+
+```sql
+CREATE TABLE `notification` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT,
+    `notification_id`   VARCHAR(32)     NOT NULL                 COMMENT '通知ID (notif_xxxx)',
+    `user_id`           VARCHAR(32)     NOT NULL                 COMMENT '接收用户ID',
+    `type`              VARCHAR(32)     NOT NULL                 COMMENT '通知类型: STUDY_REMINDER/INACTIVE_REMINDER/EVAL_COMPLETE/PATH_UPDATE',
+    `title`             VARCHAR(128)    NOT NULL                 COMMENT '通知标题',
+    `content`           TEXT            NOT NULL                 COMMENT '通知内容',
+    `is_read`           TINYINT         NOT NULL DEFAULT 0       COMMENT '是否已读: 0-未读 1-已读',
+    `read_at`           DATETIME        NULL                     COMMENT '阅读时间',
+    `created_at`        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_notification_id` (`notification_id`),
+    KEY `idx_user_read` (`user_id`, `is_read`, `created_at` DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知表';
 ```
 
 #### Elasticsearch 索引
@@ -1224,6 +1865,7 @@ CREATE TABLE `resource_feedback` (
       "user_id":          { "type": "keyword" },
       "event_type":       { "type": "keyword" },
       "resource_id":      { "type": "keyword" },
+      "resource_type":    { "type": "keyword" },
       "knowledge_point":  { "type": "keyword" },
       "duration_seconds": { "type": "integer" },
       "scroll_depth":     { "type": "float" },
@@ -1251,20 +1893,6 @@ CREATE TABLE `resource_feedback` (
 }
 ```
 
-**文档示例**：
-```json
-{
-  "user_id": "usr_a1b2c3d4",
-  "event_type": "RESOURCE_VIEW",
-  "resource_id": "res_r1s2t3",
-  "knowledge_point": "sorting",
-  "duration_seconds": 320,
-  "scroll_depth": 0.85,
-  "page_path": "/app/chat",
-  "created_at": "2026-04-13T14:30:00Z"
-}
-```
-
 ##### `zhiban-resource-cache` — 生成资源缓存（含向量检索）
 
 **索引 Mapping**：
@@ -1274,6 +1902,7 @@ CREATE TABLE `resource_feedback` (
     "properties": {
       "cache_key":         { "type": "keyword" },
       "resource_id":       { "type": "keyword" },
+      "resource_type":     { "type": "keyword" },
       "content":           { "type": "text", "analyzer": "ik_max_word", "search_analyzer": "ik_smart" },
       "content_embedding": { "type": "dense_vector", "dims": 1536, "index": true, "similarity": "cosine" },
       "subject":           { "type": "keyword" },
@@ -1296,24 +1925,6 @@ CREATE TABLE `resource_feedback` (
       }
     }
   }
-}
-```
-
-**文档示例**：
-```json
-{
-  "cache_key": "DATA_STRUCTURE:sorting:quick_sort:INTERMEDIATE:PRACTICE",
-  "resource_id": "res_r1s2t3",
-  "content": "## 快速排序\n\n快速排序是一种基于分治思想的排序算法...",
-  "content_embedding": [0.0123, -0.0456, 0.0789, "... (1536 dims)"],
-  "subject": "DATA_STRUCTURE",
-  "knowledge_points": ["quick_sort", "divide_and_conquer"],
-  "difficulty": "INTERMEDIATE",
-  "style": "PRACTICE",
-  "est_minutes": 15,
-  "hit_count": 42,
-  "created_at": "2026-04-13T10:00:00Z",
-  "last_accessed_at": "2026-04-13T14:30:00Z"
 }
 ```
 
@@ -1357,25 +1968,13 @@ CREATE TABLE `resource_feedback` (
 }
 ```
 
-**文档示例**：
-```json
-{
-  "knowledge_point_id": "quick_sort",
-  "title": "快速排序",
-  "description": "基于分治思想的原地排序算法，通过选取基准元素将数组划分为两部分递归排序",
-  "subject": "DATA_STRUCTURE",
-  "tags": ["sorting", "divide_and_conquer", "recursion", "partition"],
-  "embedding": [0.034, -0.012, 0.089, "... (1536 dims)"]
-}
-```
-
 **使用场景**：
 - 用户输入"怎么让数组查找更快" → Embedding → kNN 匹配 → 返回"哈希表"、"二分查找"等知识点
-- OrchestratorAgent 意图为 `learn` 时，将用户消息向量化，在知识点索引中检索最匹配的知识点，传递给 ResourceGenAgent
+- OrchestratorAgent 意图为 `learn` 时，将用户消息向量化，在知识点索引中检索最匹配的知识点，传递给对应资源 Agent
 
 ##### `zhiban-eval-questions` — 历史评估题目索引（去重用）
 
-**用途**：EvaluatorAgent 生成新题目前，检索语义相似的历史题目避免重复。
+**用途**：QuizAgent 和 EvaluatorAgent 生成新题目前，检索语义相似的历史题目避免重复。
 
 **索引 Mapping**：
 ```json
@@ -1394,37 +1993,105 @@ CREATE TABLE `resource_feedback` (
 }
 ```
 
+##### `zhiban-user-memory` — 用户长期记忆向量索引
+
+**用途**：存储 ProfileAgent 从对话中提取的用户记忆片段，支持按语义检索相关记忆，为后续对话提供个性化上下文。
+
+**索引 Mapping**：
+```json
+{
+  "mappings": {
+    "properties": {
+      "user_id":          { "type": "keyword" },
+      "content":          { "type": "text", "analyzer": "ik_max_word" },
+      "embedding":        { "type": "dense_vector", "dims": 1536, "index": true, "similarity": "cosine" },
+      "category":         { "type": "keyword" },
+      "timestamp":        { "type": "date" }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0
+  }
+}
+```
+
+**category 枚举值**：
+
+| category | 说明 | 示例 |
+|----------|------|------|
+| `trait` | 用户特质 | "计算机科学专业大三学生" |
+| `preference` | 学习偏好 | "偏好通过代码示例理解算法" |
+| `history` | 学习历史事件 | "2026-04-12 排序算法评估得分 85%" |
+
+**文档示例**：
+```json
+{
+  "user_id": "usr_a1b2c3d4",
+  "content": "用户偏好通过代码示例理解排序算法，不喜欢纯理论叙述",
+  "embedding": [0.034, -0.012, 0.089, "... (1536 dims)"],
+  "category": "preference",
+  "timestamp": "2026-04-13T14:30:00Z"
+}
+```
+
+**语义检索示例**：
+```json
+{
+  "knn": {
+    "field": "embedding",
+    "query_vector": [0.012, -0.045, 0.078, "..."],
+    "k": 5,
+    "num_candidates": 30,
+    "filter": {
+      "term": { "user_id": "usr_a1b2c3d4" }
+    }
+  }
+}
+```
+
 ### 3.2 用户画像数据的存储与更新策略
 
 **存储层级**：
 
 ```
-┌─────────────────────────────────────────┐
-│  Redis (热数据)                          │
-│  Key: profile:{user_id}                 │
-│  TTL: 30 分钟                            │
-│  用途: Agent 高频读取，避免穿透到 MySQL    │
-└──────────────────┬──────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  Redis (热数据)                                       │
+│  Key: profile:{user_id}                              │
+│  TTL: 30 分钟                                         │
+│  用途: Agent 高频读取，避免穿透到 MySQL                  │
+└──────────────────┬──────────────────────────────────┘
                    │ 缓存未命中时回源
                    ▼
-┌─────────────────────────────────────────┐
-│  MySQL user_profile (持久化)             │
-│  JSON 字段存储 knowledge_mastery 矩阵    │
-│  每次评估后同步更新                       │
-└──────────────────┬──────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  MySQL user_profile (持久化，7 维度)                    │
+│  JSON 字段存储 knowledge_mastery / error_patterns     │
+│  每次评估后同步更新                                     │
+└──────────────────┬──────────────────────────────────┘
                    │ 每月 1 号定时任务
                    ▼
-┌─────────────────────────────────────────┐
-│  MySQL user_profile_snapshot (历史快照)   │
-│  用于回溯和学习趋势分析                   │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  MySQL user_profile_snapshot (历史快照)                │
+│  用于回溯和学习趋势分析                                 │
+└──────────────────┬──────────────────────────────────┘
+                   │ 互补
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│  长期记忆: MD 文件 + ES zhiban-user-memory            │
+│  MD: 结构化摘要（AI 服务文件系统）                       │
+│  ES: 向量记忆片段（语义检索）                            │
+│  ProfileAgent 每次对话读取 + 更新                       │
+└─────────────────────────────────────────────────────┘
 ```
 
 **更新流程**：
 
-1. **评估触发更新**：EvaluatorAgent 分析完成 → Spring Boot `ProfileService.updateMastery()` → 更新 MySQL `knowledge_mastery` JSON 字段 → 清除 Redis 缓存 → 下次读取时重新加载
-2. **行为数据异步更新**：学习行为日志写入 Elasticsearch → 每日定时任务聚合分析 → 更新 `style_weights` 和 `daily_time_minutes`
-3. **用户手动修改**：前端 PATCH `/api/v1/profile` → 直接更新 MySQL + 清除 Redis
+1. **引导对话建立初始画像**：新用户注册后进入欢迎对话 → ProfileAgent 从 5-8 轮对话中提取 7 维度特征 → 写入 MySQL `user_profile`（`profile_complete=1`）→ 创建 MD 文件 + ES 记忆
+2. **评估触发更新（通道 B）**：EvaluatorAgent 分析完成 → Spring Boot `ProfileService.updateMastery()` → 更新 MySQL `knowledge_mastery` / `error_patterns` / `weak_points` → 清除 Redis 缓存 → 下次读取时重新加载
+3. **对话触发更新（通道 A）**：每次对话结束后 → ProfileAgent 提取新观察 → 追加到 MD 文件 + 索引到 ES `zhiban-user-memory` → 如发现显著偏好变化则同步更新 MySQL
+4. **行为数据异步更新（通道 B）**：学习行为日志写入 Elasticsearch → 每日定时任务聚合分析 → 更新 `style_weights` 和 `daily_time_minutes`
+5. **用户手动修改**：前端 PATCH `/api/v1/profile` → 直接更新 MySQL + 清除 Redis
+6. **资源反馈更新（通道 B）**：用户提交资源反馈 → 更新 `style_weights` → 清除 Redis 缓存
 
 ### 3.3 学习记录与评估数据设计
 
@@ -1434,10 +2101,13 @@ CREATE TABLE `resource_feedback` (
 flowchart LR
     A[用户学习行为] -->|实时写入| B[ES zhiban-learning-logs]
     C[评估作答] -->|提交时写入| D[MySQL evaluation + eval_question]
-    D -->|分析后更新| E[MySQL user_profile.knowledge_mastery]
+    D -->|多维度分析后更新| E[MySQL user_profile]
     E -->|清除缓存| F[Redis profile:{user_id}]
-    B -->|每日聚合| G[定时任务: 更新 style_weights]
-    G --> E
+    D -->|提取记忆| G[ProfileAgent 更新长期记忆]
+    G -->|追加| H[MD 文件 + ES zhiban-user-memory]
+    B -->|每日聚合| I[定时任务: 更新 style_weights]
+    I --> E
+    D -->|更新推荐| J[PushService 刷新推送内容]
 ```
 
 **评估数据生命周期**：
@@ -1446,9 +2116,11 @@ flowchart LR
 |------|------|---------|
 | 发起评估 | `POST /evaluations` | 写入 `evaluation`(PENDING) + `eval_question`(含正确答案) |
 | 提交答案 | `POST /evaluations/{id}/submit` | 更新 `eval_question.user_answer` + `evaluation.status=SUBMITTED` |
-| AI 分析 | AIClientService 调用 EvaluatorAgent | 更新 `evaluation.score/mastery_level/recommendation`，状态→ANALYZED |
-| 画像联动 | ProfileService 自动触发 | 更新 `user_profile.knowledge_mastery` |
+| AI 分析 | AIClientService 调用 EvaluatorAgent | 更新 `evaluation.score/mastery_level/learning_efficiency/progress_trend/weak_point_analysis/recommendation`，状态→ANALYZED |
+| 画像联动 | ProfileService 自动触发 | 更新 `user_profile.knowledge_mastery` + `error_patterns` + `weak_points` |
+| 记忆联动 | ProfileAgent 自动触发 | 追加评估事件到 MD 文件 + ES 记忆 |
 | 路径调整 | PathService 根据 recommendation 自动触发 | 可能插入/修改 `path_node` 记录 |
+| 推送更新 | PushService 自动触发 | 更新下次推荐内容 |
 
 ---
 
@@ -1516,10 +2188,10 @@ X-Request-Id: <uuid>          # 可选，用于请求追踪
 | 400xx | 参数校验错误 | 40001 - 邮箱格式不正确 |
 | 401xx | 认证错误 | 40100 - 未登录；40101 - Token 已过期；40102 - Token 无效 |
 | 403xx | 权限错误 | 40300 - 无权访问；40301 - 角色权限不足 |
-| 404xx | 资源不存在 | 40400 - 用户不存在；40401 - 会话不存在；40402 - 路径不存在 |
+| 404xx | 资源不存在 | 40400 - 用户不存在；40401 - 会话不存在；40402 - 路径不存在；40404 - 通知不存在 |
 | 409xx | 冲突 | 40900 - 邮箱已注册 |
 | 429xx | 限流 | 42900 - 请求过于频繁，请稍后再试 |
-| 500xx | 服务端错误 | 50000 - 系统内部错误；50001 - AI 服务不可用；50002 - AI 服务超时 |
+| 500xx | 服务端错误 | 50000 - 系统内部错误；50001 - AI 服务不可用；50002 - AI 服务超时；50003 - 视频渲染服务不可用 |
 
 **错误码枚举定义**：
 
@@ -1546,6 +2218,7 @@ public enum ErrorCode {
     SESSION_NOT_FOUND(40401, "会话不存在"),
     PATH_NOT_FOUND(40402, "路径不存在"),
     EVAL_NOT_FOUND(40403, "评估不存在"),
+    NOTIFICATION_NOT_FOUND(40404, "通知不存在"),
     
     // 冲突
     EMAIL_ALREADY_REGISTERED(40900, "邮箱已注册"),
@@ -1557,7 +2230,8 @@ public enum ErrorCode {
     INTERNAL_ERROR(50000, "系统内部错误"),
     AI_SERVICE_UNAVAILABLE(50001, "AI 服务暂时不可用"),
     AI_SERVICE_TIMEOUT(50002, "AI 服务响应超时"),
-    SUBJECT_NOT_SUPPORTED(50003, "该科目暂未开放");
+    VIDEO_RENDER_UNAVAILABLE(50003, "视频渲染服务暂时不可用"),
+    SUBJECT_NOT_SUPPORTED(50004, "该科目暂未开放");
 }
 ```
 
@@ -1570,7 +2244,7 @@ public enum ErrorCode {
 | Access Token | 2 小时 | 前端 localStorage | API 请求鉴权 |
 | Refresh Token | 7 天 | 前端 localStorage + 后端 Redis | 刷新 Access Token |
 
-> ⚠️ **假设**：MVP 阶段 Token 存储在 localStorage。若后续安全评估要求更高，可改为 HttpOnly Cookie 方案以防 XSS 窃取。待安全团队确认。
+> **假设**：MVP 阶段 Token 存储在 localStorage。若后续安全评估要求更高，可改为 HttpOnly Cookie 方案以防 XSS 窃取。待安全团队确认。
 
 **JWT Payload**：
 
@@ -1659,21 +2333,27 @@ graph TB
         VUE[Vue 前端静态文件<br/>由 Nginx 直接提供]
         SB[Spring Boot<br/>:8090<br/>×2 实例]
         AI[LangGraph 服务<br/>:8010<br/>×1 实例]
+        REM[Remotion 渲染服务<br/>:8020<br/>×1 实例]
     end
 
     subgraph DataStores["数据服务"]
         MYSQL_S[(MySQL :3316)]
         REDIS_S[(Redis :6389)]
         ES_S[(Elasticsearch :9210)]
+        OSS_S[(对象存储<br/>视频+图片)]
     end
 
     USER -->|HTTPS| NG
     NG -->|静态文件| VUE
     NG -->|/api/* 反向代理| SB
     SB -->|HTTP| AI
+    AI -->|HTTP| REM
     SB --> MYSQL_S & REDIS_S & ES_S
     AI --> ES_S
+    AI -->|文件系统| PROFILES[profiles/ 目录]
+    AI & REM --> OSS_S
     AI -->|HTTPS| LLM_API[LLM API<br/>OpenAI / Claude / etc.]
+    AI -->|HTTPS| TTS_API[讯飞 TTS API]
 ```
 
 **MVP 部署建议**：
@@ -1681,14 +2361,16 @@ graph TB
 | 服务 | 部署方式 | 实例数 | 资源配置 |
 |------|---------|--------|---------|
 | Nginx | Docker / 云 SLB | 1 | 1 核 1G |
-| Vue 前端 | Nginx 静态文件托管 | — | 与 Nginx 同机 |
+| Vue 前端 | Nginx 静态文件托管 | -- | 与 Nginx 同机 |
 | Spring Boot | Docker / JAR 直接运行 | 2 | 各 2 核 4G |
 | LangGraph (Python) | Docker / uvicorn | 1 | 4 核 8G（LLM 调用 IO 密集） |
+| Remotion (Node.js) | Docker | 1 | 4 核 8G（视频渲染 CPU 密集） |
 | MySQL | 云 RDS / Docker | 1 | 2 核 4G |
 | Redis | 云 Redis / Docker | 1 | 1 核 2G |
 | Elasticsearch | 云 ES / Docker | 1 | 4 核 8G（向量检索需要较多内存） |
+| 对象存储 | 阿里云 OSS / MinIO | 1 | -- |
 
-> ⚠️ **假设**：MVP 阶段单机或小规模云部署即可满足 500 并发。PRD 未明确部署环境（自建机房 / 阿里云 / AWS），此处按云部署设计。待确认具体云厂商。
+> **假设**：MVP 阶段单机或小规模云部署即可满足 500 并发。PRD 未明确部署环境（自建机房 / 阿里云 / AWS），此处按云部署设计。待确认具体云厂商。
 
 ### 5.2 环境变量与配置管理
 
@@ -1717,13 +2399,23 @@ zhiban:
   ai:
     base-url: ${AI_SERVICE_URL:http://localhost:8010}
     timeout-ms: 15000
+    video-timeout-ms: 300000          # 视频生成超时 5 分钟
   jwt:
     secret: ${JWT_SECRET}
     access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 604800
   rate-limit:
-    chat-qps-per-user: 5          # 单用户对话限流
-    global-ai-qps: 50             # 全局 AI 调用限流
+    chat-qps-per-user: 5
+    global-ai-qps: 50
+  push:
+    daily-reminder-cron: "0 0 9 * * ?"
+    inactive-check-cron: "0 0 10 * * ?"
+    inactive-threshold-days: 3
+  oss:
+    endpoint: ${OSS_ENDPOINT:http://localhost:9000}   # MinIO 本地 / 阿里云 OSS
+    access-key: ${OSS_ACCESS_KEY}
+    secret-key: ${OSS_SECRET_KEY}
+    bucket: ${OSS_BUCKET:zhiban}
 ```
 
 **LangGraph 服务 (`.env`)**：
@@ -1741,18 +2433,39 @@ SERVICE_HOST=0.0.0.0
 SERVICE_PORT=8010
 LOG_LEVEL=INFO
 
-# Elasticsearch（向量检索 + 行为日志读取）
+# Elasticsearch（向量检索 + 行为日志读取 + 用户记忆）
 ES_URL=http://localhost:9210
 ES_USERNAME=elastic
 ES_PASSWORD=
 
 # Embedding 模型
-EMBEDDING_PROVIDER=openai              # openai / local
-EMBEDDING_MODEL=text-embedding-3-small # OpenAI 时使用
-# EMBEDDING_MODEL_PATH=./models/bge-base-zh-v1.5  # local 时使用
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
 
 # 知识图谱路径
 KNOWLEDGE_GRAPH_DIR=./data/knowledge_graphs/
+
+# 用户记忆 MD 文件存储路径
+MEMORY_PROFILES_DIR=./profiles/
+
+# Remotion 渲染服务
+REMOTION_SERVICE_URL=http://localhost:8020
+
+# 讯飞 TTS
+XUNFEI_APP_ID=${XUNFEI_APP_ID}
+XUNFEI_API_KEY=${XUNFEI_API_KEY}
+XUNFEI_API_SECRET=${XUNFEI_API_SECRET}
+
+# 对象存储
+OSS_ENDPOINT=${OSS_ENDPOINT:http://localhost:9000}
+OSS_ACCESS_KEY=${OSS_ACCESS_KEY}
+OSS_SECRET_KEY=${OSS_SECRET_KEY}
+OSS_BUCKET=zhiban
+
+# AI 图片生成（可选）
+IMAGE_GEN_ENABLED=false             # MVP 阶段默认关闭
+IMAGE_GEN_PROVIDER=openai           # openai (DALL-E) / stable_diffusion
+IMAGE_GEN_API_KEY=${IMAGE_GEN_API_KEY:}
 ```
 
 **环境分离**：
@@ -1767,7 +2480,7 @@ KNOWLEDGE_GRAPH_DIR=./data/knowledge_graphs/
 
 ```bash
 # 1. 启动基础设施（一次性）
-docker compose up -d mysql redis elasticsearch
+docker compose up -d mysql redis elasticsearch remotion
 
 # 2. 初始化数据库
 cd server
@@ -1777,7 +2490,8 @@ mvn flyway:migrate                    # 或手动执行 SQL 脚本
 cd ai-service
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env                  # 填写 LLM_API_KEY
+cp .env.example .env                  # 填写 LLM_API_KEY, XUNFEI 密钥等
+mkdir -p profiles/                    # 创建用户记忆存储目录
 uvicorn main:app --reload --port 8010
 
 # 4. 启动后端
@@ -1826,9 +2540,21 @@ services:
     volumes:
       - es_data:/usr/share/elasticsearch/data
 
+  remotion:
+    build:
+      context: ./remotion-service
+      dockerfile: Dockerfile
+    ports:
+      - "8020:8020"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - render_tmp:/tmp/renders
+
 volumes:
   mysql_data:
   es_data:
+  render_tmp:
 ```
 
 ---
@@ -1841,10 +2567,12 @@ volumes:
 
 | 缓存对象 | 存储 | Key 设计 | TTL | 失效策略 |
 |---------|------|---------|-----|---------|
-| 用户画像 | Redis Hash | `profile:{user_id}` | 30 min | 画像更新时主动清除 |
+| 用户画像 | Redis Hash | `profile:{user_id}` | 30 min | 画像更新时主动清除（通道 A/B 均触发） |
 | 学习路径 | Redis String | `path:{path_id}` | 1 hour | 路径调整时主动清除 |
 | 生成资源 | ES zhiban-resource-cache | 向量语义匹配 + `{subject}:{kp}:{difficulty}:{style}` 精确匹配 | 无固定 TTL，按 last_accessed_at 淘汰 | 定时清理 180 天未访问的文档 |
 | 会话上下文 | Redis List | `chat_ctx:{session_id}` | 24 hour | 保留最近 20 轮对话 |
+| 未读通知数 | Redis String | `notif_unread:{user_id}` | 10 min | 通知创建/已读时主动清除 |
+| 今日推荐 | Redis String | `recommend:{user_id}` | 4 hour | 评估完成或路径调整时清除 |
 
 #### 流式输出（SSE）
 
@@ -1867,9 +2595,23 @@ public SseEmitter streamChat(@RequestBody ChatRequest request,
         }
         
         @Override
-        public void onMetadata(Map<String, Object> metadata) {
+        public void onResourceCard(ResourceCard card) {
             try {
-                emitter.send(SseEmitter.event().data(metadata));
+                emitter.send(SseEmitter.event()
+                    .data(Map.of("type", "resource_card",
+                        "resource_type", card.getType(),  // doc/mindmap/quiz/video/code
+                        "title", card.getTitle(),
+                        "data", card.getData())));
+            } catch (IOException e) {
+                emitter.completeWithError(e);
+            }
+        }
+        
+        @Override
+        public void onMermaid(String mermaidSyntax) {
+            try {
+                emitter.send(SseEmitter.event()
+                    .data(Map.of("type", "mermaid", "content", mermaidSyntax)));
             } catch (IOException e) {
                 emitter.completeWithError(e);
             }
@@ -1901,7 +2643,10 @@ public SseEmitter streamChat(@RequestBody ChatRequest request,
 | 场景 | 方式 |
 |------|------|
 | 行为日志写入 | 异步：`@Async` + 线程池，批量写入 Elasticsearch |
-| 画像更新 | 半异步：评估完成后先同步返回结果，画像更新异步执行 |
+| 画像更新（通道 B） | 半异步：评估完成后先同步返回结果，画像更新异步执行 |
+| 长期记忆更新（通道 A） | 异步：对话结束后异步调用 ProfileAgent 更新记忆 |
+| 视频生成 | 全异步：提交生成任务后立即返回 task_id，完成后通过通知推送 |
+| 推送通知 | 定时任务：Spring `@Scheduled` 按 cron 表达式执行 |
 | 周报生成 | 定时任务：Spring `@Scheduled` 每周一 08:00 执行 |
 | 画像快照 | 定时任务：每月 1 号凌晨执行 |
 
@@ -1914,8 +2659,9 @@ public SseEmitter streamChat(@RequestBody ChatRequest request,
 | 层级 | 日志内容 | 格式 | 存储 |
 |------|---------|------|------|
 | 接入层 | 请求 URL、Method、状态码、耗时、X-Request-Id | JSON | 文件 + 日志平台 |
-| 业务层 | 业务关键节点（用户注册、评估完成、路径创建） | JSON | 文件 + 日志平台 |
-| AI 层 | Agent 调度链、LLM 调用耗时、Token 消耗 | JSON | 文件 + 日志平台 |
+| 业务层 | 业务关键节点（用户注册、评估完成、路径创建、通知发送） | JSON | 文件 + 日志平台 |
+| AI 层 | Agent 调度链（9 Agent）、LLM 调用耗时、Token 消耗、记忆读写 | JSON | 文件 + 日志平台 |
+| 视频渲染层 | Remotion 渲染耗时、TTS 调用耗时、输出文件大小 | JSON | 文件 + 日志平台 |
 | 错误层 | 异常堆栈、错误码、上下文参数 | JSON | 文件 + 告警 |
 
 **日志格式**：
@@ -1928,9 +2674,10 @@ public SseEmitter streamChat(@RequestBody ChatRequest request,
   "user_id": "usr_a1b2c3d4",
   "module": "ChatService",
   "action": "stream_chat",
-  "agent_chain": "orchestrator->profile->resource",
+  "agent_chain": "orchestrator->profile->doc->code",
   "latency_ms": 2340,
   "llm_tokens": 1523,
+  "agents_invoked": ["DocAgent", "CodeAgent"],
   "message": "对话处理完成"
 }
 ```
@@ -1946,12 +2693,15 @@ public SseEmitter streamChat(@RequestBody ChatRequest request,
 | API 响应时间 P99 | Spring Boot Actuator + Prometheus | > 3 秒 |
 | LLM 调用成功率 | 自定义 Metrics | < 95% |
 | LLM 单次调用耗时 P95 | 自定义 Metrics | > 10 秒 |
+| Remotion 渲染耗时 P95 | 自定义 Metrics | > 120 秒 |
+| 讯飞 TTS 成功率 | 自定义 Metrics | < 98% |
 | 错误率（5xx） | Prometheus | > 1% |
 | Redis 命中率 | Redis INFO | < 80% |
 | MySQL 慢查询 | MySQL Slow Query Log | > 1 秒 |
 | JVM 内存使用 | Actuator | > 85% |
+| 通知推送成功率 | 自定义 Metrics | < 99% |
 
-> ⚠️ **假设**：MVP 阶段使用 Spring Boot Actuator + Prometheus + Grafana 作为监控方案。若团队已有统一监控平台（如阿里云 ARMS），可替换。
+> **假设**：MVP 阶段使用 Spring Boot Actuator + Prometheus + Grafana 作为监控方案。若团队已有统一监控平台（如阿里云 ARMS），可替换。
 
 ### 6.3 安全性设计
 
@@ -1961,11 +2711,13 @@ public SseEmitter streamChat(@RequestBody ChatRequest request,
 | **认证鉴权** | JWT（见 4.3），Spring Security 过滤器链 |
 | **密码安全** | BCrypt（cost factor = 12），前端传输前不做 MD5 |
 | **SQL 注入** | MyBatis-Plus 参数化查询，禁止字符串拼接 SQL |
-| **XSS 防护** | 前端 Markdown 渲染使用 DOMPurify 清洗 HTML |
-| **Prompt 注入** | AI 层 OrchestratorAgent 入口处增加 Prompt 安全检查：检测并过滤常见注入模式（如 "ignore previous instructions"） |
+| **XSS 防护** | 前端 Markdown 渲染使用 DOMPurify 清洗 HTML；Mermaid 渲染在沙盒环境 |
+| **Prompt 注入** | AI 层 OrchestratorAgent 入口处增加 Prompt 安全检查：检测并过滤常见注入模式 |
 | **限流** | Redis 令牌桶：单用户对话 5 QPS，全局 AI 调用 50 QPS |
 | **CORS** | 仅允许前端域名来源 |
 | **敏感数据** | 环境变量存储密钥，不硬编码；生产环境使用云 KMS |
+| **记忆文件安全** | profiles/ 目录权限限制，仅 AI 服务可读写，按 user_id 隔离 |
+| **视频内容安全** | 生成的视频脚本经过内容安全审核后再渲染 |
 
 **Prompt 注入防护示例**：
 
@@ -1995,16 +2747,22 @@ def check_input_safety(user_message: str) -> bool:
 
 | 编号 | 假设 | 出现章节 | 对应 PRD 项 |
 |------|------|---------|------------|
-| T1 | 使用 Elasticsearch 8 统一承担行为日志、全文检索、向量检索，替代 PRD 中提到的 ClickHouse/MongoDB | 1.3 | PRD 6.1 |
+| T1 | 使用 Elasticsearch 8 统一承担行为日志、全文检索、向量检索、用户长期记忆向量存储 | 1.3, 3.1 | PRD 6.1 |
 | T2 | 云部署，具体云厂商待定 | 5.1 | PRD A7 |
 | T3 | JWT Token 存 localStorage，未采用 HttpOnly Cookie | 4.3 | PRD 5.2 |
 | T4 | LLM 模型默认使用 GPT-4o，通过配置可切换 | 2.3 | PRD 5.3 |
-| T5 | 知识图谱以 JSON 文件形式存放在 AI 服务本地，不入数据库 | 2.3.4 | PRD A3 |
-| T6 | 监控方案使用 Actuator + Prometheus + Grafana | 6.2 | — |
-| T7 | 前端 UI 组件库选用 Element Plus | 1.3 | — |
+| T5 | 知识图谱以 JSON 文件形式存放在 AI 服务本地，不入数据库 | 2.3.5 | PRD A3 |
+| T6 | 监控方案使用 Actuator + Prometheus + Grafana | 6.2 | -- |
+| T7 | 前端 UI 组件库选用 Element Plus | 1.3 | -- |
 | T8 | PRD 中提到"WebSocket 加密"（5.2），实际设计中对话流式使用 SSE 而非 WebSocket，SSE 基于 HTTPS 即可保证传输安全 | 6.1 | PRD 5.2 |
-| T9 | Embedding 模型 MVP 使用 OpenAI text-embedding-3-small（1536 维），后续可切换本地 bge-base-zh-v1.5 | 1.3 | — |
-| T10 | ES 需安装 IK 中文分词插件（elasticsearch-analysis-ik），Docker 镜像中需预装 | 3.1 | — |
+| T9 | Embedding 模型 MVP 使用 OpenAI text-embedding-3-small（1536 维），后续可切换本地 bge-base-zh-v1.5 | 1.3 | -- |
+| T10 | ES 需安装 IK 中文分词插件（elasticsearch-analysis-ik），Docker 镜像中需预装 | 3.1 | -- |
+| T11 | 用户记忆 MD 文件存储在 AI 服务本地文件系统，生产环境需挂载持久化存储（NFS / 云盘） | 2.3.3 | -- |
+| T12 | Remotion 视频渲染服务作为 sidecar 部署，与 AI 服务同机或同网络；生产环境可独立部署 | 2.3.6, 5.1 | -- |
+| T13 | 讯飞 TTS 使用 WebSocket 实时合成接口，需提前申请 APPID / API Key / API Secret | 2.3.6 | -- |
+| T14 | AI 图片生成（DALL-E / Stable Diffusion）MVP 阶段默认关闭，通过配置开关 IMAGE_GEN_ENABLED 控制 | 1.3 | -- |
+| T15 | 主动推送 MVP 阶段仅支持应用内通知（notification 表），不集成邮件 / 微信等外部渠道 | 2.2.3 | -- |
+| T16 | 对象存储本地开发使用 MinIO，生产环境使用阿里云 OSS 或类似服务 | 5.2 | -- |
 
 ### 附录 B：项目目录结构总览
 
@@ -2012,38 +2770,107 @@ def check_input_safety(user_message: str) -> bool:
 zhiban/
 ├── web/                        # Vue 3 前端
 │   ├── src/
+│   │   ├── views/
+│   │   │   ├── auth/
+│   │   │   │   ├── LoginView.vue
+│   │   │   │   ├── RegisterView.vue
+│   │   │   │   └── WelcomeView.vue        # 引导式欢迎对话
+│   │   │   ├── chat/
+│   │   │   ├── path/
+│   │   │   ├── evaluate/
+│   │   │   ├── profile/
+│   │   │   └── notification/
+│   │   │       └── NotificationView.vue
+│   │   ├── components/
+│   │   │   ├── chat/
+│   │   │   ├── resource/
+│   │   │   │   ├── MindmapViewer.vue      # 思维导图渲染
+│   │   │   │   └── DocViewer.vue
+│   │   │   ├── notification/
+│   │   │   │   ├── NotificationBell.vue
+│   │   │   │   └── RecommendCard.vue
+│   │   │   ├── common/
+│   │   │   │   ├── MarkdownRenderer.vue   # 含 Mermaid.js
+│   │   │   │   └── MermaidDiagram.vue
+│   │   │   └── layout/
+│   │   ├── stores/
+│   │   ├── api/
+│   │   ├── composables/
+│   │   └── router/
 │   ├── public/
 │   ├── package.json
 │   ├── vite.config.ts
 │   └── .env.example
 ├── server/                     # Spring Boot 后端
 │   ├── src/main/java/com/zhiban/server/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   │   └── NotificationController.java
+│   │   ├── service/
+│   │   │   ├── NotificationService.java
+│   │   │   └── PushService.java
+│   │   ├── scheduler/
+│   │   │   └── PushScheduler.java
+│   │   ├── model/entity/
+│   │   │   └── Notification.java
+│   │   ├── mapper/
+│   │   │   └── NotificationMapper.java
+│   │   └── es/
+│   │       └── UserMemoryEsService.java
 │   ├── src/main/resources/
 │   │   ├── application.yml
 │   │   ├── application-dev.yml
 │   │   └── db/migration/       # Flyway 数据库迁移脚本
 │   └── pom.xml
 ├── ai-service/                 # LangGraph AI 服务
-│   ├── agents/
-│   │   ├── orchestrator.py
-│   │   ├── profile.py
-│   │   ├── resource_gen.py
-│   │   ├── path_planner.py
-│   │   └── evaluator.py
+│   ├── agents/                 # 9 个 Agent
+│   │   ├── orchestrator.py        # OrchestratorAgent
+│   │   ├── profile.py             # ProfileAgent（含长期记忆管理）
+│   │   ├── doc_gen.py             # DocAgent
+│   │   ├── mindmap_gen.py         # MindmapAgent
+│   │   ├── quiz_gen.py            # QuizAgent
+│   │   ├── video_gen.py           # VideoAgent
+│   │   ├── code_gen.py            # CodeAgent
+│   │   ├── path_planner.py        # PathPlannerAgent
+│   │   └── evaluator.py           # EvaluatorAgent
 │   ├── graph/
-│   │   └── workflow.py         # StateGraph 定义
+│   │   └── workflow.py            # StateGraph 定义
 │   ├── retrieval/
-│   │   ├── es_client.py        # Elasticsearch 客户端封装
-│   │   ├── embedding.py        # Embedding 模型调用（OpenAI / 本地）
-│   │   ├── knowledge_search.py # 知识点语义检索
-│   │   └── resource_search.py  # 资源缓存语义检索（RAG）
+│   │   ├── es_client.py           # Elasticsearch 客户端封装
+│   │   ├── embedding.py           # Embedding 模型调用
+│   │   ├── knowledge_search.py    # 知识点语义检索
+│   │   ├── resource_search.py     # 资源缓存语义检索（RAG）
+│   │   └── memory_search.py       # 用户记忆语义检索
+│   ├── video/                     # Remotion 集成
+│   │   ├── script_generator.py    # 视频脚本生成
+│   │   ├── tts_client.py          # 讯飞 TTS 客户端
+│   │   └── remotion_client.py     # Remotion 渲染服务客户端
+│   ├── memory/                    # 长期记忆管理
+│   │   ├── md_manager.py          # MD 文件读写
+│   │   └── es_memory.py           # ES 向量记忆读写
 │   ├── data/
-│   │   ├── knowledge_graphs/   # 知识图谱 JSON
-│   │   └── es_mappings/        # ES 索引 Mapping 定义
-│   ├── main.py                 # FastAPI 入口
+│   │   ├── knowledge_graphs/      # 知识图谱 JSON
+│   │   └── es_mappings/           # ES 索引 Mapping 定义
+│   ├── profiles/                  # 用户记忆 MD 文件存储
+│   │   └── {user_id}/
+│   │       └── memory.md
+│   ├── main.py                    # FastAPI 入口
 │   ├── requirements.txt
 │   └── .env.example
-├── docker-compose.yml          # 基础设施
+├── remotion-service/           # Remotion 视频渲染服务（Node.js sidecar）
+│   ├── src/
+│   │   ├── index.tsx              # Remotion 入口
+│   │   ├── compositions/
+│   │   │   ├── TeachingVideo.tsx   # 教学视频主组件
+│   │   │   ├── CodeScene.tsx      # 代码演示场景
+│   │   │   ├── DiagramScene.tsx   # 图表场景
+│   │   │   └── TitleScene.tsx     # 标题场景
+│   │   └── components/
+│   ├── server.ts                  # Express 渲染 API 服务
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+├── docker-compose.yml          # 基础设施（含 Remotion 服务）
 └── docs/
     ├── PRD.md
     └── TDD.md

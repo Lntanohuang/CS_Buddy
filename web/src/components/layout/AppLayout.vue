@@ -2,11 +2,14 @@
 import { useRouter, useRoute } from 'vue-router'
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 import { ChatDotRound, Guide, EditPen, User } from '@element-plus/icons-vue'
+import NotificationBell from '@/components/notification/NotificationBell.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 
 const menuItems = [
   { title: '智能对话', icon: ChatDotRound, route: '/app/chat' },
@@ -52,7 +55,13 @@ function handleLogout() {
           <div class="user-avatar">{{ userInitials }}</div>
           <span class="user-name">{{ authStore.nickname || '用户' }}</span>
         </div>
-        <button class="logout-btn" @click="handleLogout">退出</button>
+        <div class="footer-actions">
+          <NotificationBell
+            :count="notificationStore.unreadCount"
+            @click="router.push('/app/notifications')"
+          />
+          <button class="logout-btn" @click="handleLogout">退出</button>
+        </div>
       </div>
     </aside>
 
@@ -139,6 +148,12 @@ function handleLogout() {
   padding: 12px 8px 0;
   border-top: 1px solid var(--border);
   margin-top: 8px;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .user-row {

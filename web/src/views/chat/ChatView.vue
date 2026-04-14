@@ -1,10 +1,27 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { useChatStore } from '@/stores/chat'
+import { useNotificationStore } from '@/stores/notification'
 import ChatMessageList from '@/components/chat/ChatMessageList.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
+import RecommendCard from '@/components/notification/RecommendCard.vue'
 
 const chatStore = useChatStore()
+const notificationStore = useNotificationStore()
+
+const showRecommend = shallowRef(true)
+const recommendation = computed(() => notificationStore.todayRecommendation)
+
+function handleStartRecommend() {
+  if (recommendation.value) {
+    chatStore.sendMessage(`帮我学习${recommendation.value.title}`)
+    showRecommend.value = false
+  }
+}
+
+function handleDismissRecommend() {
+  showRecommend.value = false
+}
 
 const sessions = computed(() => chatStore.sessions)
 const activeMessages = computed(() => chatStore.activeMessages)
@@ -76,6 +93,15 @@ function formatSessionTime(dateStr: string) {
 
     <!-- Right main area -->
     <main class="chat-main">
+      <RecommendCard
+        v-if="showRecommend && recommendation"
+        :title="recommendation.title"
+        :reason="recommendation.reason"
+        :est-minutes="recommendation.est_minutes"
+        class="chat-recommend"
+        @start="handleStartRecommend"
+        @dismiss="handleDismissRecommend"
+      />
       <ChatMessageList
         :messages="activeMessages"
         :is-streaming="isStreaming"
@@ -119,7 +145,7 @@ function formatSessionTime(dateStr: string) {
   gap: 8px;
   padding: 12px 16px;
   background: var(--accent-primary);
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   border: none;
   border-radius: 12px;
   font-size: 14px;
@@ -127,11 +153,11 @@ function formatSessionTime(dateStr: string) {
   font-family: system-ui, -apple-system, sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(74, 124, 111, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 .new-session-btn:hover {
-  box-shadow: 0 4px 14px rgba(74, 124, 111, 0.35);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -215,5 +241,10 @@ function formatSessionTime(dateStr: string) {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+}
+
+.chat-recommend {
+  margin: 16px 16px 0;
+  flex-shrink: 0;
 }
 </style>

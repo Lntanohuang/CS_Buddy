@@ -50,6 +50,38 @@ export const useEvalStore = defineStore('eval', () => {
     activeEval.value.mastery_level = mastery
     activeEval.value.status = 'ANALYZED'
 
+    // Calculate learning_efficiency: correct_rate * speed_factor, capped at 1.0
+    const timeSpent = activeEval.value.time_spent_seconds ?? 180
+    const speedFactor = 180 / timeSpent
+    const correctRate = correct / activeEval.value.question_count
+    activeEval.value.learning_efficiency = Math.min(1.0, Number((correctRate * speedFactor).toFixed(2)))
+
+    // Calculate progress_trend by comparing with last eval of the same knowledge_point
+    const kp = activeEval.value.knowledge_point
+    const prevEval = history.value.find((e) => e.knowledge_point === kp && e.status === 'ANALYZED')
+    if (prevEval && prevEval.mastery_level != null) {
+      if (mastery > prevEval.mastery_level) {
+        activeEval.value.progress_trend = 'UP'
+      } else if (mastery < prevEval.mastery_level) {
+        activeEval.value.progress_trend = 'DOWN'
+      } else {
+        activeEval.value.progress_trend = 'STABLE'
+      }
+    } else {
+      // First eval for this knowledge point — treat as stable baseline
+      activeEval.value.progress_trend = 'STABLE'
+    }
+
+    // Build weak_point_analysis from wrong answers
+    const weakPoints: string[] = []
+    activeEval.value.questions.forEach((q, idx) => {
+      if (!q.is_correct) {
+        const brief = q.content.length > 30 ? q.content.slice(0, 30) + '...' : q.content
+        weakPoints.push(`第${idx + 1}题: ${brief}`)
+      }
+    })
+    activeEval.value.weak_point_analysis = weakPoints
+
     if (mastery >= 0.7) {
       activeEval.value.recommendation = {
         action: 'ADVANCE',

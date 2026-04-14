@@ -74,12 +74,12 @@ function handleKeydown(event: KeyboardEvent) {
   border-radius: 24px;
   padding: 8px 8px 8px 18px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .chat-input-container--focused {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(74, 124, 111, 0.1);
+  box-shadow: 0 0 0 1px var(--accent-primary) inset, 0 0 0 3px var(--accent-primary-light);
 }
 
 .chat-input-container--disabled {
@@ -124,13 +124,13 @@ function handleKeydown(event: KeyboardEvent) {
 
 .chat-input-send--active {
   background: var(--accent-primary);
-  color: var(--bg-card)fff;
-  box-shadow: 0 2px 8px rgba(74, 124, 111, 0.3);
+  color: var(--bg-card);
+  box-shadow: var(--shadow-md);
 }
 
 .chat-input-send--active:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(74, 124, 111, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .chat-input-send:disabled {

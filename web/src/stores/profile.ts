@@ -19,5 +19,19 @@ export const useProfileStore = defineStore('profile', () => {
     profile.value.updated_at = new Date().toISOString()
   }
 
-  return { profile, updateProfile, updateMastery }
+  function initFromDialogue(data: {
+    major: string
+    learning_goal: string
+    current_level: string
+    preferred_style: string
+    cognitive_style: UserProfile['cognitive_style']
+    daily_time_minutes: number
+    subjects: string[]
+  }) {
+    Object.assign(profile.value, data)
+    profile.value.profile_complete = true
+    profile.value.updated_at = new Date().toISOString()
+  }
+
+  return { profile, updateProfile, updateMastery, initFromDialogue }
 })

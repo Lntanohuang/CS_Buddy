@@ -31,7 +31,7 @@ const timelineIcon = (status: PathNode['status']) => {
 const dotColor = (status: PathNode['status']) => {
   const map: Record<PathNode['status'], string> = {
     COMPLETED: 'var(--status-success)',
-    IN_PROGRESS: '#4A7C6F',
+    IN_PROGRESS: 'var(--accent-primary)',
     PENDING: 'var(--border-strong)',
     SKIPPED: 'var(--text-secondary)',
   }
@@ -41,7 +41,7 @@ const dotColor = (status: PathNode['status']) => {
 const segmentColor = (status: PathNode['status']) => {
   const map: Record<PathNode['status'], string> = {
     COMPLETED: 'var(--status-success)',
-    IN_PROGRESS: '#4A7C6F',
+    IN_PROGRESS: 'var(--accent-primary)',
     PENDING: 'var(--border)',
     SKIPPED: 'var(--border-strong)',
   }
@@ -80,7 +80,7 @@ const segmentColor = (status: PathNode['status']) => {
             />
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#4A7C6F" />
+                <stop offset="0%" stop-color="var(--accent-primary)" />
                 <stop offset="100%" stop-color="var(--status-success)" />
               </linearGradient>
             </defs>
@@ -134,7 +134,7 @@ const segmentColor = (status: PathNode['status']) => {
               v-if="node.status === 'COMPLETED'"
               width="10" height="10" viewBox="0 0 12 12" fill="none"
             >
-              <path d="M2.5 6L5 8.5L9.5 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2.5 6L5 8.5L9.5 4" stroke="var(--bg-card)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
           <div
@@ -170,7 +170,7 @@ const segmentColor = (status: PathNode['status']) => {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .progress-header {
@@ -303,7 +303,7 @@ const segmentColor = (status: PathNode['status']) => {
 }
 
 .timeline-dot.is-active {
-  box-shadow: 0 0 0 4px rgba(74, 124, 111, 0.2);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 20%, transparent);
 }
 
 .timeline-card-wrapper {

@@ -10,9 +10,11 @@ const authStore = useAuthStore()
 const profile = computed(() => profileStore.profile)
 
 const form = reactive({
+  major: profile.value.major,
   current_level: profile.value.current_level,
   learning_goal: profile.value.learning_goal,
   preferred_style: profile.value.preferred_style,
+  cognitive_style: profile.value.cognitive_style,
   daily_time_minutes: profile.value.daily_time_minutes,
 })
 
@@ -36,6 +38,13 @@ const styleOptions = [
   { value: 'MIXED', label: '混合模式' },
 ]
 
+const cognitiveStyleOptions = [
+  { value: 'THEORETICAL', label: '理论推导型', desc: '偏好从原理出发理解知识' },
+  { value: 'PRACTICAL', label: '实践驱动型', desc: '偏好通过动手练习来学习' },
+  { value: 'VISUAL', label: '视觉学习型', desc: '偏好图表和可视化辅助' },
+  { value: 'MIXED', label: '混合型', desc: '灵活运用多种学习方式' },
+]
+
 const timeOptions = [
   { value: 15, label: '15 分钟' },
   { value: 30, label: '30 分钟' },
@@ -45,19 +54,32 @@ const timeOptions = [
 ]
 
 const isDirty = computed(() => {
-  return (
-    form.current_level !== profile.value.current_level ||
-    form.learning_goal !== profile.value.learning_goal ||
-    form.preferred_style !== profile.value.preferred_style ||
-    form.daily_time_minutes !== profile.value.daily_time_minutes
-  )
+  const currentForm = {
+    major: form.major,
+    current_level: form.current_level,
+    learning_goal: form.learning_goal,
+    preferred_style: form.preferred_style,
+    cognitive_style: form.cognitive_style,
+    daily_time_minutes: form.daily_time_minutes,
+  }
+  const profileForm = {
+    major: profile.value.major,
+    current_level: profile.value.current_level,
+    learning_goal: profile.value.learning_goal,
+    preferred_style: profile.value.preferred_style,
+    cognitive_style: profile.value.cognitive_style,
+    daily_time_minutes: profile.value.daily_time_minutes,
+  }
+  return JSON.stringify(currentForm) !== JSON.stringify(profileForm)
 })
 
 function handleSave() {
   profileStore.updateProfile({
+    major: form.major,
     current_level: form.current_level,
     learning_goal: form.learning_goal,
     preferred_style: form.preferred_style,
+    cognitive_style: form.cognitive_style,
     daily_time_minutes: form.daily_time_minutes,
   })
   ElMessage.success('保存成功')
@@ -104,7 +126,13 @@ function styleWeightLabel(key: string): string {
   return map[key] ?? key
 }
 
-const styleBarColors = ['#4A7C6F', '#E8C07A', 'var(--accent-secondary-light)', 'var(--accent-secondary-light)']
+const root = document.documentElement
+const cs = getComputedStyle(root)
+const styleBarColors = [
+  cs.getPropertyValue('--accent-primary').trim(),
+  cs.getPropertyValue('--accent-secondary').trim(),
+  cs.getPropertyValue('--accent-secondary-light').trim(),
+]
 
 function levelLabel(val: string): string {
   return levelOptions.find(o => o.value === val)?.label ?? val
@@ -117,6 +145,20 @@ function goalLabel(val: string): string {
 
 <template>
   <div class="profile-view">
+    <!-- Profile Incomplete Banner -->
+    <div v-if="!profile.profile_complete" class="incomplete-banner">
+      <div class="incomplete-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="incomplete-body">
+        <div class="incomplete-title">学习画像尚未完成</div>
+        <div class="incomplete-desc">通过与智伴对话，完成学习画像初始化，获得更精准的个性化推荐。</div>
+      </div>
+      <router-link to="/app/chat" class="incomplete-action">去对话</router-link>
+    </div>
+
     <!-- Greeting Card -->
     <div class="greeting-card">
       <div class="greeting-content">
@@ -138,16 +180,15 @@ function goalLabel(val: string): string {
       </div>
       <div class="greeting-decoration">
         <svg width="120" height="120" viewBox="0 0 120 120" fill="none" opacity="0.15">
-          <circle cx="60" cy="60" r="50" stroke="white" stroke-width="4"/>
-          <circle cx="60" cy="60" r="35" stroke="white" stroke-width="3"/>
-          <circle cx="60" cy="60" r="20" stroke="white" stroke-width="2"/>
+          <circle cx="60" cy="60" r="50" stroke="var(--bg-card)" stroke-width="4"/>
+          <circle cx="60" cy="60" r="35" stroke="var(--bg-card)" stroke-width="3"/>
+          <circle cx="60" cy="60" r="20" stroke="var(--bg-card)" stroke-width="2"/>
         </svg>
       </div>
     </div>
 
-    <!-- Two Column Grid -->
-    <div class="dashboard-grid">
-      <!-- Left Column: Profile Form -->
+    <!-- Section 1: 基本信息 -->
+    <div class="section-grid">
       <div class="dashboard-card profile-card">
         <div class="card-header-custom">
           <div class="card-icon card-icon-indigo">
@@ -155,13 +196,22 @@ function goalLabel(val: string): string {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
           </div>
-          <span class="card-title-custom">学习画像</span>
+          <span class="card-title-custom">基本信息</span>
         </div>
 
         <div class="profile-form">
           <div class="form-field">
             <label class="form-label">昵称</label>
             <div class="form-value-static">{{ authStore.nickname || '--' }}</div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">专业背景</label>
+            <el-input
+              v-model="form.major"
+              placeholder="例如：计算机科学与技术"
+              class="form-input"
+            />
           </div>
 
           <div class="form-field">
@@ -212,6 +262,23 @@ function goalLabel(val: string): string {
             </el-select>
           </div>
 
+          <!-- Cognitive Style Cards -->
+          <div class="form-field">
+            <label class="form-label">认知风格</label>
+            <div class="cognitive-cards">
+              <div
+                v-for="opt in cognitiveStyleOptions"
+                :key="opt.value"
+                class="cognitive-card"
+                :class="{ 'cognitive-card--active': form.cognitive_style === opt.value }"
+                @click="form.cognitive_style = opt.value as typeof form.cognitive_style"
+              >
+                <span class="cognitive-card-label">{{ opt.label }}</span>
+                <span class="cognitive-card-desc">{{ opt.desc }}</span>
+              </div>
+            </div>
+          </div>
+
           <div class="form-field">
             <label class="form-label">学习科目</label>
             <div class="subjects-tags">
@@ -221,7 +288,7 @@ function goalLabel(val: string): string {
                 class="subject-tag"
                 :style="{
                   backgroundColor: ['var(--accent-primary-light)', 'var(--accent-primary-light)', 'var(--accent-secondary-light)', 'var(--status-error-light)', 'var(--bg-hover)'][i % 5],
-                  color: ['#4A7C6F', 'var(--status-success)', 'var(--status-error)', 'var(--status-error)', '#E8C07A'][i % 5],
+                  color: ['var(--accent-primary)', 'var(--status-success)', 'var(--status-error)', 'var(--status-error)', 'var(--accent-secondary)'][i % 5],
                   borderColor: ['var(--accent-primary-light)', 'var(--accent-primary-light)', 'var(--accent-secondary-light)', 'var(--status-error-light)', 'var(--accent-primary-light)'][i % 5],
                 }"
               >
@@ -245,7 +312,7 @@ function goalLabel(val: string): string {
 
       <!-- Right Column -->
       <div class="right-column">
-        <!-- Knowledge Mastery Card -->
+        <!-- Section 2: 知识掌握度 -->
         <div class="dashboard-card mastery-card">
           <div class="card-header-custom">
             <div class="card-icon card-icon-emerald">
@@ -291,12 +358,12 @@ function goalLabel(val: string): string {
             </div>
           </div>
           <div v-else class="empty-state">
-            <span class="empty-icon">📊</span>
+            <span class="empty-icon">&#128202;</span>
             <span class="empty-text">暂无知识掌握数据</span>
           </div>
         </div>
 
-        <!-- Learning Preference Mini Card -->
+        <!-- Section 3: 学习偏好 -->
         <div class="dashboard-card preference-card">
           <div class="card-header-custom">
             <div class="card-icon card-icon-violet">
@@ -308,7 +375,6 @@ function goalLabel(val: string): string {
           </div>
 
           <div v-if="styleWeights.length" class="preference-content">
-            <!-- Stacked horizontal bar -->
             <div class="stacked-bar-wrapper">
               <div class="stacked-bar">
                 <div
@@ -324,7 +390,6 @@ function goalLabel(val: string): string {
                 </div>
               </div>
             </div>
-            <!-- Legend -->
             <div class="preference-legend">
               <div
                 v-for="(item, index) in styleWeights"
@@ -344,6 +409,34 @@ function goalLabel(val: string): string {
             <span class="empty-text">暂无风格数据</span>
           </div>
         </div>
+
+        <!-- Section 4: 易错点分析 -->
+        <div class="dashboard-card error-card">
+          <div class="card-header-custom">
+            <div class="card-icon card-icon-amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <span class="card-title-custom">易错点分析</span>
+          </div>
+
+          <div v-if="profile.error_patterns.length" class="error-list">
+            <div
+              v-for="(pattern, i) in profile.error_patterns"
+              :key="i"
+              class="error-tag"
+            >
+              <span class="error-tag-dot"></span>
+              {{ pattern }}
+            </div>
+          </div>
+          <div v-else class="empty-state">
+            <span class="empty-text">暂无易错点数据</span>
+          </div>
+          <div class="error-note">系统通过评估自动识别</div>
+        </div>
       </div>
     </div>
   </div>
@@ -356,6 +449,56 @@ function goalLabel(val: string): string {
   padding: 32px 24px;
 }
 
+/* Incomplete Banner */
+.incomplete-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: var(--accent-secondary-light);
+  border: 1px solid var(--accent-secondary);
+  border-radius: 12px;
+}
+
+.incomplete-icon {
+  flex-shrink: 0;
+  color: var(--accent-secondary);
+}
+
+.incomplete-body {
+  flex: 1;
+}
+
+.incomplete-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.incomplete-desc {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.incomplete-action {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bg-card);
+  background: var(--accent-secondary);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.incomplete-action:hover {
+  opacity: 0.85;
+}
+
 /* Greeting Card */
 .greeting-card {
   position: relative;
@@ -364,7 +507,7 @@ function goalLabel(val: string): string {
   border-radius: 16px;
   padding: 32px;
   margin-bottom: 28px;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .greeting-content {
@@ -376,7 +519,7 @@ function goalLabel(val: string): string {
   margin: 0 0 16px;
   font-size: 28px;
   font-weight: 800;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   line-height: 1.3;
 }
 
@@ -394,10 +537,10 @@ function goalLabel(val: string): string {
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in srgb, var(--bg-card) 20%, transparent);
   backdrop-filter: blur(8px);
-  color: var(--bg-card)fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--bg-card) 15%, transparent);
 }
 
 .greeting-decoration {
@@ -407,8 +550,8 @@ function goalLabel(val: string): string {
   pointer-events: none;
 }
 
-/* Dashboard Grid */
-.dashboard-grid {
+/* Section Grid (replaces dashboard-grid) */
+.section-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
@@ -425,7 +568,7 @@ function goalLabel(val: string): string {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   padding: 24px;
 }
 
@@ -458,7 +601,12 @@ function goalLabel(val: string): string {
 
 .card-icon-violet {
   background: var(--bg-hover);
-  color: #E8C07A;
+  color: var(--accent-secondary);
+}
+
+.card-icon-amber {
+  background: var(--accent-secondary-light);
+  color: var(--accent-secondary);
 }
 
 .card-title-custom {
@@ -502,6 +650,21 @@ function goalLabel(val: string): string {
   width: 100%;
 }
 
+.form-input :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px var(--border);
+  padding: 4px 12px;
+  transition: all 0.15s ease;
+}
+
+.form-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--accent-primary-light);
+}
+
+.form-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
 .form-select :deep(.el-input__wrapper) {
   border-radius: 8px;
   box-shadow: 0 0 0 1px var(--border);
@@ -514,7 +677,52 @@ function goalLabel(val: string): string {
 }
 
 .form-select :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px #4A7C6F;
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+/* Cognitive Style Cards */
+.cognitive-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cognitive-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cognitive-card:hover {
+  border-color: var(--accent-primary-light);
+  background: var(--bg-hover);
+}
+
+.cognitive-card--active {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+.cognitive-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cognitive-card-desc {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.cognitive-card--active .cognitive-card-label {
+  color: var(--accent-primary);
 }
 
 .subjects-tags {
@@ -543,7 +751,7 @@ function goalLabel(val: string): string {
   border-radius: 8px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
   background: var(--accent-primary);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -551,7 +759,7 @@ function goalLabel(val: string): string {
 }
 
 .save-btn:hover {
-  box-shadow: 0 4px 16px rgba(74, 124, 111, 0.4);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-primary) 40%, transparent);
   transform: translateY(-1px);
 }
 
@@ -680,7 +888,7 @@ function goalLabel(val: string): string {
 .segment-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--bg-card)fff;
+  color: var(--bg-card);
 }
 
 .preference-legend {
@@ -713,12 +921,48 @@ function goalLabel(val: string): string {
   color: var(--text-primary);
 }
 
+/* Error Patterns Card */
+.error-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.error-tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-secondary);
+  flex-shrink: 0;
+}
+
+.error-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .profile-view {
     padding: 20px 16px;
   }
-  .dashboard-grid {
+  .section-grid {
     grid-template-columns: 1fr;
   }
   .greeting-text {
@@ -726,6 +970,9 @@ function goalLabel(val: string): string {
   }
   .greeting-card {
     padding: 24px 20px;
+  }
+  .cognitive-cards {
+    grid-template-columns: 1fr;
   }
 }
 </style>

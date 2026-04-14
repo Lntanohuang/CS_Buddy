@@ -49,12 +49,32 @@ const recommendationTitle = computed(() => {
   return '回顾基础'
 })
 
-/* Progress ring math — 96px diameter, 6px stroke */
+/* Progress ring math - 96px diameter, 6px stroke */
 const ringRadius = 42
 const ringCircumference = 2 * Math.PI * ringRadius
 const ringOffset = computed(() => ringCircumference - (masteryPercent.value / 100) * ringCircumference)
 
 const isHighScore = computed(() => score.value >= 80)
+
+/* Enhanced evaluation dimensions */
+const efficiencyPercent = computed(() => {
+  const eff = props.evaluation.learning_efficiency
+  if (eff == null) return null
+  return Math.round(eff * 100)
+})
+
+const trendInfo = computed(() => {
+  const trend = props.evaluation.progress_trend
+  if (!trend) return null
+  const map: Record<string, { arrow: string; label: string; color: string }> = {
+    UP: { arrow: '\u2191', label: '进步中', color: 'var(--status-success)' },
+    STABLE: { arrow: '\u2192', label: '保持稳定', color: 'var(--text-tertiary)' },
+    DOWN: { arrow: '\u2193', label: '需要加强', color: 'var(--status-error)' },
+  }
+  return map[trend] ?? null
+})
+
+const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
 </script>
 
 <template>
@@ -123,6 +143,54 @@ const isHighScore = computed(() => score.value >= 80)
       </div>
     </div>
 
+    <!-- Multi-dimension evaluation -->
+    <div
+      v-if="efficiencyPercent != null || trendInfo || weakPoints.length"
+      class="multi-dim-section"
+    >
+      <div class="multi-dim-title">多维评估</div>
+
+      <!-- Learning Efficiency -->
+      <div v-if="efficiencyPercent != null" class="dim-item">
+        <div class="dim-header">
+          <span class="dim-label">学习效率</span>
+          <span class="dim-value">{{ efficiencyPercent }}%</span>
+        </div>
+        <div class="dim-bar-track">
+          <div
+            class="dim-bar-fill"
+            :style="{
+              width: efficiencyPercent + '%',
+              background: efficiencyPercent >= 70 ? 'var(--status-success)' : efficiencyPercent >= 40 ? 'var(--accent-secondary)' : 'var(--status-error)',
+            }"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Progress Trend -->
+      <div v-if="trendInfo" class="dim-item">
+        <div class="dim-header">
+          <span class="dim-label">进步趋势</span>
+          <span class="trend-badge" :style="{ color: trendInfo.color, borderColor: trendInfo.color }">
+            <span class="trend-arrow">{{ trendInfo.arrow }}</span>
+            {{ trendInfo.label }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Weak Point Analysis -->
+      <div v-if="weakPoints.length" class="dim-item">
+        <div class="dim-header">
+          <span class="dim-label">薄弱点分析</span>
+        </div>
+        <ul class="weak-list">
+          <li v-for="(point, i) in weakPoints" :key="i" class="weak-list-item">
+            {{ point }}
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Recommendation -->
     <div
       v-if="evaluation.recommendation"
@@ -161,7 +229,7 @@ const isHighScore = computed(() => score.value >= 80)
   padding: 40px 32px;
   background: var(--bg-card);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -285,6 +353,93 @@ const isHighScore = computed(() => score.value >= 80)
   color: var(--text-secondary);
 }
 
+/* Multi-dimension evaluation */
+.multi-dim-section {
+  margin-bottom: 28px;
+  padding: 20px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.multi-dim-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.dim-item {
+  margin-bottom: 14px;
+}
+
+.dim-item:last-child {
+  margin-bottom: 0;
+}
+
+.dim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dim-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.dim-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dim-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-hover);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.dim-bar-fill {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 20px;
+  border: 1.5px solid;
+  background: var(--bg-card);
+}
+
+.trend-arrow {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.weak-list {
+  margin: 0;
+  padding: 0 0 0 18px;
+  list-style: disc;
+}
+
+.weak-list-item {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
 /* Recommendation */
 .recommendation-card {
   display: flex;
@@ -359,7 +514,7 @@ const isHighScore = computed(() => score.value >= 80)
   font-weight: 600;
   color: var(--accent-primary);
   background: transparent;
-  border: 1.5px solid #4A7C6F;
+  border: 1.5px solid var(--accent-primary);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;

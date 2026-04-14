@@ -7,6 +7,7 @@ const props = defineProps<{
   difficulty: string
   estMinutes: number
   knowledgePoint: string
+  resourceType?: 'doc' | 'mindmap' | 'quiz' | 'video' | 'code'
 }>()
 
 const difficultyColor = computed(() => {
@@ -26,6 +27,17 @@ const difficultyLabel = computed(() => {
   }
   return map[props.difficulty] ?? props.difficulty
 })
+
+const typeConfig = computed(() => {
+  const map: Record<string, { icon: string; label: string }> = {
+    doc: { icon: '\uD83D\uDCC4', label: '文档' },
+    mindmap: { icon: '\uD83E\uDDE0', label: '思维导图' },
+    quiz: { icon: '\u270F\uFE0F', label: '练习题' },
+    video: { icon: '\uD83C\uDFAC', label: '教学视频' },
+    code: { icon: '\uD83D\uDCBB', label: '代码案例' },
+  }
+  return map[props.resourceType ?? 'doc'] ?? map.doc
+})
 </script>
 
 <template>
@@ -33,11 +45,15 @@ const difficultyLabel = computed(() => {
     <div class="resource-card__accent" />
     <div class="resource-card__body">
       <div class="resource-card__header">
-        <span class="resource-card__title">{{ title }}</span>
+        <span class="resource-card__type">
+          <span class="resource-card__type-icon">{{ typeConfig.icon }}</span>
+          <span class="resource-card__type-label">{{ typeConfig.label }}</span>
+        </span>
         <span class="resource-card__difficulty" :class="`resource-card__difficulty--${difficultyColor}`">
           {{ difficultyLabel }}
         </span>
       </div>
+      <div class="resource-card__title">{{ title }}</div>
       <div class="resource-card__meta">
         <span class="resource-card__meta-item">
           <el-icon :size="13"><Timer /></el-icon>
@@ -66,7 +82,7 @@ const difficultyLabel = computed(() => {
 }
 
 .resource-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   border-color: var(--accent-primary-light);
   transform: translateY(-1px);
 }
@@ -74,7 +90,7 @@ const difficultyLabel = computed(() => {
 .resource-card__accent {
   width: 4px;
   flex-shrink: 0;
-  background: linear-gradient(to bottom, #4A7C6F, #E8C07A);
+  background: var(--accent-primary);
 }
 
 .resource-card__body {
@@ -90,6 +106,22 @@ const difficultyLabel = computed(() => {
   gap: 10px;
 }
 
+.resource-card__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.resource-card__type-icon {
+  font-size: 14px;
+}
+
+.resource-card__type-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
 .resource-card__title {
   font-weight: 600;
   font-size: 14px;
@@ -97,6 +129,7 @@ const difficultyLabel = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-top: 6px;
 }
 
 .resource-card__difficulty {

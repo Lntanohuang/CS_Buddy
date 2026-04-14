@@ -9,7 +9,8 @@
   --bg-card: #FFFFFF;
   --bg-hover: #F7F6F3;
   --bg-sidebar: #F7F6F3;
-  --bg-modal-overlay: rgba(55, 53, 47, 0.6);
+  --overlay-dark: rgba(55, 53, 47, 0.6);
+  --overlay-light: rgba(55, 53, 47, 0.03);
 
   /* 文字 */
   --text-primary: #37352F;
@@ -33,6 +34,10 @@
   --status-error-light: #FDF0EF;
   --status-warning: #E8C07A;
   --status-warning-light: #FDF6E8;
+
+  /* 代码块 */
+  --code-bg: #2F3437;
+  --code-text: #E8E6E3;
 
   /* 阴影 — Notion 风格以边框为主，阴影仅用于浮层 */
   --shadow-sm: 0 1px 2px rgba(55, 53, 47, 0.06);
@@ -74,6 +79,7 @@
 }
 
 html {
+  font-size: 15px;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -172,8 +178,8 @@ a:hover {
 }
 
 .markdown-body pre, .markdown-body pre.hljs {
-  background: #2F3437;
-  color: #E8E6E3;
+  background: var(--code-bg);
+  color: var(--code-text);
   border-radius: var(--radius-md);
   padding: 16px;
   margin: 12px 0;

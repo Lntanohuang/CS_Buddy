@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   LearningPath,
   Evaluation,
+  Notification,
 } from '@/types'
 
 // ---- Auth ----
@@ -15,14 +16,23 @@ export const mockUser: AuthUser = {
   access_token: 'mock_access_token_xxx',
   refresh_token: 'mock_refresh_token_xxx',
   expires_in: 7200,
+  has_profile: true,
 }
 
-// ---- Profile ----
+export const mockNewUser: AuthUser = {
+  ...mockUser,
+  has_profile: false,
+}
+
+// ---- Profile (7 dimensions) ----
 export const mockProfile: UserProfile = {
   user_id: 'usr_a1b2c3d4',
+  major: '计算机科学与技术',
   current_level: 'INTERMEDIATE',
   learning_goal: 'EXAM_PREP',
   preferred_style: 'PRACTICE',
+  cognitive_style: 'PRACTICAL',
+  error_patterns: ['混淆栈和队列的出入顺序', '递归终止条件遗漏', '时间复杂度分析错误'],
   daily_time_minutes: 60,
   knowledge_mastery: {
     array: 0.85,
@@ -35,14 +45,26 @@ export const mockProfile: UserProfile = {
     hash_table: 0.6,
   },
   weak_points: ['binary_tree', 'graph'],
-  style_weights: {
-    code_example: 0.6,
-    analogy: 0.25,
-    text: 0.15,
-  },
+  style_weights: { code_example: 0.6, analogy: 0.25, text: 0.15 },
   subjects: ['DATA_STRUCTURE', 'ALGORITHM'],
+  profile_complete: true,
   updated_at: '2026-04-13T14:30:00Z',
 }
+
+// ---- Welcome dialogue script ----
+export const welcomeDialogueScript: { role: 'USER' | 'ASSISTANT'; content: string; delay: number }[] = [
+  { role: 'ASSISTANT', content: '你好！欢迎来到智伴 🌿\n\n我是你的 AI 学伴，接下来我会通过几个简单的问题来了解你，以便为你提供最适合的学习体验。\n\n**你目前是什么专业/领域？**', delay: 800 },
+  { role: 'USER', content: '我是计算机科学与技术专业的大二学生', delay: 0 },
+  { role: 'ASSISTANT', content: '计算机专业，很棒！💻\n\n**你目前最想学习或提升的方向是什么？**\n比如：备考期末、准备面试、学习新技术...', delay: 600 },
+  { role: 'USER', content: '主要是备战秋招面试，想系统复习数据结构和算法', delay: 0 },
+  { role: 'ASSISTANT', content: '明白了，秋招备战是很多同学的刚需。\n\n**你觉得自己目前的数据结构基础怎么样？**\n可以简单说说你已经学过哪些内容、哪些部分比较薄弱。', delay: 600 },
+  { role: 'USER', content: '数组、链表、栈这些基础的还行，但是树和图相关的比较薄弱，递归的题经常写不对', delay: 0 },
+  { role: 'ASSISTANT', content: '了解了！树、图和递归确实是面试高频考点，我们会重点关注这些。\n\n**你更喜欢哪种学习方式？**\n- 看代码示例边学边练\n- 先看理论再做题\n- 看视频讲解\n- 都可以，混合着来', delay: 600 },
+  { role: 'USER', content: '我比较喜欢看代码示例，纯理论看不下去', delay: 0 },
+  { role: 'ASSISTANT', content: '好的，我记住了 ✨\n\n**最后一个问题——你每天大概能投入多少时间学习？**', delay: 600 },
+  { role: 'USER', content: '大概一个小时吧', delay: 0 },
+  { role: 'ASSISTANT', content: '完美！我已经了解你的情况了：\n\n- 📚 **专业**：计算机科学\n- 🎯 **目标**：秋招面试备战\n- 📊 **基础**：基础数据结构掌握良好，树/图/递归待加强\n- 💡 **偏好**：代码示例驱动学习\n- ⏰ **时间**：每天约 1 小时\n\n我已经为你创建了个性化学习画像，接下来会据此为你规划学习路径和推荐资源。\n\n**准备好开始学习了吗？** 🚀', delay: 800 },
+]
 
 // ---- Chat Sessions ----
 export const mockSessions: ChatSession[] = [
@@ -50,6 +72,7 @@ export const mockSessions: ChatSession[] = [
     session_id: 'sess_001',
     title: '数据结构学习',
     status: 'ACTIVE',
+    session_type: 'NORMAL',
     message_count: 6,
     created_at: '2026-04-13T10:00:00Z',
     updated_at: '2026-04-13T14:30:00Z',
@@ -58,6 +81,7 @@ export const mockSessions: ChatSession[] = [
     session_id: 'sess_002',
     title: '排序算法复习',
     status: 'ACTIVE',
+    session_type: 'NORMAL',
     message_count: 4,
     created_at: '2026-04-12T09:00:00Z',
     updated_at: '2026-04-12T11:00:00Z',
@@ -109,12 +133,15 @@ def quick_sort(arr):
 
 > 💡 **记忆技巧**：快排就像整理书架——先随便选一本书作为标准，比它矮的放左边，比它高的放右边，然后对左右两堆重复操作。`,
     intent: 'learn',
+    resource_type: 'doc',
     metadata: {
       type: 'resource_card',
-      title: '快速排序',
+      resource_type: 'doc',
+      title: '快速排序讲解',
       difficulty: 'INTERMEDIATE',
       est_minutes: 15,
       knowledge_point: 'quick_sort',
+      agent: 'DocAgent',
     },
     created_at: '2026-04-13T14:00:05Z',
   },
@@ -122,41 +149,93 @@ def quick_sort(arr):
     message_id: 'msg_003',
     session_id: 'sess_001',
     role: 'USER',
-    content: '最差情况什么时候会出现？',
-    created_at: '2026-04-13T14:05:00Z',
+    content: '给我生成一个排序算法的思维导图',
+    created_at: '2026-04-13T14:10:00Z',
   },
   {
     message_id: 'msg_004',
     session_id: 'sess_001',
     role: 'ASSISTANT',
-    content: `最差情况出现在**每次选取的基准都是当前子数组的最大或最小元素**时。
-
-### 典型场景
-
-- 数组已经**完全有序**（升序或降序），且每次选第一个元素作为基准
-- 数组中**所有元素相同**
-
-### 为什么是 O(n²)？
-
-每次分区只能减少一个元素，递归深度达到 n 层：
-\`\`\`
-[1, 2, 3, 4, 5]  pivot=1 → left=[], right=[2,3,4,5]
-[2, 3, 4, 5]     pivot=2 → left=[], right=[3,4,5]
-[3, 4, 5]        pivot=3 → left=[], right=[4,5]
-...
-\`\`\`
-
-### 如何避免？
-
-1. **随机选取基准**：\`pivot = arr[random.randint(0, len(arr)-1)]\`
-2. **三数取中法**：取首、中、尾三个元素的中位数作为基准
-3. 对小数组切换到插入排序（通常阈值为 10-20）`,
+    content: '已为你生成排序算法的知识思维导图：',
     intent: 'learn',
-    created_at: '2026-04-13T14:05:08Z',
+    resource_type: 'mindmap',
+    metadata: {
+      type: 'resource_card',
+      resource_type: 'mindmap',
+      title: '排序算法知识图谱',
+      agent: 'MindmapAgent',
+      mindmap_data: {
+        name: '排序算法',
+        children: [
+          { name: '比较排序', children: [
+            { name: '冒泡排序', children: [{ name: 'O(n²)' }, { name: '稳定' }] },
+            { name: '快速排序', children: [{ name: 'O(n log n)' }, { name: '不稳定' }] },
+            { name: '归并排序', children: [{ name: 'O(n log n)' }, { name: '稳定' }] },
+            { name: '堆排序', children: [{ name: 'O(n log n)' }, { name: '不稳定' }] },
+          ]},
+          { name: '非比较排序', children: [
+            { name: '计数排序', children: [{ name: 'O(n+k)' }] },
+            { name: '桶排序', children: [{ name: 'O(n+k)' }] },
+            { name: '基数排序', children: [{ name: 'O(nk)' }] },
+          ]},
+        ],
+      },
+    },
+    created_at: '2026-04-13T14:10:08Z',
+  },
+  {
+    message_id: 'msg_005',
+    session_id: 'sess_001',
+    role: 'USER',
+    content: '给我一个快排的代码实操案例',
+    created_at: '2026-04-13T14:15:00Z',
+  },
+  {
+    message_id: 'msg_006',
+    session_id: 'sess_001',
+    role: 'ASSISTANT',
+    content: `下面是一个完整的快速排序实操案例，包含原地排序和测试用例：`,
+    intent: 'learn',
+    resource_type: 'code',
+    metadata: {
+      type: 'resource_card',
+      resource_type: 'code',
+      title: '快速排序 — 原地分区实现',
+      agent: 'CodeAgent',
+      language: 'python',
+      code: `def quick_sort(arr, low=0, high=None):
+    """原地快速排序"""
+    if high is None:
+        high = len(arr) - 1
+    if low < high:
+        pivot_idx = partition(arr, low, high)
+        quick_sort(arr, low, pivot_idx - 1)
+        quick_sort(arr, pivot_idx + 1, high)
+    return arr
+
+def partition(arr, low, high):
+    """Lomuto 分区方案"""
+    pivot = arr[high]
+    i = low - 1
+    for j in range(low, high):
+        if arr[j] <= pivot:
+            i += 1
+            arr[i], arr[j] = arr[j], arr[i]
+    arr[i + 1], arr[high] = arr[high], arr[i + 1]
+    return i + 1
+
+# 测试
+data = [38, 27, 43, 3, 9, 82, 10]
+print(f"排序前: {data}")
+print(f"排序后: {quick_sort(data)}")
+# 输出: 排序后: [3, 9, 10, 27, 38, 43, 82]`,
+      expected_output: '排序后: [3, 9, 10, 27, 38, 43, 82]',
+    },
+    created_at: '2026-04-13T14:15:08Z',
   },
 ]
 
-// ---- Simulated streaming reply content ----
+// ---- Simulated streaming reply ----
 export const mockStreamReply = `## 二叉树（Binary Tree）
 
 二叉树是一种每个节点**最多有两个子节点**的树形数据结构。
@@ -166,7 +245,6 @@ export const mockStreamReply = `## 二叉树（Binary Tree）
 - **根节点**（Root）：树的顶部节点
 - **叶节点**（Leaf）：没有子节点的节点
 - **深度**（Depth）：从根到该节点的边数
-- **高度**（Height）：从该节点到最远叶节点的边数
 
 ### 常见类型
 
@@ -186,11 +264,20 @@ class TreeNode:
         self.left = left
         self.right = right
 
-# 前序遍历
 def preorder(root):
     if not root:
         return []
     return [root.val] + preorder(root.left) + preorder(root.right)
+\`\`\`
+
+\`\`\`mermaid
+graph TD
+    A[1] --> B[2]
+    A --> C[3]
+    B --> D[4]
+    B --> E[5]
+    C --> F[6]
+    C --> G[7]
 \`\`\`
 
 > 💡 二叉树的遍历是面试高频考点，建议掌握前序、中序、后序和层序四种遍历方式。`
@@ -219,108 +306,41 @@ export const mockPath: LearningPath = {
   created_at: '2026-04-10T08:00:00Z',
 }
 
-// ---- Evaluation ----
+// ---- Evaluation (with enhanced dimensions) ----
 export const mockEvaluation: Evaluation = {
   eval_id: 'eval_e1f2g3',
   type: 'MINI_QUIZ',
   knowledge_point: 'sorting',
-  score: undefined,
-  mastery_level: undefined,
   question_count: 3,
   status: 'PENDING',
   questions: [
-    {
-      question_id: 'q_001',
-      type: 'SINGLE_CHOICE',
-      content: '快速排序的平均时间复杂度是？',
-      options: [
-        { key: 'A', value: 'O(n)' },
-        { key: 'B', value: 'O(n log n)' },
-        { key: 'C', value: 'O(n²)' },
-        { key: 'D', value: 'O(log n)' },
-      ],
-      correct_answer: 'B',
-      explanation: '快速排序平均时间复杂度为 O(n log n)，最坏情况为 O(n²)。',
-    },
-    {
-      question_id: 'q_002',
-      type: 'FILL_BLANK',
-      content: '归并排序的空间复杂度为 ____',
-      correct_answer: 'O(n)',
-      explanation: '归并排序需要额外 O(n) 的空间用于合并操作。',
-    },
-    {
-      question_id: 'q_003',
-      type: 'SINGLE_CHOICE',
-      content: '以下哪种排序算法是稳定的？',
-      options: [
-        { key: 'A', value: '快速排序' },
-        { key: 'B', value: '堆排序' },
-        { key: 'C', value: '归并排序' },
-        { key: 'D', value: '选择排序' },
-      ],
-      correct_answer: 'C',
-      explanation: '归并排序在合并过程中保持相同元素的相对顺序，因此是稳定排序。',
-    },
+    { question_id: 'q_001', type: 'SINGLE_CHOICE', content: '快速排序的平均时间复杂度是？', options: [{ key: 'A', value: 'O(n)' }, { key: 'B', value: 'O(n log n)' }, { key: 'C', value: 'O(n²)' }, { key: 'D', value: 'O(log n)' }], correct_answer: 'B', explanation: '快速排序平均时间复杂度为 O(n log n)，最坏情况为 O(n²)。' },
+    { question_id: 'q_002', type: 'FILL_BLANK', content: '归并排序的空间复杂度为 ____', correct_answer: 'O(n)', explanation: '归并排序需要额外 O(n) 的空间用于合并操作。' },
+    { question_id: 'q_003', type: 'SINGLE_CHOICE', content: '以下哪种排序算法是稳定的？', options: [{ key: 'A', value: '快速排序' }, { key: 'B', value: '堆排序' }, { key: 'C', value: '归并排序' }, { key: 'D', value: '选择排序' }], correct_answer: 'C', explanation: '归并排序在合并过程中保持相同元素的相对顺序，因此是稳定排序。' },
   ],
   created_at: '2026-04-13T15:00:00Z',
 }
 
 export const mockEvalHistory: Evaluation[] = [
-  {
-    eval_id: 'eval_h001',
-    type: 'MINI_QUIZ',
-    knowledge_point: 'array',
-    score: 100,
-    mastery_level: 0.85,
-    question_count: 3,
-    correct_count: 3,
-    time_spent_seconds: 120,
-    status: 'ANALYZED',
-    questions: [],
-    recommendation: { action: 'ADVANCE', message: '数组掌握良好，继续学习链表。' },
-    created_at: '2026-04-10T11:00:00Z',
-  },
-  {
-    eval_id: 'eval_h002',
-    type: 'MINI_QUIZ',
-    knowledge_point: 'linked_list',
-    score: 67,
-    mastery_level: 0.72,
-    question_count: 3,
-    correct_count: 2,
-    time_spent_seconds: 180,
-    status: 'ANALYZED',
-    questions: [],
-    recommendation: { action: 'ADVANCE', message: '链表基础掌握，建议继续。' },
-    created_at: '2026-04-10T15:00:00Z',
-  },
-  {
-    eval_id: 'eval_h003',
-    type: 'MINI_QUIZ',
-    knowledge_point: 'stack',
-    score: 100,
-    mastery_level: 0.68,
-    question_count: 3,
-    correct_count: 3,
-    time_spent_seconds: 90,
-    status: 'ANALYZED',
-    questions: [],
-    recommendation: { action: 'ADVANCE', message: '栈与队列掌握良好！' },
-    created_at: '2026-04-11T11:00:00Z',
-  },
-  {
-    eval_id: 'eval_h004',
-    type: 'MINI_QUIZ',
-    knowledge_point: 'hash_table',
-    score: 33,
-    mastery_level: 0.45,
-    question_count: 3,
-    correct_count: 1,
-    time_spent_seconds: 240,
-    status: 'ANALYZED',
-    questions: [],
-    recommendation: { action: 'SUPPLEMENT', message: '哈希表掌握不牢固，建议补充练习。' },
-    created_at: '2026-04-12T11:00:00Z',
-  },
+  { eval_id: 'eval_h001', type: 'MINI_QUIZ', knowledge_point: 'array', score: 100, mastery_level: 0.85, learning_efficiency: 0.92, progress_trend: 'UP', weak_point_analysis: [], question_count: 3, correct_count: 3, time_spent_seconds: 120, status: 'ANALYZED', questions: [], recommendation: { action: 'ADVANCE', message: '数组掌握良好，继续学习链表。' }, created_at: '2026-04-10T11:00:00Z' },
+  { eval_id: 'eval_h002', type: 'MINI_QUIZ', knowledge_point: 'linked_list', score: 67, mastery_level: 0.72, learning_efficiency: 0.65, progress_trend: 'STABLE', weak_point_analysis: ['指针操作不熟练'], question_count: 3, correct_count: 2, time_spent_seconds: 180, status: 'ANALYZED', questions: [], recommendation: { action: 'ADVANCE', message: '链表基础掌握，建议继续。' }, created_at: '2026-04-10T15:00:00Z' },
+  { eval_id: 'eval_h003', type: 'MINI_QUIZ', knowledge_point: 'stack', score: 100, mastery_level: 0.68, learning_efficiency: 0.88, progress_trend: 'UP', weak_point_analysis: [], question_count: 3, correct_count: 3, time_spent_seconds: 90, status: 'ANALYZED', questions: [], recommendation: { action: 'ADVANCE', message: '栈与队列掌握良好！' }, created_at: '2026-04-11T11:00:00Z' },
+  { eval_id: 'eval_h004', type: 'MINI_QUIZ', knowledge_point: 'hash_table', score: 33, mastery_level: 0.45, learning_efficiency: 0.35, progress_trend: 'DOWN', weak_point_analysis: ['哈希冲突处理理解不足', '开放寻址法与链地址法混淆'], question_count: 3, correct_count: 1, time_spent_seconds: 240, status: 'ANALYZED', questions: [], recommendation: { action: 'SUPPLEMENT', message: '哈希表掌握不牢固，建议补充练习。' }, created_at: '2026-04-12T11:00:00Z' },
 ]
+
+// ---- Notifications ----
+export const mockNotifications: Notification[] = [
+  { id: 'noti_001', type: 'DAILY_RECOMMEND', title: '今日推荐学习', content: '根据你的学习进度，建议今天学习「排序算法」，预计用时 30 分钟。', is_read: false, created_at: '2026-04-14T08:00:00Z', action_url: '/app/path' },
+  { id: 'noti_002', type: 'EVAL_RESULT', title: '评估结果出炉', content: '你的「哈希表」评估得分 33 分，建议进行补充练习。', is_read: false, created_at: '2026-04-12T11:05:00Z', action_url: '/app/evaluate' },
+  { id: 'noti_003', type: 'STUDY_REMINDER', title: '学习时间到啦', content: '你设定的每日学习时间到了，今天目标学习 60 分钟，加油！', is_read: true, created_at: '2026-04-13T19:00:00Z' },
+  { id: 'noti_004', type: 'ACHIEVEMENT', title: '🏅 成就解锁', content: '连续学习 3 天！保持这个节奏，你会越来越棒的。', is_read: true, created_at: '2026-04-12T20:00:00Z' },
+]
+
+// ---- Today Recommendation ----
+export const mockTodayRecommendation = {
+  knowledge_point: 'sorting',
+  title: '排序算法',
+  reason: '你正在学习排序算法，距离掌握还差一点点',
+  est_minutes: 30,
+  path_node_id: 'node_005',
+}
