@@ -34,7 +34,7 @@ function handleLogout() {
     <aside class="sidebar">
       <div class="sidebar-logo">
         <span class="logo-leaf">🌿</span>
-        <span class="logo-name">智伴</span>
+        <span class="logo-name">CS Buddy</span>
       </div>
 
       <nav class="sidebar-nav">

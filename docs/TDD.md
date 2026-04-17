@@ -1,4 +1,4 @@
-# 智伴（ZhiBan）技术设计文档（TDD）
+# CS Buddy（CS Buddy）技术设计文档（TDD）
 
 > **文档版本**：v2.0  
 > **创建日期**：2026-04-13  
@@ -419,7 +419,7 @@ com.zhiban.server
 │   ├── ResourceCacheEsService.java    # 资源缓存写入/语义检索
 │   ├── KnowledgeVectorEsService.java  # 知识点向量检索
 │   └── UserMemoryEsService.java       # 用户长期记忆向量检索
-└── ZhiBanApplication.java         # 启动类
+└── CS BuddyApplication.java         # 启动类
 ```
 
 #### 2.2.2 核心 API 接口清单
@@ -1033,7 +1033,7 @@ public class AIClientService {
 from typing import TypedDict, Literal, Optional
 from langgraph.graph import StateGraph
 
-class ZhiBanState(TypedDict):
+class CS BuddyState(TypedDict):
     """LangGraph 全局状态定义"""
     
     # ---- 请求上下文 ----
@@ -1317,7 +1317,7 @@ flowchart TD
 from langgraph.graph import StateGraph, END
 
 def build_chat_graph() -> StateGraph:
-    graph = StateGraph(ZhiBanState)
+    graph = StateGraph(CS BuddyState)
 
     # 添加节点 — 9 个 Agent
     graph.add_node("orchestrator", orchestrator_node)
@@ -1401,7 +1401,7 @@ def build_chat_graph() -> StateGraph:
     return graph.compile()
 
 
-def resource_dispatch_node(state: ZhiBanState) -> dict:
+def resource_dispatch_node(state: CS BuddyState) -> dict:
     """
     资源调度节点：根据 OrchestratorAgent 决定的 agents_to_invoke，
     并行调用多个资源生成 Agent。
@@ -1412,7 +1412,7 @@ def resource_dispatch_node(state: ZhiBanState) -> dict:
     return {"agents_to_invoke": agents}
 
 
-def route_resource_agents(state: ZhiBanState) -> list[str]:
+def route_resource_agents(state: CS BuddyState) -> list[str]:
     """
     根据 agents_to_invoke 返回需要并行调用的 Agent 节点名。
     LangGraph 支持返回多个目标节点实现并行执行。
@@ -1443,7 +1443,7 @@ class VideoAgent:
         self.tts_client = XunfeiTTSClient()
         self.oss_client = OSSClient()
     
-    async def generate_video(self, state: ZhiBanState) -> dict:
+    async def generate_video(self, state: CS BuddyState) -> dict:
         profile = state["profile"]
         knowledge_point = state["current_node"]["knowledge_point"]
         
@@ -1557,7 +1557,7 @@ from langchain_core.runnables import RunnableConfig
 # 节点级重试装饰器
 def with_retry(max_retries: int = 1, timeout_seconds: int = 15):
     def decorator(func):
-        async def wrapper(state: ZhiBanState, config: RunnableConfig) -> dict:
+        async def wrapper(state: CS BuddyState, config: RunnableConfig) -> dict:
             for attempt in range(max_retries + 1):
                 try:
                     return await asyncio.wait_for(
@@ -1581,14 +1581,14 @@ def with_retry(max_retries: int = 1, timeout_seconds: int = 15):
 
 # 使用示例
 @with_retry(max_retries=1, timeout_seconds=15)
-async def doc_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
+async def doc_gen_node(state: CS BuddyState, config: RunnableConfig) -> dict:
     """DocAgent 节点实现"""
     # ... 调用 LLM 生成文档 ...
     pass
 
 # VideoAgent 特殊处理：超时时间更长（视频渲染耗时）
 @with_retry(max_retries=1, timeout_seconds=300)
-async def video_gen_node(state: ZhiBanState, config: RunnableConfig) -> dict:
+async def video_gen_node(state: CS BuddyState, config: RunnableConfig) -> dict:
     """VideoAgent 节点实现 — 视频生成耗时较长"""
     # ... 调用 LLM + TTS + Remotion ...
     pass

@@ -154,7 +154,7 @@ function goalLabel(val: string): string {
       </div>
       <div class="incomplete-body">
         <div class="incomplete-title">学习画像尚未完成</div>
-        <div class="incomplete-desc">通过与智伴对话，完成学习画像初始化，获得更精准的个性化推荐。</div>
+        <div class="incomplete-desc">通过与CS Buddy对话，完成学习画像初始化，获得更精准的个性化推荐。</div>
       </div>
       <router-link to="/app/chat" class="incomplete-action">去对话</router-link>
     </div>

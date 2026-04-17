@@ -54,7 +54,7 @@ export const mockProfile: UserProfile = {
 
 // ---- Welcome dialogue script ----
 export const welcomeDialogueScript: { role: 'USER' | 'ASSISTANT'; content: string; delay: number }[] = [
-  { role: 'ASSISTANT', content: '你好！欢迎来到智伴 🌿\n\n我是你的 AI 学伴，接下来我会通过几个简单的问题来了解你，以便为你提供最适合的学习体验。\n\n**你目前是什么专业/领域？**', delay: 800 },
+  { role: 'ASSISTANT', content: '你好！欢迎来到CS Buddy 🌿\n\n我是你的 AI 学习搭档，接下来我会通过几个简单的问题来了解你，以便为你提供最适合的学习体验。\n\n**你目前是什么专业/领域？**', delay: 800 },
   { role: 'USER', content: '我是计算机科学与技术专业的大二学生', delay: 0 },
   { role: 'ASSISTANT', content: '计算机专业，很棒！💻\n\n**你目前最想学习或提升的方向是什么？**\n比如：备考期末、准备面试、学习新技术...', delay: 600 },
   { role: 'USER', content: '主要是备战秋招面试，想系统复习数据结构和算法', delay: 0 },

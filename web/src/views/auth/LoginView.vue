@@ -39,8 +39,8 @@ async function handleLogin() {
     <div class="login-card">
       <div class="login-header">
         <span class="logo-leaf">🌿</span>
-        <h1 class="logo-name">智伴</h1>
-        <p class="tagline">你的 AI 学伴，懂你的学习节奏</p>
+        <h1 class="logo-name">CS Buddy</h1>
+        <p class="tagline">你的 AI 学习搭档，懂你的学习节奏</p>
       </div>
 
       <form class="login-form" @submit.prevent="handleLogin">

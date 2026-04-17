@@ -57,7 +57,7 @@ const isEmpty = computed(() => props.messages.length === 0)
         </svg>
       </div>
       <h3 class="chat-empty__title">开始你的学习之旅</h3>
-      <p class="chat-empty__desc">向智伴提问任何学习问题，获取个性化的学习建议</p>
+      <p class="chat-empty__desc">向CS Buddy提问任何学习问题，获取个性化的学习建议</p>
     </div>
 
     <!-- Messages -->

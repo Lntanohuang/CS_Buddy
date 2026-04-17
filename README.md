@@ -1,1 +1,1 @@
-# LearnPal
+# CS Buddy

@@ -168,7 +168,7 @@ onUnmounted(() => {
     <div class="welcome-container">
       <!-- Header -->
       <div class="welcome-header" :class="{ visible: headerVisible }">
-        <h1 class="welcome-title">🌿 欢迎加入智伴</h1>
+        <h1 class="welcome-title">🌿 欢迎加入CS Buddy</h1>
         <p class="welcome-subtitle">让我们通过一段对话来了解你</p>
       </div>
 
