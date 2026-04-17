@@ -18,5 +18,14 @@ export const useNotificationStore = defineStore('notification', () => {
     notifications.value.forEach((n) => (n.is_read = true))
   }
 
-  return { notifications, todayRecommendation, unreadCount, markRead, markAllRead }
+  function addNotification(n: Omit<Notification, 'id' | 'created_at' | 'is_read'>) {
+    notifications.value.unshift({
+      ...n,
+      id: `noti_${Date.now()}`,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    })
+  }
+
+  return { notifications, todayRecommendation, unreadCount, markRead, markAllRead, addNotification }
 })

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import type { ChatMessage } from '@/types'
+import type { ChatMessage, AgentStep } from '@/types'
 import MessageBubble from './MessageBubble.vue'
 
 const props = defineProps<{
   messages: ChatMessage[]
   isStreaming: boolean
+  agentSteps?: AgentStep[]
+  isAgentWorking?: boolean
 }>()
 
 const scrollContainer = ref<HTMLDivElement>()
@@ -66,8 +68,24 @@ const isEmpty = computed(() => props.messages.length === 0)
         :message="msg"
       />
 
+      <!-- Agent working steps -->
+      <div v-if="isAgentWorking && agentSteps?.length" class="agent-steps">
+        <div
+          v-for="step in agentSteps"
+          :key="step.agent"
+          class="agent-step"
+          :class="`agent-step--${step.status}`"
+        >
+          <span class="agent-step__icon">{{ step.icon }}</span>
+          <span class="agent-step__name">{{ step.agent }}</span>
+          <span class="agent-step__label">{{ step.label }}</span>
+          <span v-if="step.status === 'working'" class="agent-step__spinner" />
+          <span v-else-if="step.status === 'done'" class="agent-step__check">✓</span>
+        </div>
+      </div>
+
       <!-- Typing indicator -->
-      <div v-if="showTypingIndicator" class="typing-row">
+      <div v-if="showTypingIndicator && !isAgentWorking" class="typing-row">
         <div class="typing-avatar">
           <span>✦</span>
         </div>
@@ -134,6 +152,96 @@ const isEmpty = computed(() => props.messages.length === 0)
   color: var(--text-secondary);
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Agent steps */
+.agent-steps {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  max-width: 420px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.agent-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  transition: opacity 0.2s ease;
+}
+
+.agent-step--pending {
+  opacity: 0.35;
+}
+
+.agent-step--working {
+  opacity: 1;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.agent-step--done {
+  opacity: 0.6;
+}
+
+.agent-step__icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.agent-step__name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.agent-step--pending .agent-step__name {
+  color: var(--text-secondary);
+}
+
+.agent-step__label {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-step__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.agent-step__check {
+  color: var(--status-success);
+  font-weight: 700;
+  font-size: 14px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* Typing indicator */

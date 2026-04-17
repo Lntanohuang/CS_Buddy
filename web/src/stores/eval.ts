@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import type { Evaluation } from '@/types'
 import { mockEvaluation, mockEvalHistory } from '@/mock/data'
 import { useProfileStore } from './profile'
+import { usePathStore } from './path'
+import { useNotificationStore } from './notification'
 
 export const useEvalStore = defineStore('eval', () => {
   const history = ref<Evaluation[]>([...mockEvalHistory])
@@ -100,9 +102,38 @@ export const useEvalStore = defineStore('eval', () => {
       }
     }
 
-    // Update profile mastery
+    // Update profile mastery + error_patterns
     const profileStore = useProfileStore()
     profileStore.updateMastery(activeEval.value.knowledge_point, mastery)
+    if (weakPoints.length > 0) {
+      const existingPatterns = new Set(profileStore.profile.error_patterns)
+      for (const wp of weakPoints) {
+        existingPatterns.add(wp)
+      }
+      profileStore.updateProfile({ error_patterns: Array.from(existingPatterns) })
+    }
+
+    // Update learning path based on recommendation
+    const pathStore = usePathStore()
+    const action = activeEval.value.recommendation?.action
+    if (action) {
+      pathStore.reorderAfterEval(activeEval.value.knowledge_point, action)
+    }
+
+    // Send notifications
+    const notificationStore = useNotificationStore()
+    notificationStore.addNotification({
+      type: 'EVAL_RESULT',
+      title: `${activeEval.value.knowledge_point} 测评已完成`,
+      content: `得分 ${score} 分，掌握度 ${Math.round(mastery * 100)}%`,
+      action_url: '/app/evaluate',
+    })
+    notificationStore.addNotification({
+      type: 'STUDY_REMINDER',
+      title: '学习路径已调整',
+      content: `根据「${activeEval.value.knowledge_point}」测评结果，已优化你的学习路径`,
+      action_url: '/app/path',
+    })
 
     history.value.unshift({ ...activeEval.value })
     isSubmitting.value = false

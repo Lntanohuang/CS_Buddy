@@ -16,6 +16,8 @@ const progressPercent = computed(() => pathStore.progressPercent)
 const completedCount = computed(() => path.value.completed_nodes)
 const totalCount = computed(() => path.value.total_nodes)
 
+const updateHint = computed(() => pathStore.updateHint)
+
 const remainingHours = computed(() => {
   const remainingMinutes = path.value.nodes
     .filter((n) => n.status === 'PENDING' || n.status === 'IN_PROGRESS')
@@ -47,6 +49,14 @@ function handleSelect(_nodeId: string) {
       </div>
       <p class="path-goal">{{ path.goal }}</p>
     </div>
+
+    <!-- Update hint banner -->
+    <Transition name="hint-fade">
+      <div v-if="updateHint" class="update-hint" @click="pathStore.dismissHint()">
+        {{ updateHint }}
+        <span class="hint-dismiss">×</span>
+      </div>
+    </Transition>
 
     <!-- Stats Row -->
     <div class="stats-row">
@@ -145,6 +155,44 @@ function handleSelect(_nodeId: string) {
   font-size: 15px;
   color: var(--text-tertiary);
   line-height: 1.6;
+}
+
+/* Update hint */
+.update-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--accent-primary-light);
+  border: 1px solid var(--accent-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.update-hint:hover {
+  opacity: 0.85;
+}
+
+.hint-dismiss {
+  font-size: 18px;
+  font-weight: 700;
+  opacity: 0.5;
+}
+
+.hint-fade-enter-active,
+.hint-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.hint-fade-enter-from,
+.hint-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 /* Stats Row */

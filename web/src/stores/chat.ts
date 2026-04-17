@@ -1,7 +1,10 @@
 import { ref, shallowRef, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { ChatSession, ChatMessage } from '@/types'
-import { mockSessions, mockMessages, mockStreamReply } from '@/mock/data'
+import type { ChatSession, ChatMessage, AgentStep } from '@/types'
+import { mockSessions, mockMessages, mockStreamReply, mockAgentSteps, mockPersonalizedReply } from '@/mock/data'
+import { usePathStore } from './path'
+import { useNotificationStore } from './notification'
+import { useProfileStore } from './profile'
 
 export const useChatStore = defineStore('chat', () => {
   const isValidSession = (session: unknown): session is ChatSession => {
@@ -63,6 +66,9 @@ export const useChatStore = defineStore('chat', () => {
   const activeSessionId = shallowRef<string>(seededSessions[0].session_id)
   const messagesBySession = ref<Record<string, ChatMessage[]>>(seededMessagesBySession)
   const isStreaming = shallowRef(false)
+  const agentSteps = ref<AgentStep[]>([])
+  const isAgentWorking = shallowRef(false)
+  let sendCounter = 0
 
   const activeSession = computed(() =>
     sessions.value.find((s) => s.session_id === activeSessionId.value)
@@ -100,6 +106,9 @@ export const useChatStore = defineStore('chat', () => {
     const sid = activeSessionId.value
     if (!sid) return
 
+    sendCounter++
+    const isFirstMessage = sendCounter === 1
+
     const userMsg: ChatMessage = {
       message_id: `msg_${Date.now()}`,
       session_id: sid,
@@ -123,29 +132,46 @@ export const useChatStore = defineStore('chat', () => {
       session.updated_at = new Date().toISOString()
     }
 
-    // Simulate streaming reply
+    // --- Multi-agent simulation on first message ---
+    if (isFirstMessage) {
+      isAgentWorking.value = true
+      agentSteps.value = mockAgentSteps.map((s) => ({ ...s, status: 'pending' }))
+
+      for (let i = 0; i < agentSteps.value.length; i++) {
+        agentSteps.value[i].status = 'working'
+        await new Promise((r) => setTimeout(r, 800 + Math.random() * 400))
+        agentSteps.value[i].status = 'done'
+      }
+      isAgentWorking.value = false
+    }
+
+    // Choose reply based on context
+    const replyContent = isFirstMessage ? mockStreamReply : mockPersonalizedReply
     const assistantMsg: ChatMessage = {
       message_id: `msg_${Date.now() + 1}`,
       session_id: sid,
       role: 'ASSISTANT',
       content: '',
       intent: 'learn',
-      metadata: {
-        type: 'resource_card',
-        title: '二叉树',
-        difficulty: 'INTERMEDIATE',
-        est_minutes: 15,
-        knowledge_point: 'binary_tree',
-      },
+      metadata: isFirstMessage
+        ? {
+            type: 'resource_card',
+            resource_type: 'doc',
+            title: '二叉树',
+            difficulty: 'INTERMEDIATE',
+            est_minutes: 15,
+            knowledge_point: 'binary_tree',
+            agent: 'DocAgent',
+          }
+        : undefined,
       created_at: new Date().toISOString(),
     }
     messagesBySession.value[sid].push(assistantMsg)
     isStreaming.value = true
 
-    const chars = mockStreamReply.split('')
+    const chars = replyContent.split('')
     for (let i = 0; i < chars.length; i++) {
       assistantMsg.content += chars[i]
-      // Yield to the event loop periodically for smooth rendering
       if (i % 3 === 0) {
         await new Promise((r) => setTimeout(r, 15))
       }
@@ -155,6 +181,38 @@ export const useChatStore = defineStore('chat', () => {
     if (session) {
       session.message_count += 1
     }
+
+    // --- Cross-store side effects ---
+    if (isFirstMessage) {
+      // Add nodes to learning path
+      const pathStore = usePathStore()
+      pathStore.addNodes([
+        {
+          node_id: `node_chat_${Date.now()}`,
+          title: '二叉树遍历练习',
+          knowledge_point: 'binary_tree',
+          order: 11,
+          status: 'PENDING',
+          difficulty: 'INTERMEDIATE',
+          est_minutes: 60,
+          prerequisites: ['node_006'],
+          is_supplement: false,
+        },
+      ])
+
+      // Notify
+      const notificationStore = useNotificationStore()
+      notificationStore.addNotification({
+        type: 'DAILY_RECOMMEND',
+        title: '学习路径已更新',
+        content: '根据你的最新对话，已新增「二叉树遍历练习」节点',
+        action_url: '/app/path',
+      })
+    }
+
+    // Update profile (simulate "随学随新")
+    const profileStore = useProfileStore()
+    profileStore.updateMastery('binary_tree', Math.min(1, (profileStore.profile.knowledge_mastery['binary_tree'] ?? 0) + 0.05))
   }
 
   return {
@@ -163,6 +221,8 @@ export const useChatStore = defineStore('chat', () => {
     activeSession,
     activeMessages,
     isStreaming,
+    agentSteps,
+    isAgentWorking,
     selectSession,
     createSession,
     sendMessage,

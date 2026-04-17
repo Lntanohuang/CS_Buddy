@@ -11,15 +11,6 @@ const emit = defineEmits<{
   'start-eval': [knowledgePoint: string]
 }>()
 
-const difficultyColor = (difficulty: string) => {
-  const map: Record<string, string> = {
-    easy: 'success',
-    medium: 'warning',
-    hard: 'danger',
-  }
-  return map[difficulty.toLowerCase()] ?? 'info'
-}
-
 const difficultyLabel = (difficulty: string) => {
   const map: Record<string, string> = {
     easy: '简单',

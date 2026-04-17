@@ -2,6 +2,7 @@
 import { ref, shallowRef, nextTick, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useProfileStore } from '@/stores/profile'
 import { welcomeDialogueScript } from '@/mock/data'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
@@ -118,6 +119,17 @@ function wait(ms: number): Promise<void> {
 }
 
 async function handleStart() {
+  // Initialize profile from dialogue data
+  const profileStore = useProfileStore()
+  profileStore.initFromDialogue({
+    major: '计算机科学与技术',
+    learning_goal: 'EXAM_PREP',
+    current_level: 'INTERMEDIATE',
+    preferred_style: 'PRACTICE',
+    cognitive_style: 'PRACTICAL',
+    daily_time_minutes: 60,
+    subjects: ['DATA_STRUCTURE', 'ALGORITHM'],
+  })
   authStore.completeProfile()
   router.push('/app/chat')
 }

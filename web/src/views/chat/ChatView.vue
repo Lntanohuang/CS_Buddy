@@ -26,6 +26,8 @@ function handleDismissRecommend() {
 const sessions = computed(() => chatStore.sessions)
 const activeMessages = computed(() => chatStore.activeMessages)
 const isStreaming = computed(() => chatStore.isStreaming)
+const agentSteps = computed(() => chatStore.agentSteps)
+const isAgentWorking = computed(() => chatStore.isAgentWorking)
 const activeSessionId = computed(() => chatStore.activeSessionId)
 
 function handleSelectSession(id: string) {
@@ -105,6 +107,8 @@ function formatSessionTime(dateStr: string) {
       <ChatMessageList
         :messages="activeMessages"
         :is-streaming="isStreaming"
+        :agent-steps="agentSteps"
+        :is-agent-working="isAgentWorking"
       />
       <ChatInput
         :disabled="isStreaming"

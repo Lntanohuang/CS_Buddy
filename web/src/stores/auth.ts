@@ -78,7 +78,8 @@ export const useAuthStore = defineStore('auth', () => {
   const hasProfile = computed(() => user.value?.has_profile ?? false)
 
   async function login(_email: string, _password: string) {
-    user.value = { ...mockUser, has_profile: true }
+    // Mock: new user without profile, will go through welcome flow
+    user.value = { ...mockUser, has_profile: false }
     persistUser(user.value)
   }
 

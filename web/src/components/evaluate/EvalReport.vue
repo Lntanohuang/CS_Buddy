@@ -211,6 +211,18 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
       </div>
     </div>
 
+    <!-- Feedback hints -->
+    <div class="feedback-hints">
+      <div class="feedback-hint feedback-hint--profile">
+        <span class="feedback-hint__icon">✅</span>
+        <span>已根据本次测评更新你的学习画像</span>
+      </div>
+      <div class="feedback-hint feedback-hint--path">
+        <span class="feedback-hint__icon">🔄</span>
+        <span>已根据测评结果调整学习路径</span>
+      </div>
+    </div>
+
     <!-- Action -->
     <div class="report-footer">
       <button class="back-btn" @click="emit('close')">
@@ -497,6 +509,45 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
   font-size: 14px;
   line-height: 1.6;
   color: var(--text-tertiary);
+}
+
+/* Feedback hints */
+.feedback-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.feedback-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.feedback-hint--profile {
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+}
+
+.feedback-hint--path {
+  background: var(--accent-secondary-light);
+  color: var(--accent-secondary);
+}
+
+.feedback-hint__icon {
+  font-size: 15px;
+  flex-shrink: 0;
 }
 
 /* Footer */

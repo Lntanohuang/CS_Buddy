@@ -6,6 +6,7 @@ import type {
   LearningPath,
   Evaluation,
   Notification,
+  AgentStep,
 } from '@/types'
 
 // ---- Auth ----
@@ -334,7 +335,66 @@ export const mockNotifications: Notification[] = [
   { id: 'noti_002', type: 'EVAL_RESULT', title: '评估结果出炉', content: '你的「哈希表」评估得分 33 分，建议进行补充练习。', is_read: false, created_at: '2026-04-12T11:05:00Z', action_url: '/app/evaluate' },
   { id: 'noti_003', type: 'STUDY_REMINDER', title: '学习时间到啦', content: '你设定的每日学习时间到了，今天目标学习 60 分钟，加油！', is_read: true, created_at: '2026-04-13T19:00:00Z' },
   { id: 'noti_004', type: 'ACHIEVEMENT', title: '🏅 成就解锁', content: '连续学习 3 天！保持这个节奏，你会越来越棒的。', is_read: true, created_at: '2026-04-12T20:00:00Z' },
+  { id: 'noti_005', type: 'INACTIVE_RECALL', title: '复习提醒', content: '距上次学习「链表」已过 3 天，根据遗忘曲线建议复习', is_read: false, created_at: '2026-04-14T09:00:00Z', action_url: '/app/chat' },
+  { id: 'noti_006', type: 'INACTIVE_RECALL', title: '复习提醒', content: '距上次学习「栈与队列」已过 5 天，记忆可能衰退，建议巩固', is_read: false, created_at: '2026-04-14T09:30:00Z', action_url: '/app/chat' },
 ]
+
+// ---- Agent Steps (multi-agent simulation) ----
+export const mockAgentSteps: AgentStep[] = [
+  { agent: 'OrchestratorAgent', icon: '🔍', label: '正在分析你的需求...', status: 'pending' },
+  { agent: 'DocAgent', icon: '📄', label: '正在生成专业文档...', status: 'pending' },
+  { agent: 'MindmapAgent', icon: '🧠', label: '正在整理思维导图...', status: 'pending' },
+  { agent: 'QuizAgent', icon: '📝', label: '正在出题...', status: 'pending' },
+  { agent: 'CodeAgent', icon: '💻', label: '正在编写代码案例...', status: 'pending' },
+  { agent: 'VideoAgent', icon: '🎬', label: '正在生成教学视频...', status: 'pending' },
+]
+
+// ---- Personalized mock reply (references user profile) ----
+export const mockPersonalizedReply = `## 二叉树入门
+
+根据你的学习画像，你偏好**代码示例驱动**的学习方式，认知风格为**实践型**，所以我用大量代码来讲解。
+
+### 什么是二叉树？
+
+二叉树是每个节点最多有两个子节点的树形结构。
+
+\`\`\`python
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+# 构建一棵简单的二叉树
+root = TreeNode(1)
+root.left = TreeNode(2)
+root.right = TreeNode(3)
+root.left.left = TreeNode(4)
+root.left.right = TreeNode(5)
+\`\`\`
+
+### 前序遍历
+
+\`\`\`python
+def preorder(root):
+    if not root:
+        return []
+    return [root.val] + preorder(root.left) + preorder(root.right)
+
+print(preorder(root))  # [1, 2, 4, 5, 3]
+\`\`\`
+
+> 💡 你之前在递归终止条件上容易出错，所以特别注意 \`if not root: return []\` 这个 base case。
+
+\`\`\`mermaid
+graph TD
+    A[1] --> B[2]
+    A --> C[3]
+    B --> D[4]
+    B --> E[5]
+\`\`\`
+
+> ✅ 已根据本次对话更新你的学习画像`
 
 // ---- Today Recommendation ----
 export const mockTodayRecommendation = {

@@ -133,6 +133,14 @@ export interface Notification {
   action_url?: string
 }
 
+// ---- Agent Status ----
+export interface AgentStep {
+  agent: string
+  icon: string
+  label: string
+  status: 'pending' | 'working' | 'done'
+}
+
 // ---- Resource Feedback ----
 export interface ResourceFeedback {
   resource_id: string

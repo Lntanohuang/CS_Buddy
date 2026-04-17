@@ -13,21 +13,6 @@ const emit = defineEmits<{
   'start-eval': [knowledgePoint: string]
 }>()
 
-const timelineColor = (status: PathNode['status']) => {
-  const map: Record<PathNode['status'], string> = {
-    COMPLETED: 'var(--status-success)',
-    IN_PROGRESS: 'var(--accent-primary)',
-    PENDING: 'var(--border-strong)',
-    SKIPPED: 'var(--text-secondary)',
-  }
-  return map[status]
-}
-
-const timelineIcon = (status: PathNode['status']) => {
-  if (status === 'COMPLETED') return 'CircleCheckFilled'
-  return ''
-}
-
 const dotColor = (status: PathNode['status']) => {
   const map: Record<PathNode['status'], string> = {
     COMPLETED: 'var(--status-success)',

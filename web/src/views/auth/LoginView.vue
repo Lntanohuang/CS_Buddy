@@ -21,9 +21,9 @@ async function handleLogin() {
   loading.value = true
   try {
     await authStore.login(form.email, form.password)
-    // Ensure store state is flushed before guard checks run.
     await nextTick()
-    await router.push({ path: '/app/chat' })
+    // Let router guard decide: /welcome (new user) or /app/chat (returning user)
+    await router.push(authStore.hasProfile ? '/app/chat' : '/welcome')
     ElMessage.success('登录成功')
   } catch (error) {
     console.error('Login or navigation failed:', error)
