@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatDotRound, EditPen, Guide, User, SwitchButton } from '@element-plus/icons-vue'
+import { ChatDotRound, EditPen, Fold, Guide, Setting, SwitchButton, User } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 import { useUserStore } from '@/stores/user'
@@ -15,6 +15,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const layoutStore = useLayoutStore()
 const userStore = useUserStore()
+const settingsVisible = ref(false)
 
 const menuItems = [
   { title: 'AI 对话课堂', icon: ChatDotRound, route: '/app/chat' },
@@ -37,6 +38,7 @@ function handleMenuClick() {
 }
 
 function handleLogout() {
+  settingsVisible.value = false
   authStore.logout()
   layoutStore.setCollapse(typeof window !== 'undefined' ? window.innerWidth < 960 : false)
   void router.push('/login')
@@ -45,14 +47,17 @@ function handleLogout() {
 
 <template>
   <aside class="sidebar" :class="{ 'is-collapse': layoutStore.isCollapse }">
-    <div class="sidebar__brand">
-      <div class="sidebar__brand-mark">CS</div>
-      <transition name="sidebar-fade">
-        <div v-if="!layoutStore.isCollapse" class="sidebar__brand-copy">
-          <span class="sidebar__brand-eyebrow">AI Learning OS</span>
-          <strong>CS Buddy</strong>
-        </div>
-      </transition>
+    <div class="sidebar__top">
+      <div class="sidebar-logo">
+        <span class="logo-leaf">🌶</span>
+        <transition name="sidebar-fade">
+          <span v-if="!layoutStore.isCollapse" class="logo-name">CS Buddy</span>
+        </transition>
+      </div>
+
+      <button class="sidebar__toggle" type="button" @click="layoutStore.toggleCollapse()">
+        <el-icon :size="18"><Fold /></el-icon>
+      </button>
     </div>
 
     <nav class="sidebar__nav">
@@ -78,29 +83,43 @@ function handleLogout() {
 
     <div class="sidebar__footer">
       <div class="sidebar__user">
-        <div class="sidebar__avatar">
-          <img v-if="userStore.userInfo.avatar" :src="userStore.userInfo.avatar" :alt="displayName" />
-          <span v-else>{{ avatarText }}</span>
-        </div>
+        <div class="sidebar__avatar">{{ avatarText }}</div>
         <transition name="sidebar-fade">
           <div v-if="!layoutStore.isCollapse" class="sidebar__user-copy">
             <strong>{{ displayName }}</strong>
-            <span>{{ userStore.displayLevel }} / {{ userStore.displayPreferredStyle }}</span>
+            <span>{{ userStore.displayLevel }}</span>
           </div>
         </transition>
       </div>
 
-      <button
-        class="sidebar__logout"
-        :class="{ 'is-collapse': layoutStore.isCollapse }"
-        type="button"
-        @click="handleLogout"
+      <el-popover
+        v-model:visible="settingsVisible"
+        placement="top-end"
+        trigger="click"
+        :width="168"
+        popper-class="sidebar-settings-popover"
       >
-        <el-icon :size="16"><SwitchButton /></el-icon>
-        <transition name="sidebar-fade">
-          <span v-if="!layoutStore.isCollapse">退出登录</span>
-        </transition>
-      </button>
+        <template #reference>
+          <button
+            class="sidebar__settings"
+            :class="{ 'is-collapse': layoutStore.isCollapse }"
+            type="button"
+            aria-label="打开设置"
+          >
+            <el-icon :size="16"><Setting /></el-icon>
+            <transition name="sidebar-fade">
+              <span v-if="!layoutStore.isCollapse">设置</span>
+            </transition>
+          </button>
+        </template>
+
+        <div class="sidebar__settings-panel">
+          <button class="sidebar__settings-action" type="button" @click="handleLogout">
+            <el-icon :size="15"><SwitchButton /></el-icon>
+            <span>退出登录</span>
+          </button>
+        </div>
+      </el-popover>
     </div>
   </aside>
 </template>
@@ -113,7 +132,7 @@ function handleLogout() {
   flex-direction: column;
   width: 100%;
   height: 100vh;
-  padding: 22px 16px 18px;
+  padding: 18px 14px 16px;
   background:
     radial-gradient(circle at top left, rgba(232, 192, 122, 0.18), transparent 34%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 246, 243, 0.98));
@@ -121,73 +140,90 @@ function handleLogout() {
   backdrop-filter: blur(18px);
 }
 
-.sidebar__brand {
+.sidebar__top {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 6px 22px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 6px 18px;
 }
 
-.sidebar__brand-mark {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  background: linear-gradient(145deg, var(--accent-primary), #30584e);
-  color: #fff;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  box-shadow: 0 18px 24px rgba(74, 124, 111, 0.18);
-}
-
-.sidebar__brand-copy {
+.sidebar-logo {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
 }
 
-.sidebar__brand-copy strong {
+.logo-leaf {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.logo-name {
   font-size: 18px;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 0.4px;
 }
 
-.sidebar__brand-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.sidebar__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background: rgba(55, 53, 47, 0.05);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.sidebar__toggle:hover {
+  background: rgba(74, 124, 111, 0.1);
+  color: var(--accent-primary);
 }
 
 .sidebar__nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   flex: 1;
 }
 
 .sidebar__link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  min-height: 52px;
+  min-height: 46px;
   padding: 0 14px;
-  border-radius: 18px;
+  border-radius: 12px;
   color: var(--text-tertiary);
-  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition: background 0.18s ease, color 0.18s ease;
 }
 
 .sidebar__link:hover {
   background: rgba(74, 124, 111, 0.08);
   color: var(--text-primary);
-  transform: translateX(2px);
 }
 
 .sidebar__link.is-active {
-  background: linear-gradient(135deg, rgba(74, 124, 111, 0.14), rgba(232, 192, 122, 0.16));
-  color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px rgba(74, 124, 111, 0.1);
+  background: rgba(74, 124, 111, 0.05);
+  color: var(--accent-primary);
+}
+
+.sidebar__link.is-active::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--accent-primary);
 }
 
 .sidebar__icon {
@@ -199,50 +235,47 @@ function handleLogout() {
 
 .sidebar__label {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .sidebar__footer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding-top: 16px;
   border-top: 1px solid rgba(55, 53, 47, 0.08);
 }
 
 .sidebar__user {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .sidebar__avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  overflow: hidden;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(74, 124, 111, 0.12);
-  color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: var(--bg-card);
+  font-size: 12px;
   font-weight: 700;
-}
-
-.sidebar__avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .sidebar__user-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .sidebar__user-copy strong {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
 }
 
@@ -251,25 +284,54 @@ function handleLogout() {
   color: var(--text-secondary);
 }
 
-.sidebar__logout {
+.sidebar__settings {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: 34px;
+  padding: 0 12px;
   border: none;
-  border-radius: 16px;
+  border-radius: 10px;
   background: rgba(55, 53, 47, 0.05);
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.sidebar__logout.is-collapse {
-  width: 44px;
-  align-self: center;
-  border-radius: 14px;
+.sidebar__settings:hover {
+  background: rgba(74, 124, 111, 0.1);
+  color: var(--accent-primary);
+}
+
+.sidebar__settings.is-collapse {
+  width: 34px;
+  padding: 0;
+}
+
+.sidebar__settings-panel {
+  padding: 4px 0;
+}
+
+.sidebar__settings-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar__settings-action:hover {
+  background: rgba(74, 124, 111, 0.08);
 }
 
 .sidebar-fade-enter-active,
@@ -281,5 +343,10 @@ function handleLogout() {
 .sidebar-fade-leave-to {
   opacity: 0;
   transform: translateX(-6px);
+}
+
+:global(.sidebar-settings-popover) {
+  border-radius: 14px !important;
+  padding: 6px !important;
 }
 </style>
