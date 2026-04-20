@@ -2,8 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 function getInitialCollapseState() {
-  if (typeof window === 'undefined') return false
-  return window.innerWidth < 960
+  return true
 }
 
 export const useLayoutStore = defineStore('layout', () => {

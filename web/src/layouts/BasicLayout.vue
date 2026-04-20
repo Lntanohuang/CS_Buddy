@@ -12,10 +12,6 @@ const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 960 : f
 function handleResize() {
   if (typeof window === 'undefined') return
   isMobile.value = window.innerWidth < 960
-
-  if (isMobile.value) {
-    layoutStore.setCollapse(true)
-  }
 }
 
 onMounted(() => {
@@ -40,7 +36,7 @@ onBeforeUnmount(() => {
     :class="{
       'is-collapse': layoutStore.isCollapse,
       'is-mobile': isMobile,
-      'is-sidebar-open': isMobile && !layoutStore.isCollapse,
+      'is-sidebar-open': !layoutStore.isCollapse,
     }"
   >
     <Sidebar :is-mobile="isMobile" />
@@ -69,62 +65,45 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .basic-layout {
-  --sidebar-width: 288px;
-  display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  min-height: 100vh;
+  --sidebar-rail-width: 72px;
+  min-height: 100dvh;
   background:
     radial-gradient(circle at top right, rgba(232, 192, 122, 0.2), transparent 28%),
     radial-gradient(circle at bottom left, rgba(74, 124, 111, 0.12), transparent 24%),
     var(--bg-primary);
-  transition: grid-template-columns 0.28s ease;
-}
-
-.basic-layout.is-collapse {
-  --sidebar-width: 104px;
+  overflow: hidden;
 }
 
 .basic-layout__main {
-  position: relative;
-  min-width: 0;
-  min-height: 100vh;
+  margin-left: var(--sidebar-rail-width);
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .basic-layout__content {
   flex: 1;
-  min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: 0 28px 28px;
 }
 
 .basic-layout__mask {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 38;
   border: none;
-  background: rgba(55, 53, 47, 0.36);
+  background: rgba(55, 53, 47, 0.3);
 }
 
 @media (max-width: 959px) {
-  .basic-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .basic-layout :deep(.sidebar) {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: min(84vw, 304px);
-    transform: translateX(-100%);
-    transition: transform 0.28s ease;
-  }
-
-  .basic-layout.is-sidebar-open :deep(.sidebar) {
-    transform: translateX(0);
+  .basic-layout__main {
+    margin-left: 0;
   }
 
   .basic-layout__content {
-    padding: 0 18px 18px;
+    padding: 0 16px 16px;
   }
 }
 </style>
