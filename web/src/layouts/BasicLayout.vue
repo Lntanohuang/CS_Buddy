@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
 
 .basic-layout__content.is-chat {
   overflow: hidden;
-  padding-bottom: 0;
+  padding: 0;
 }
 
 .basic-layout__page {
@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
   }
 
   .basic-layout__content.is-chat {
-    padding-bottom: 0;
+    padding: 0;
   }
 
   .basic-layout :deep(.sidebar) {

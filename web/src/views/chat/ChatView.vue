@@ -47,14 +47,7 @@ function handleSend(text: string) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(241, 248, 255, 0.78));
-  box-shadow: 0 14px 36px rgba(84, 138, 197, 0.08);
-}
-
-@media (max-width: 720px) {
-  .chat-main {
-    border-radius: 20px;
-  }
+  background: transparent;
+  box-shadow: none;
 }
 </style>
