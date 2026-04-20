@@ -13,7 +13,7 @@ const isAnimating = ref(false)
 let animationTimer: ReturnType<typeof setTimeout> | null = null
 
 const unreadCount = computed(() => notificationStore.unreadCount)
-const messages = computed(() => notificationStore.messageList.slice(0, 6))
+const messages = computed(() => notificationStore.messageList)
 
 function formatTime(value: string) {
   const date = new Date(value)
@@ -191,6 +191,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: min(70vh, 520px);
 }
 
 .notification-panel__header {
@@ -230,6 +231,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .notification-item {

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatDotRound, EditPen, Expand, Fold, Guide, Plus, User } from '@element-plus/icons-vue'
+import { ChatDotRound, EditPen, Expand, Fold, Guide, Plus, Setting, SwitchButton, User } from '@element-plus/icons-vue'
+import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useLayoutStore } from '@/stores/layout'
 
@@ -11,8 +12,10 @@ const props = defineProps<{
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const layoutStore = useLayoutStore()
 const chatStore = useChatStore()
+const settingsVisible = ref(false)
 
 const menuItems = [
   { title: 'AI 对话课堂', icon: ChatDotRound, route: '/app/chat' },
@@ -50,6 +53,12 @@ function handleSelectSession(id: string) {
   if (props.isMobile) {
     layoutStore.setCollapse(true)
   }
+}
+
+function handleLogout() {
+  settingsVisible.value = false
+  authStore.logout()
+  void router.push('/login')
 }
 
 function formatSessionTime(dateStr: string) {
@@ -139,6 +148,36 @@ function formatSessionTime(dateStr: string) {
         </button>
       </div>
     </section>
+
+    <div class="sidebar__footer">
+      <el-popover
+        v-model:visible="settingsVisible"
+        placement="top-start"
+        trigger="click"
+        :width="168"
+        popper-class="sidebar-settings-popover"
+      >
+        <template #reference>
+          <button
+            class="sidebar__settings"
+            type="button"
+            aria-label="打开设置"
+          >
+            <span class="sidebar__icon">
+              <el-icon :size="18"><Setting /></el-icon>
+            </span>
+            <span class="sidebar__label">设置</span>
+          </button>
+        </template>
+
+        <div class="sidebar__settings-panel">
+          <button class="sidebar__settings-action" type="button" @click="handleLogout">
+            <el-icon :size="15"><SwitchButton /></el-icon>
+            <span>退出登录</span>
+          </button>
+        </div>
+      </el-popover>
+    </div>
   </aside>
 </template>
 
@@ -150,7 +189,7 @@ function formatSessionTime(dateStr: string) {
   bottom: 0;
   z-index: 40;
   width: 304px;
-  padding: 16px 12px;
+  padding: 16px 12px 12px;
   background:
     radial-gradient(circle at top left, rgba(232, 192, 122, 0.14), transparent 34%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 246, 243, 0.98));
@@ -158,6 +197,8 @@ function formatSessionTime(dateStr: string) {
   box-shadow: 14px 0 28px rgba(55, 53, 47, 0.08);
   overflow: hidden;
   transition: width 0.24s ease, box-shadow 0.24s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.is-collapse {
@@ -171,21 +212,30 @@ function formatSessionTime(dateStr: string) {
   padding-bottom: 12px;
 }
 
-.sidebar__toggle {
-  display: inline-flex;
+.sidebar__toggle,
+.sidebar__settings {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 10px 0 0;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(55, 53, 47, 0.05);
   color: var(--text-primary);
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease;
 }
 
-.sidebar__toggle:hover {
+.sidebar.is-collapse .sidebar__toggle,
+.sidebar.is-collapse .sidebar__settings {
+  width: 48px;
+  padding-right: 0;
+}
+
+.sidebar__toggle:hover,
+.sidebar__settings:hover {
   background: rgba(74, 124, 111, 0.12);
   color: var(--accent-primary);
 }
@@ -200,20 +250,15 @@ function formatSessionTime(dateStr: string) {
 
 .sidebar__link {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
   min-height: 48px;
-  padding: 0 14px;
+  padding: 0 10px 0 0;
   border-radius: 14px;
   color: var(--text-tertiary);
   transition: background 0.18s ease, color 0.18s ease;
   white-space: nowrap;
-}
-
-.sidebar.is-collapse .sidebar__link {
-  justify-content: center;
-  padding: 0;
 }
 
 .sidebar__link:hover {
@@ -237,15 +282,11 @@ function formatSessionTime(dateStr: string) {
   background: var(--accent-primary);
 }
 
-.sidebar.is-collapse .sidebar__link.is-active::before {
-  left: 4px;
-}
-
 .sidebar__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: 48px;
   flex-shrink: 0;
 }
 
@@ -255,20 +296,20 @@ function formatSessionTime(dateStr: string) {
   opacity: 1;
   transform: translateX(0);
   transition: opacity 0.18s ease, transform 0.18s ease;
+  overflow: hidden;
 }
 
 .sidebar.is-collapse .sidebar__label {
   opacity: 0;
   width: 0;
   transform: translateX(-6px);
-  overflow: hidden;
 }
 
 .sidebar__history {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  height: calc(100dvh - 340px);
+  flex: 1;
   min-height: 0;
   margin-top: 16px;
   opacity: 1;
@@ -367,6 +408,36 @@ function formatSessionTime(dateStr: string) {
   color: var(--text-secondary);
 }
 
+.sidebar__footer {
+  display: flex;
+  align-items: flex-end;
+  padding-top: 12px;
+}
+
+.sidebar__settings-panel {
+  padding: 4px 0;
+}
+
+.sidebar__settings-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebar__settings-action:hover {
+  background: rgba(74, 124, 111, 0.08);
+}
+
 @media (max-width: 959px) {
   .sidebar {
     width: min(84vw, 304px);
@@ -375,9 +446,10 @@ function formatSessionTime(dateStr: string) {
   .sidebar.is-collapse {
     width: 72px;
   }
+}
 
-  .sidebar__history {
-    height: calc(100dvh - 340px);
-  }
+:global(.sidebar-settings-popover) {
+  border-radius: 14px !important;
+  padding: 6px !important;
 }
 </style>

@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { Setting, SwitchButton } from '@element-plus/icons-vue'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import NotificationBadge from '@/components/notice/NotificationBadge.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
-const settingsVisible = ref(false)
+const notificationStore = useNotificationStore()
 
 const pageMetaMap: Record<string, string> = {
   chat: 'AI 对话课堂',
@@ -25,12 +24,10 @@ const currentTitle = computed(() => {
 
 const displayName = computed(() => authStore.nickname || '用户')
 const avatarText = computed(() => displayName.value.slice(0, 1).toUpperCase())
-
-function handleLogout() {
-  settingsVisible.value = false
-  authStore.logout()
-  void router.push('/login')
-}
+const recommendationText = computed(() => {
+  const recommendation = notificationStore.todayRecommendation
+  return `${recommendation.title} · ${recommendation.est_minutes} 分钟`
+})
 </script>
 
 <template>
@@ -45,25 +42,12 @@ function handleLogout() {
     </div>
 
     <div class="topbar__right">
+      <div class="topbar__recommend" :title="notificationStore.todayRecommendation.reason">
+        <span class="topbar__recommend-label">今日推荐</span>
+        <span class="topbar__recommend-value">{{ recommendationText }}</span>
+      </div>
+
       <NotificationBadge />
-
-      <el-popover
-        v-model:visible="settingsVisible"
-        placement="bottom-end"
-        trigger="click"
-        :width="172"
-      >
-        <template #reference>
-          <button class="topbar__settings" type="button" aria-label="打开设置">
-            <el-icon :size="16"><Setting /></el-icon>
-          </button>
-        </template>
-
-        <button class="topbar__settings-action" type="button" @click="handleLogout">
-          <el-icon :size="15"><SwitchButton /></el-icon>
-          <span>退出登录</span>
-        </button>
-      </el-popover>
 
       <div class="topbar__user">
         <div class="topbar__user-avatar">{{ avatarText }}</div>
@@ -91,7 +75,8 @@ function handleLogout() {
 .topbar__left,
 .topbar__right,
 .topbar__brand,
-.topbar__user {
+.topbar__user,
+.topbar__recommend {
   display: flex;
   align-items: center;
 }
@@ -137,37 +122,28 @@ function handleLogout() {
   text-overflow: ellipsis;
 }
 
-.topbar__settings {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border: none;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.84);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.topbar__settings-action {
-  display: flex;
-  align-items: center;
+.topbar__recommend {
   gap: 8px;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
+  max-width: 360px;
+  padding: 0 12px;
+  min-height: 36px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  white-space: nowrap;
 }
 
-.topbar__settings-action:hover {
-  background: rgba(74, 124, 111, 0.08);
+.topbar__recommend-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-primary);
+  letter-spacing: 0.04em;
+}
+
+.topbar__recommend-value {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar__user {
@@ -202,6 +178,12 @@ function handleLogout() {
   box-shadow: none;
 }
 
+@media (max-width: 1100px) {
+  .topbar__recommend {
+    max-width: 250px;
+  }
+}
+
 @media (max-width: 720px) {
   .topbar {
     padding: 10px 14px;
@@ -209,12 +191,18 @@ function handleLogout() {
 
   .topbar__divider,
   .topbar__brand-name,
+  .topbar__recommend-label,
   .topbar__user-name {
     display: none;
   }
 
   .topbar__title {
     font-size: 18px;
+  }
+
+  .topbar__recommend {
+    max-width: 140px;
+    padding: 0 10px;
   }
 }
 </style>

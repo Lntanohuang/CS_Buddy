@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import Topbar from './components/Topbar.vue'
 import { useLayoutStore } from '@/stores/layout'
 import { useUserStore } from '@/stores/user'
 
+const route = useRoute()
 const layoutStore = useLayoutStore()
 const userStore = useUserStore()
 const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 960 : false)
+const isChatRoute = computed(() => route.name === 'chat')
 
 function handleResize() {
   if (typeof window === 'undefined') return
@@ -36,7 +39,7 @@ onBeforeUnmount(() => {
     :class="{
       'is-collapse': layoutStore.isCollapse,
       'is-mobile': isMobile,
-      'is-sidebar-open': !layoutStore.isCollapse,
+      'is-sidebar-open': !layoutStore.isCollapse && isMobile,
     }"
   >
     <Sidebar :is-mobile="isMobile" />
@@ -52,12 +55,14 @@ onBeforeUnmount(() => {
     <div class="basic-layout__main">
       <Topbar />
 
-      <main class="basic-layout__content">
-        <router-view v-slot="{ Component }">
-          <transition name="page" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+      <main class="basic-layout__content" :class="{ 'is-chat': isChatRoute }">
+        <div class="basic-layout__page">
+          <router-view v-slot="{ Component }">
+            <transition name="page" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </div>
       </main>
     </div>
   </div>
@@ -65,7 +70,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .basic-layout {
-  --sidebar-rail-width: 72px;
+  --sidebar-width: 304px;
   min-height: 100dvh;
   background:
     radial-gradient(circle at top right, rgba(232, 192, 122, 0.2), transparent 28%),
@@ -74,19 +79,37 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.basic-layout.is-collapse {
+  --sidebar-width: 72px;
+}
+
 .basic-layout__main {
-  margin-left: var(--sidebar-rail-width);
+  margin-left: var(--sidebar-width);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: margin-left 0.24s ease;
 }
 
 .basic-layout__content {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
   padding: 0 28px 28px;
+}
+
+.basic-layout__content.is-chat {
+  overflow: hidden;
+}
+
+.basic-layout__page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .basic-layout__mask {
@@ -98,12 +121,25 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 959px) {
+  .basic-layout {
+    --sidebar-width: 0px;
+  }
+
   .basic-layout__main {
     margin-left: 0;
   }
 
   .basic-layout__content {
     padding: 0 16px 16px;
+  }
+
+  .basic-layout :deep(.sidebar) {
+    transform: translateX(-100%);
+    transition: transform 0.24s ease, width 0.24s ease;
+  }
+
+  .basic-layout.is-sidebar-open :deep(.sidebar) {
+    transform: translateX(0);
   }
 }
 </style>
