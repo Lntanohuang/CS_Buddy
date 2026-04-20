@@ -96,9 +96,12 @@ function formatSessionTime(dateStr: string) {
         :aria-label="layoutStore.isCollapse ? '展开侧边栏' : '折叠侧边栏'"
         @click="layoutStore.toggleCollapse()"
       >
-        <el-icon :size="18">
-          <component :is="layoutStore.isCollapse ? Expand : Fold" />
-        </el-icon>
+        <span class="sidebar__icon">
+          <el-icon :size="18">
+            <component :is="layoutStore.isCollapse ? Expand : Fold" />
+          </el-icon>
+        </span>
+        <span class="sidebar__label">导航</span>
       </button>
     </div>
 
@@ -230,7 +233,6 @@ function formatSessionTime(dateStr: string) {
 
 .sidebar.is-collapse .sidebar__toggle,
 .sidebar.is-collapse .sidebar__settings {
-  width: 48px;
   padding-right: 0;
 }
 

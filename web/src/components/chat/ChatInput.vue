@@ -61,9 +61,10 @@ function handleKeydown(event: KeyboardEvent) {
 
 <style scoped>
 .chat-input-wrapper {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 4;
+  flex-shrink: 0;
+  margin-top: auto;
   padding: 16px 24px 20px;
   background: linear-gradient(180deg, rgba(250, 250, 248, 0.72), rgba(250, 250, 248, 0.96));
   border-top: 1px solid rgba(55, 53, 47, 0.06);
@@ -73,7 +74,7 @@ function handleKeydown(event: KeyboardEvent) {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  width: min(100%, 900px);
+  width: min(100%, 920px);
   margin: 0 auto;
   background: var(--bg-card);
   border: 1.5px solid var(--border);
@@ -145,7 +146,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 @media (max-width: 720px) {
   .chat-input-wrapper {
-    padding: 12px 14px 14px;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
   }
 }
 </style>

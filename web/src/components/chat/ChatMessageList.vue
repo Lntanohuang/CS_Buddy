@@ -113,7 +113,7 @@ const isEmpty = computed(() => props.messages.length === 0)
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 860px;
+  max-width: 920px;
   margin: 0 auto;
   width: 100%;
 }

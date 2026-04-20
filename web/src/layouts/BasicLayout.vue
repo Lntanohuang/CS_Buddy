@@ -59,7 +59,9 @@ onBeforeUnmount(() => {
         <div class="basic-layout__page">
           <router-view v-slot="{ Component }">
             <transition name="page" mode="out-in">
-              <component :is="Component" />
+              <div :key="route.fullPath" class="basic-layout__page-shell">
+                <component :is="Component" />
+              </div>
             </transition>
           </router-view>
         </div>
@@ -71,6 +73,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .basic-layout {
   --sidebar-width: 304px;
+  height: 100dvh;
   min-height: 100dvh;
   background:
     radial-gradient(circle at top right, rgba(232, 192, 122, 0.2), transparent 28%),
@@ -85,6 +88,7 @@ onBeforeUnmount(() => {
 
 .basic-layout__main {
   margin-left: var(--sidebar-width);
+  height: 100dvh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -103,6 +107,7 @@ onBeforeUnmount(() => {
 
 .basic-layout__content.is-chat {
   overflow: hidden;
+  padding-bottom: 0;
 }
 
 .basic-layout__page {
@@ -110,6 +115,19 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.basic-layout__page-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.basic-layout__page-shell > * {
+  flex: 1;
+  min-height: 0;
 }
 
 .basic-layout__mask {
@@ -131,6 +149,10 @@ onBeforeUnmount(() => {
 
   .basic-layout__content {
     padding: 0 16px 16px;
+  }
+
+  .basic-layout__content.is-chat {
+    padding-bottom: 0;
   }
 
   .basic-layout :deep(.sidebar) {
