@@ -116,6 +116,13 @@ export const useNotificationStore = defineStore('notification', () => {
     })
   }
 
+  function removeMessage(id: string) {
+    const index = messageList.value.findIndex((message) => message.id === id)
+    if (index !== -1) {
+      messageList.value.splice(index, 1)
+    }
+  }
+
   return {
     messageList,
     notifications,
@@ -125,6 +132,7 @@ export const useNotificationStore = defineStore('notification', () => {
     markAsRead,
     markRead,
     markAllRead,
+    removeMessage,
     addNotification,
   }
 })

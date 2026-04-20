@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell } from '@element-plus/icons-vue'
+import { Bell, Delete } from '@element-plus/icons-vue'
 import { useNotificationStore } from '@/stores/notification'
 import type { NotificationMessage } from '@/types'
 
@@ -59,6 +59,10 @@ function openMessage(message: NotificationMessage) {
   }
 }
 
+function deleteMessage(messageId: string) {
+  notificationStore.removeMessage(messageId)
+}
+
 watch(
   () => notificationStore.unreadCount,
   (next, previous) => {
@@ -112,23 +116,31 @@ onBeforeUnmount(() => {
       </div>
 
       <div v-else class="notification-list">
-        <button
+        <div
           v-for="message in messages"
           :key="message.id"
           class="notification-item"
           :class="{ 'notification-item--unread': !message.read }"
-          type="button"
-          @click="openMessage(message)"
         >
           <div class="notification-item__marker" />
-          <div class="notification-item__body">
-            <div class="notification-item__top">
-              <span class="notification-item__title">{{ message.title }}</span>
-              <span class="notification-item__time">{{ formatTime(message.createdAt) }}</span>
+          <button class="notification-item__main" type="button" @click="openMessage(message)">
+            <div class="notification-item__body">
+              <div class="notification-item__top">
+                <span class="notification-item__title">{{ message.title }}</span>
+                <span class="notification-item__time">{{ formatTime(message.createdAt) }}</span>
+              </div>
+              <p class="notification-item__content">{{ message.content }}</p>
             </div>
-            <p class="notification-item__content">{{ message.content }}</p>
-          </div>
-        </button>
+          </button>
+          <button
+            class="notification-item__delete"
+            type="button"
+            aria-label="删除消息"
+            @click.stop="deleteMessage(message.id)"
+          >
+            <el-icon :size="15"><Delete /></el-icon>
+          </button>
+        </div>
       </div>
     </div>
   </el-popover>
@@ -241,13 +253,10 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   gap: 12px;
   width: 100%;
-  border: none;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 255, 0.92));
   padding: 14px;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .notification-item:hover {
@@ -274,6 +283,17 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.notification-item__main {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
 .notification-item__top {
   display: flex;
   align-items: center;
@@ -298,6 +318,27 @@ onBeforeUnmount(() => {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-tertiary);
+}
+
+.notification-item__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-top: 1px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.notification-item__delete:hover {
+  background: rgba(196, 85, 77, 0.12);
+  color: var(--status-error);
 }
 
 .notification-empty {
