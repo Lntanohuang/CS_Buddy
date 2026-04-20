@@ -23,7 +23,7 @@ const router = createRouter({
     },
     {
       path: '/app',
-      component: () => import('@/components/layout/AppLayout.vue'),
+      component: () => import('@/layouts/BasicLayout.vue'),
       children: [
         { path: '', redirect: '/app/chat' },
         { path: 'chat', name: 'chat', component: () => import('@/views/chat/ChatView.vue') },

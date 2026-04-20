@@ -1,977 +1,715 @@
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
-import { useProfileStore } from '@/stores/profile'
-import { useAuthStore } from '@/stores/auth'
-import { ElMessage } from 'element-plus'
+import { computed, onMounted } from 'vue'
+import UserRadarChart from '@/components/charts/UserRadarChart.vue'
+import { useNotificationStore } from '@/stores/notification'
+import { useUserStore } from '@/stores/user'
 
-const profileStore = useProfileStore()
-const authStore = useAuthStore()
+const userStore = useUserStore()
+const notificationStore = useNotificationStore()
 
-const profile = computed(() => profileStore.profile)
-
-const form = reactive({
-  major: profile.value.major,
-  current_level: profile.value.current_level,
-  learning_goal: profile.value.learning_goal,
-  preferred_style: profile.value.preferred_style,
-  cognitive_style: profile.value.cognitive_style,
-  daily_time_minutes: profile.value.daily_time_minutes,
-})
-
-const levelOptions = [
-  { value: 'BEGINNER', label: '入门' },
-  { value: 'ELEMENTARY', label: '初级' },
-  { value: 'INTERMEDIATE', label: '中级' },
-  { value: 'ADVANCED', label: '高级' },
-]
-
-const goalOptions = [
-  { value: 'EXAM_PREP', label: '备考提分' },
-  { value: 'INTEREST', label: '兴趣学习' },
-  { value: 'SKILL_UP', label: '技能提升' },
-]
-
-const styleOptions = [
-  { value: 'VIDEO', label: '视频讲解' },
-  { value: 'TEXT', label: '文字阅读' },
-  { value: 'PRACTICE', label: '练习为主' },
-  { value: 'MIXED', label: '混合模式' },
-]
-
-const cognitiveStyleOptions = [
-  { value: 'THEORETICAL', label: '理论推导型', desc: '偏好从原理出发理解知识' },
-  { value: 'PRACTICAL', label: '实践驱动型', desc: '偏好通过动手练习来学习' },
-  { value: 'VISUAL', label: '视觉学习型', desc: '偏好图表和可视化辅助' },
-  { value: 'MIXED', label: '混合型', desc: '灵活运用多种学习方式' },
-]
-
-const timeOptions = [
-  { value: 15, label: '15 分钟' },
-  { value: 30, label: '30 分钟' },
-  { value: 60, label: '1 小时' },
-  { value: 90, label: '1.5 小时' },
-  { value: 120, label: '2 小时' },
-]
-
-const isDirty = computed(() => {
-  const currentForm = {
-    major: form.major,
-    current_level: form.current_level,
-    learning_goal: form.learning_goal,
-    preferred_style: form.preferred_style,
-    cognitive_style: form.cognitive_style,
-    daily_time_minutes: form.daily_time_minutes,
-  }
-  const profileForm = {
-    major: profile.value.major,
-    current_level: profile.value.current_level,
-    learning_goal: profile.value.learning_goal,
-    preferred_style: profile.value.preferred_style,
-    cognitive_style: profile.value.cognitive_style,
-    daily_time_minutes: profile.value.daily_time_minutes,
-  }
-  return JSON.stringify(currentForm) !== JSON.stringify(profileForm)
-})
-
-function handleSave() {
-  profileStore.updateProfile({
-    major: form.major,
-    current_level: form.current_level,
-    learning_goal: form.learning_goal,
-    preferred_style: form.preferred_style,
-    cognitive_style: form.cognitive_style,
-    daily_time_minutes: form.daily_time_minutes,
-  })
-  ElMessage.success('保存成功')
+const TOPIC_LABELS: Record<string, string> = {
+  array: '数组基础',
+  linked_list: '链表操作',
+  stack: '栈与队列',
+  queue: '队列模型',
+  sorting: '排序策略',
+  hash_table: '哈希表',
+  binary_tree: '二叉树',
+  graph: '图搜索',
 }
 
-const masteryEntries = computed(() =>
-  Object.entries(profile.value.knowledge_mastery).map(([name, value]) => ({
-    name,
-    value,
-    percentage: Math.round(value * 100),
-    isWeak: profile.value.weak_points.includes(name),
-  }))
+const STYLE_LABELS: Record<string, string> = {
+  code_example: '代码示例驱动',
+  analogy: '类比讲解',
+  text: '结构化图文',
+}
+
+onMounted(() => {
+  userStore.fetchMockUserData()
+})
+
+const heroStats = computed(() => [
+  {
+    label: '学习连胜',
+    value: `${userStore.userInfo.streakDays} 天`,
+    hint: '过去两周保持稳定打卡。',
+  },
+  {
+    label: '周投入',
+    value: `${Math.round(userStore.userInfo.weeklyMinutes / 60)} 小时`,
+    hint: '根据每日目标自动换算。',
+  },
+  {
+    label: '画像完成度',
+    value: `${userStore.userInfo.masteryRate}%`,
+    hint: '由掌握度、测评和通知反馈共同更新。',
+  },
+])
+
+const abilityCards = computed(() =>
+  userStore.radarMetrics.map((metric, index) => ({
+    ...metric,
+    score: userStore.currentScores[index] ?? 0,
+  })),
 )
 
-function masteryColor(percentage: number): string {
-  if (percentage < 40) return 'var(--status-error)'
-  if (percentage <= 70) return 'var(--accent-secondary)'
-  return 'var(--status-success)'
+const masteryEntries = computed(() =>
+  Object.entries(userStore.knowledgeMastery)
+    .map(([key, value]) => ({
+      key,
+      label: TOPIC_LABELS[key] ?? key,
+      score: Math.round(value * 100),
+      isWeak: userStore.weakPoints.includes(key),
+    }))
+    .sort((left, right) => right.score - left.score),
+)
+
+const preferenceEntries = computed(() =>
+  Object.entries(userStore.styleWeights)
+    .map(([key, value]) => ({
+      key,
+      label: STYLE_LABELS[key] ?? key,
+      score: Math.round(value * 100),
+    }))
+    .sort((left, right) => right.score - left.score),
+)
+
+const recentMessages = computed(() => notificationStore.messageList.slice(0, 4))
+
+function masteryBarColor(score: number) {
+  if (score >= 80) return 'linear-gradient(90deg, #4A7C6F, #70A28F)'
+  if (score >= 60) return 'linear-gradient(90deg, #E8C07A, #E9D48F)'
+  return 'linear-gradient(90deg, #C4554D, #E17B71)'
 }
 
-function masteryGradient(percentage: number): string {
-  if (percentage < 40) return 'linear-gradient(90deg, var(--status-error), var(--status-error))'
-  if (percentage <= 70) return 'linear-gradient(90deg, var(--accent-secondary), var(--accent-secondary))'
-  return 'linear-gradient(90deg, var(--status-success), var(--status-success))'
+function formatNotificationTime(value: string) {
+  return new Date(value).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
-const styleWeights = computed(() => {
-  const weights = profile.value.style_weights
-  const total = Object.values(weights).reduce((s, v) => s + v, 0) || 1
-  return Object.entries(weights).map(([key, value]) => ({
-    key,
-    label: styleWeightLabel(key),
-    value,
-    percentage: Math.round((value / total) * 100),
-  }))
-})
-
-function styleWeightLabel(key: string): string {
-  const map: Record<string, string> = {
-    code_example: '代码示例',
-    analogy: '类比举例',
-    text: '文字说明',
-  }
-  return map[key] ?? key
-}
-
-const root = document.documentElement
-const cs = getComputedStyle(root)
-const styleBarColors = [
-  cs.getPropertyValue('--accent-primary').trim(),
-  cs.getPropertyValue('--accent-secondary').trim(),
-  cs.getPropertyValue('--accent-secondary-light').trim(),
-]
-
-function levelLabel(val: string): string {
-  return levelOptions.find(o => o.value === val)?.label ?? val
-}
-
-function goalLabel(val: string): string {
-  return goalOptions.find(o => o.value === val)?.label ?? val
+function handleSimulateNotification() {
+  notificationStore.receiveNewMessage({
+    type: 'STUDY_REMINDER',
+    title: 'AI 导师发来新的提醒',
+    content: '建议把今晚的 20 分钟留给“树与图的关系图谱”，通知角标和铃铛动画会同步更新。',
+    actionUrl: '/app/profile',
+  })
 }
 </script>
 
 <template>
-  <div class="profile-view">
-    <!-- Profile Incomplete Banner -->
-    <div v-if="!profile.profile_complete" class="incomplete-banner">
-      <div class="incomplete-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-      </div>
-      <div class="incomplete-body">
-        <div class="incomplete-title">学习画像尚未完成</div>
-        <div class="incomplete-desc">通过与CS Buddy对话，完成学习画像初始化，获得更精准的个性化推荐。</div>
-      </div>
-      <router-link to="/app/chat" class="incomplete-action">去对话</router-link>
-    </div>
-
-    <!-- Greeting Card -->
-    <div class="greeting-card">
-      <div class="greeting-content">
-        <h1 class="greeting-text">你好，{{ authStore.nickname || '同学' }}</h1>
-        <div class="greeting-pills">
-          <span class="greeting-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            {{ levelLabel(profile.current_level) }}
-          </span>
-          <span class="greeting-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-            每日 {{ profile.daily_time_minutes }} 分钟
-          </span>
-          <span class="greeting-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            {{ goalLabel(profile.learning_goal) }}
-          </span>
-        </div>
-      </div>
-      <div class="greeting-decoration">
-        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" opacity="0.15">
-          <circle cx="60" cy="60" r="50" stroke="var(--bg-card)" stroke-width="4"/>
-          <circle cx="60" cy="60" r="35" stroke="var(--bg-card)" stroke-width="3"/>
-          <circle cx="60" cy="60" r="20" stroke="var(--bg-card)" stroke-width="2"/>
-        </svg>
-      </div>
-    </div>
-
-    <!-- Section 1: 基本信息 -->
-    <div class="section-grid">
-      <div class="dashboard-card profile-card">
-        <div class="card-header-custom">
-          <div class="card-icon card-icon-indigo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-          <span class="card-title-custom">基本信息</span>
+  <div class="profile-dashboard">
+    <section class="hero-card">
+      <div class="hero-card__main">
+        <div class="hero-card__avatar">
+          <img :src="userStore.userInfo.avatar" :alt="userStore.userInfo.name" />
         </div>
 
-        <div class="profile-form">
-          <div class="form-field">
-            <label class="form-label">昵称</label>
-            <div class="form-value-static">{{ authStore.nickname || '--' }}</div>
+        <div class="hero-card__copy">
+          <p class="hero-card__eyebrow">Multimodal Learning Portrait</p>
+          <h1>{{ userStore.userInfo.name }}</h1>
+          <p class="hero-card__bio">{{ userStore.userInfo.bio }}</p>
+
+          <div class="hero-card__tags">
+            <span class="hero-card__tag">{{ userStore.displayLevel }}</span>
+            <span class="hero-card__tag">{{ userStore.displayGoal }}</span>
+            <span class="hero-card__tag">{{ userStore.displayPreferredStyle }}</span>
+            <span class="hero-card__tag">{{ userStore.displayCognitiveStyle }}</span>
           </div>
 
-          <div class="form-field">
-            <label class="form-label">专业背景</label>
-            <el-input
-              v-model="form.major"
-              placeholder="例如：计算机科学与技术"
-              class="form-input"
-            />
+          <div class="hero-card__subjects">
+            <span
+              v-for="subject in userStore.displaySubjects"
+              :key="subject"
+              class="hero-card__subject"
+            >
+              {{ subject }}
+            </span>
           </div>
+        </div>
+      </div>
 
-          <div class="form-field">
-            <label class="form-label">当前水平</label>
-            <el-select v-model="form.current_level" class="form-select">
-              <el-option
-                v-for="opt in levelOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
+      <div class="hero-card__stats">
+        <article v-for="item in heroStats" :key="item.label" class="hero-stat">
+          <span class="hero-stat__label">{{ item.label }}</span>
+          <strong class="hero-stat__value">{{ item.value }}</strong>
+          <span class="hero-stat__hint">{{ item.hint }}</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="overview-grid">
+      <article class="panel panel--radar">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">能力雷达</p>
+            <h2>学习能力五维评分</h2>
           </div>
+          <span class="panel__meta">侧栏折叠时会自动 resize</span>
+        </div>
 
-          <div class="form-field">
-            <label class="form-label">学习目标</label>
-            <el-select v-model="form.learning_goal" class="form-select">
-              <el-option
-                v-for="opt in goalOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
+        <div class="panel__chart">
+          <UserRadarChart :metrics="userStore.radarMetrics" :values="userStore.currentScores" />
+        </div>
+      </article>
+
+      <article class="panel panel--brief">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">本周策略</p>
+            <h2>从通知流回灌到学习路径</h2>
           </div>
+          <button class="panel__action" type="button" @click="handleSimulateNotification">
+            模拟新增通知
+          </button>
+        </div>
 
-          <div class="form-field">
-            <label class="form-label">偏好学习方式</label>
-            <el-select v-model="form.preferred_style" class="form-select">
-              <el-option
-                v-for="opt in styleOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
+        <div class="strategy-card">
+          <span class="strategy-card__step">01</span>
+          <div>
+            <strong>先看能力短板</strong>
+            <p>把树、图和复杂度表达作为本周优先补强对象。</p>
           </div>
+        </div>
 
-          <div class="form-field">
-            <label class="form-label">每日学习时长</label>
-            <el-select v-model="form.daily_time_minutes" class="form-select">
-              <el-option
-                v-for="opt in timeOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
+        <div class="strategy-card">
+          <span class="strategy-card__step">02</span>
+          <div>
+            <strong>再接多模态材料</strong>
+            <p>图示理解 + 代码演练混合推进，减少纯文字吸收的疲劳感。</p>
           </div>
+        </div>
 
-          <!-- Cognitive Style Cards -->
-          <div class="form-field">
-            <label class="form-label">认知风格</label>
-            <div class="cognitive-cards">
-              <div
-                v-for="opt in cognitiveStyleOptions"
-                :key="opt.value"
-                class="cognitive-card"
-                :class="{ 'cognitive-card--active': form.cognitive_style === opt.value }"
-                @click="form.cognitive_style = opt.value as typeof form.cognitive_style"
-              >
-                <span class="cognitive-card-label">{{ opt.label }}</span>
-                <span class="cognitive-card-desc">{{ opt.desc }}</span>
+        <div class="strategy-card">
+          <span class="strategy-card__step">03</span>
+          <div>
+            <strong>最后由通知强提醒</strong>
+            <p>顶部铃铛会在未读数增加时震动，提醒你及时切回当前任务。</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="ability-grid">
+      <article v-for="card in abilityCards" :key="card.key" class="ability-card">
+        <div class="ability-card__top">
+          <p>{{ card.label }}</p>
+          <strong>{{ card.score }}</strong>
+        </div>
+        <div class="ability-card__track">
+          <span class="ability-card__fill" :style="{ width: `${card.score}%` }" />
+        </div>
+        <p class="ability-card__desc">{{ card.description }}</p>
+      </article>
+    </section>
+
+    <section class="detail-grid">
+      <article class="panel">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">知识热区</p>
+            <h2>掌握度分布</h2>
+          </div>
+        </div>
+
+        <div class="mastery-list">
+          <div v-for="item in masteryEntries" :key="item.key" class="mastery-item">
+            <div class="mastery-item__top">
+              <span class="mastery-item__label">{{ item.label }}</span>
+              <div class="mastery-item__meta">
+                <span v-if="item.isWeak" class="mastery-item__weak">待强化</span>
+                <strong>{{ item.score }}%</strong>
               </div>
             </div>
-          </div>
-
-          <div class="form-field">
-            <label class="form-label">学习科目</label>
-            <div class="subjects-tags">
+            <div class="mastery-item__track">
               <span
-                v-for="(subject, i) in profile.subjects"
-                :key="subject"
-                class="subject-tag"
+                class="mastery-item__fill"
                 :style="{
-                  backgroundColor: ['var(--accent-primary-light)', 'var(--accent-primary-light)', 'var(--accent-secondary-light)', 'var(--status-error-light)', 'var(--bg-hover)'][i % 5],
-                  color: ['var(--accent-primary)', 'var(--status-success)', 'var(--status-error)', 'var(--status-error)', 'var(--accent-secondary)'][i % 5],
-                  borderColor: ['var(--accent-primary-light)', 'var(--accent-primary-light)', 'var(--accent-secondary-light)', 'var(--status-error-light)', 'var(--accent-primary-light)'][i % 5],
+                  width: `${item.score}%`,
+                  background: masteryBarColor(item.score),
                 }"
-              >
-                {{ subject }}
-              </span>
-              <span v-if="!profile.subjects.length" class="empty-hint">暂无科目</span>
+              />
             </div>
           </div>
-
-          <Transition name="fade">
-            <button
-              v-if="isDirty"
-              class="save-btn"
-              @click="handleSave"
-            >
-              保存修改
-            </button>
-          </Transition>
         </div>
-      </div>
+      </article>
 
-      <!-- Right Column -->
-      <div class="right-column">
-        <!-- Section 2: 知识掌握度 -->
-        <div class="dashboard-card mastery-card">
-          <div class="card-header-custom">
-            <div class="card-icon card-icon-emerald">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
-              </svg>
-            </div>
-            <span class="card-title-custom">知识掌握度</span>
-          </div>
-
-          <div v-if="masteryEntries.length" class="mastery-list">
-            <div
-              v-for="entry in masteryEntries"
-              :key="entry.name"
-              class="mastery-item"
-            >
-              <div class="mastery-header">
-                <span class="mastery-name">{{ entry.name }}</span>
-                <div class="mastery-right">
-                  <span
-                    v-if="entry.isWeak"
-                    class="weak-badge"
-                  >
-                    &#9888; 薄弱
-                  </span>
-                  <span
-                    class="mastery-percent"
-                    :style="{ color: masteryColor(entry.percentage) }"
-                  >
-                    {{ entry.percentage }}%
-                  </span>
-                </div>
-              </div>
-              <div class="mastery-bar-track">
-                <div
-                  class="mastery-bar-fill"
-                  :style="{
-                    width: entry.percentage + '%',
-                    background: masteryGradient(entry.percentage),
-                  }"
-                ></div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            <span class="empty-icon">&#128202;</span>
-            <span class="empty-text">暂无知识掌握数据</span>
+      <article class="panel">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">多模态偏好</p>
+            <h2>内容消费结构</h2>
           </div>
         </div>
 
-        <!-- Section 3: 学习偏好 -->
-        <div class="dashboard-card preference-card">
-          <div class="card-header-custom">
-            <div class="card-icon card-icon-violet">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
+        <div class="preference-list">
+          <div v-for="item in preferenceEntries" :key="item.key" class="preference-item">
+            <div class="preference-item__top">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.score }}%</strong>
             </div>
-            <span class="card-title-custom">学习偏好</span>
+            <div class="preference-item__track">
+              <span class="preference-item__fill" :style="{ width: `${item.score}%` }" />
+            </div>
           </div>
+        </div>
+      </article>
 
-          <div v-if="styleWeights.length" class="preference-content">
-            <div class="stacked-bar-wrapper">
-              <div class="stacked-bar">
-                <div
-                  v-for="(item, index) in styleWeights"
-                  :key="item.key"
-                  class="stacked-segment"
-                  :style="{
-                    width: item.percentage + '%',
-                    backgroundColor: styleBarColors[index % styleBarColors.length],
-                  }"
-                >
-                  <span v-if="item.percentage > 15" class="segment-label">{{ item.percentage }}%</span>
-                </div>
-              </div>
-            </div>
-            <div class="preference-legend">
-              <div
-                v-for="(item, index) in styleWeights"
-                :key="item.key"
-                class="legend-item"
-              >
-                <span
-                  class="legend-dot"
-                  :style="{ backgroundColor: styleBarColors[index % styleBarColors.length] }"
-                ></span>
-                <span class="legend-label">{{ item.label }}</span>
-                <span class="legend-value">{{ item.percentage }}%</span>
-              </div>
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            <span class="empty-text">暂无风格数据</span>
+      <article class="panel">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">AI 提醒流</p>
+            <h2>最近四条通知</h2>
           </div>
         </div>
 
-        <!-- Section 4: 易错点分析 -->
-        <div class="dashboard-card error-card">
-          <div class="card-header-custom">
-            <div class="card-icon card-icon-amber">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
+        <div class="message-list">
+          <div
+            v-for="message in recentMessages"
+            :key="message.id"
+            class="message-card"
+            :class="{ 'message-card--unread': !message.read }"
+          >
+            <div class="message-card__top">
+              <strong>{{ message.title }}</strong>
+              <span>{{ formatNotificationTime(message.createdAt) }}</span>
             </div>
-            <span class="card-title-custom">易错点分析</span>
+            <p>{{ message.content }}</p>
           </div>
-
-          <div v-if="profile.error_patterns.length" class="error-list">
-            <div
-              v-for="(pattern, i) in profile.error_patterns"
-              :key="i"
-              class="error-tag"
-            >
-              <span class="error-tag-dot"></span>
-              {{ pattern }}
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            <span class="empty-text">暂无易错点数据</span>
-          </div>
-          <div class="error-note">系统通过评估自动识别</div>
         </div>
-      </div>
-    </div>
+      </article>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.profile-view {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 32px 24px;
-}
-
-/* Incomplete Banner */
-.incomplete-banner {
+.profile-dashboard {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  background: var(--accent-secondary-light);
-  border: 1px solid var(--accent-secondary);
-  border-radius: 12px;
+  flex-direction: column;
+  gap: 22px;
+  padding-top: 4px;
 }
 
-.incomplete-icon {
-  flex-shrink: 0;
-  color: var(--accent-secondary);
+.hero-card,
+.panel,
+.ability-card {
+  border: 1px solid rgba(55, 53, 47, 0.08);
+  box-shadow: 0 18px 32px rgba(55, 53, 47, 0.05);
 }
 
-.incomplete-body {
-  flex: 1;
-}
-
-.incomplete-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.incomplete-desc {
-  font-size: 13px;
-  color: var(--text-tertiary);
-  line-height: 1.5;
-}
-
-.incomplete-action {
-  flex-shrink: 0;
-  padding: 8px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--bg-card);
-  background: var(--accent-secondary);
-  border-radius: 8px;
-  text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-
-.incomplete-action:hover {
-  opacity: 0.85;
-}
-
-/* Greeting Card */
-.greeting-card {
+.hero-card {
   position: relative;
   overflow: hidden;
-  background: var(--accent-primary);
-  border-radius: 16px;
-  padding: 32px;
-  margin-bottom: 28px;
-  color: var(--bg-card);
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(232, 192, 122, 0.36), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(74, 124, 111, 0.2), transparent 28%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 246, 243, 0.96));
 }
 
-.greeting-content {
-  position: relative;
-  z-index: 1;
-}
-
-.greeting-text {
-  margin: 0 0 16px;
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--bg-card);
-  line-height: 1.3;
-}
-
-.greeting-pills {
+.hero-card__main {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.greeting-pill {
-  display: inline-flex;
+  gap: 20px;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  background: color-mix(in srgb, var(--bg-card) 20%, transparent);
-  backdrop-filter: blur(8px);
-  color: var(--bg-card);
-  border: 1px solid color-mix(in srgb, var(--bg-card) 15%, transparent);
 }
 
-.greeting-decoration {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  pointer-events: none;
-}
-
-/* Section Grid (replaces dashboard-grid) */
-.section-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: start;
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.dashboard-card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  padding: 24px;
-}
-
-.card-header-custom {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.card-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.hero-card__avatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  overflow: hidden;
   flex-shrink: 0;
+  box-shadow: 0 24px 36px rgba(55, 53, 47, 0.14);
 }
 
-.card-icon-indigo {
-  background: var(--accent-primary-light);
-  color: var(--accent-primary);
-}
-
-.card-icon-emerald {
-  background: var(--accent-primary-light);
-  color: var(--status-success);
-}
-
-.card-icon-violet {
-  background: var(--bg-hover);
-  color: var(--accent-secondary);
-}
-
-.card-icon-amber {
-  background: var(--accent-secondary-light);
-  color: var(--accent-secondary);
-}
-
-.card-title-custom {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Profile Form */
-.profile-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.form-value-static {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text-primary);
-  padding: 8px 12px;
-  background: var(--bg-primary);
-  border-radius: 8px;
-  border: 1px solid var(--bg-hover);
-}
-
-.form-select {
+.hero-card__avatar img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.form-input :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px var(--border);
-  padding: 4px 12px;
-  transition: all 0.15s ease;
-}
-
-.form-input :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--accent-primary-light);
-}
-
-.form-input :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px var(--accent-primary);
-}
-
-.form-select :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  box-shadow: 0 0 0 1px var(--border);
-  padding: 4px 12px;
-  transition: all 0.15s ease;
-}
-
-.form-select :deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--accent-primary-light);
-}
-
-.form-select :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 2px var(--accent-primary);
-}
-
-/* Cognitive Style Cards */
-.cognitive-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.cognitive-card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1.5px solid var(--border);
-  background: var(--bg-primary);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.cognitive-card:hover {
-  border-color: var(--accent-primary-light);
-  background: var(--bg-hover);
-}
-
-.cognitive-card--active {
-  border-color: var(--accent-primary);
-  background: var(--accent-primary-light);
-}
-
-.cognitive-card-label {
-  font-size: 13px;
-  font-weight: 600;
+.hero-card__copy h1 {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
   color: var(--text-primary);
 }
 
-.cognitive-card-desc {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  line-height: 1.4;
-}
-
-.cognitive-card--active .cognitive-card-label {
-  color: var(--accent-primary);
-}
-
-.subjects-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.subject-tag {
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid;
-}
-
-.empty-hint {
-  font-size: 13px;
+.hero-card__eyebrow {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-secondary);
 }
 
-.save-btn {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
+.hero-card__bio {
+  margin: 12px 0 0;
+  max-width: 760px;
   font-size: 15px;
-  font-weight: 600;
-  color: var(--bg-card);
-  background: var(--accent-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 4px;
+  line-height: 1.8;
+  color: var(--text-tertiary);
 }
 
-.save-btn:hover {
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-primary) 40%, transparent);
-  transform: translateY(-1px);
-}
-
-.save-btn:active {
-  transform: translateY(0);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.25s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-/* Mastery Card */
-.mastery-list {
+.hero-card__tags,
+.hero-card__subjects {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
 }
 
-.mastery-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mastery-header {
-  display: flex;
-  justify-content: space-between;
+.hero-card__tag,
+.hero-card__subject {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.mastery-name {
-  font-size: 14px;
-  font-weight: 600;
+.hero-card__tag {
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text-primary);
 }
 
-.mastery-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.hero-card__subject {
+  background: rgba(74, 124, 111, 0.12);
+  color: var(--accent-primary);
 }
 
-.weak-badge {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-secondary);
-  background: var(--accent-secondary-light);
-  border: 1px solid var(--accent-secondary);
-  padding: 1px 8px;
+.hero-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
   border-radius: 20px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.hero-stat__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.hero-stat__value {
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.hero-stat__hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+  gap: 22px;
+}
+
+.panel {
+  padding: 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.panel__header h2 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.panel__eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.panel__meta {
+  font-size: 12px;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
-.mastery-percent {
-  font-size: 14px;
+.panel__action {
+  border: none;
+  border-radius: 999px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  padding: 10px 16px;
+  font-size: 12px;
   font-weight: 700;
-  min-width: 38px;
-  text-align: right;
+  cursor: pointer;
 }
 
-.mastery-bar-track {
-  width: 100%;
-  height: 8px;
-  background: var(--bg-hover);
-  border-radius: 20px;
-  overflow: hidden;
+.panel__chart {
+  height: 360px;
 }
 
-.mastery-bar-fill {
-  height: 100%;
-  border-radius: 20px;
-  transition: width 0.5s ease;
-  min-width: 2px;
+.strategy-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(55, 53, 47, 0.08);
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px 0;
+.strategy-card:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-.empty-icon {
-  font-size: 28px;
+.strategy-card__step {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(74, 124, 111, 0.14), rgba(232, 192, 122, 0.22));
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 800;
 }
 
-.empty-text {
+.strategy-card strong {
+  color: var(--text-primary);
+}
+
+.strategy-card p {
+  margin: 8px 0 0;
   font-size: 14px;
-  color: var(--text-secondary);
+  line-height: 1.7;
+  color: var(--text-tertiary);
 }
 
-/* Preference Card */
-.preference-content {
-  display: flex;
-  flex-direction: column;
+.ability-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
 }
 
-.stacked-bar-wrapper {
-  width: 100%;
+.ability-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 246, 243, 0.96));
 }
 
-.stacked-bar {
+.ability-card__top {
   display: flex;
-  height: 28px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--bg-hover);
-}
-
-.stacked-segment {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: width 0.4s ease;
-  min-width: 2px;
-}
-
-.segment-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--bg-card);
-}
-
-.preference-legend {
-  display: flex;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.legend-label {
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.legend-value {
-  font-size: 13px;
-  font-weight: 600;
+.ability-card__top p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-/* Error Patterns Card */
-.error-list {
+.ability-card__top strong {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--accent-primary);
+}
+
+.ability-card__track {
+  height: 8px;
+  margin: 16px 0 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(55, 53, 47, 0.08);
+}
+
+.ability-card__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+}
+
+.ability-card__desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-tertiary);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr) minmax(0, 1fr);
+  gap: 22px;
+}
+
+.mastery-list,
+.preference-list,
+.message-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
 }
 
-.error-tag {
+.mastery-item__top,
+.preference-item__top,
+.message-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mastery-item__label,
+.preference-item__top span {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mastery-item__meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  font-size: 13px;
-  font-weight: 500;
+}
+
+.mastery-item__meta strong,
+.preference-item__top strong {
+  font-size: 14px;
   color: var(--text-primary);
-  line-height: 1.4;
 }
 
-.error-tag-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-secondary);
-  flex-shrink: 0;
-}
-
-.error-note {
-  margin-top: 12px;
+.mastery-item__weak {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(196, 85, 77, 0.12);
+  color: var(--status-error);
   font-size: 12px;
-  color: var(--text-tertiary);
-  font-style: italic;
+  font-weight: 700;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .profile-view {
-    padding: 20px 16px;
+.mastery-item__track,
+.preference-item__track {
+  height: 10px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(55, 53, 47, 0.08);
+}
+
+.mastery-item__fill,
+.preference-item__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.preference-item__fill {
+  background: linear-gradient(90deg, rgba(74, 124, 111, 0.9), rgba(232, 192, 122, 0.9));
+}
+
+.message-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(247, 246, 243, 0.86);
+}
+
+.message-card--unread {
+  background: rgba(237, 245, 242, 0.96);
+}
+
+.message-card__top strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.message-card__top span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.message-card p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 1360px) {
+  .ability-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .section-grid {
+
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1080px) {
+  .overview-grid,
+  .detail-grid {
     grid-template-columns: 1fr;
   }
-  .greeting-text {
-    font-size: 22px;
+
+  .hero-card__stats {
+    grid-template-columns: 1fr;
   }
-  .greeting-card {
-    padding: 24px 20px;
+}
+
+@media (max-width: 760px) {
+  .profile-dashboard {
+    gap: 18px;
   }
-  .cognitive-cards {
+
+  .hero-card,
+  .panel,
+  .ability-card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .hero-card__main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-card__copy h1 {
+    font-size: 28px;
+  }
+
+  .ability-grid {
     grid-template-columns: 1fr;
   }
 }
