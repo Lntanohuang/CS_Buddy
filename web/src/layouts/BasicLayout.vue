@@ -56,10 +56,14 @@ onBeforeUnmount(() => {
       <Topbar />
 
       <main class="basic-layout__content" :class="{ 'is-chat': isChatRoute }">
-        <div class="basic-layout__page">
+        <div class="basic-layout__page" :class="{ 'is-chat': isChatRoute }">
           <router-view v-slot="{ Component }">
             <transition name="page" mode="out-in">
-              <div :key="route.fullPath" class="basic-layout__page-shell">
+              <div
+                :key="route.fullPath"
+                class="basic-layout__page-shell"
+                :class="{ 'is-chat': isChatRoute }"
+              >
                 <component :is="Component" />
               </div>
             </transition>
@@ -113,6 +117,10 @@ onBeforeUnmount(() => {
 
 .basic-layout__page {
   flex: 1;
+  min-height: 100%;
+}
+
+.basic-layout__page.is-chat {
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -120,13 +128,17 @@ onBeforeUnmount(() => {
 }
 
 .basic-layout__page-shell {
+  min-height: 100%;
+}
+
+.basic-layout__page-shell.is-chat {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-.basic-layout__page-shell > * {
+.basic-layout__page-shell.is-chat > * {
   flex: 1;
   min-height: 0;
 }
