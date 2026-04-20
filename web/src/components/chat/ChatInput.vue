@@ -66,8 +66,8 @@ function handleKeydown(event: KeyboardEvent) {
   flex-shrink: 0;
   margin-top: auto;
   padding: 16px 24px 20px;
-  background: linear-gradient(180deg, rgba(250, 250, 248, 0.72), rgba(250, 250, 248, 0.96));
-  border-top: 1px solid rgba(55, 53, 47, 0.06);
+  background: transparent;
+  box-shadow: none;
 }
 
 .chat-input-container {
@@ -76,12 +76,12 @@ function handleKeydown(event: KeyboardEvent) {
   gap: 10px;
   width: min(100%, 920px);
   margin: 0 auto;
-  background: var(--bg-card);
-  border: 1.5px solid var(--border);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(125, 175, 223, 0.18);
   border-radius: 24px;
   padding: 8px 8px 8px 18px;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 8px 18px rgba(84, 138, 197, 0.08);
 }
 
 .chat-input-container--focused {

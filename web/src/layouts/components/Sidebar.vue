@@ -194,19 +194,18 @@ function formatSessionTime(dateStr: string) {
   width: 304px;
   padding: 16px 12px 12px;
   background:
-    radial-gradient(circle at top left, rgba(232, 192, 122, 0.14), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 246, 243, 0.98));
-  border-right: 1px solid rgba(55, 53, 47, 0.08);
-  box-shadow: 14px 0 28px rgba(55, 53, 47, 0.08);
+    radial-gradient(circle at top left, rgba(141, 200, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, rgba(250, 253, 255, 0.98), rgba(233, 244, 255, 0.98));
+  border-right: 1px solid rgba(125, 175, 223, 0.18);
+  box-shadow: none;
   overflow: hidden;
-  transition: width 0.24s ease, box-shadow 0.24s ease;
+  transition: width 0.24s ease;
   display: flex;
   flex-direction: column;
 }
 
 .sidebar.is-collapse {
   width: 72px;
-  box-shadow: none;
 }
 
 .sidebar__top {
@@ -225,7 +224,7 @@ function formatSessionTime(dateStr: string) {
   padding: 0 10px 0 0;
   border: none;
   border-radius: 14px;
-  background: rgba(55, 53, 47, 0.05);
+  background: rgba(255, 255, 255, 0.58);
   color: var(--text-primary);
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease;
@@ -238,7 +237,7 @@ function formatSessionTime(dateStr: string) {
 
 .sidebar__toggle:hover,
 .sidebar__settings:hover {
-  background: rgba(74, 124, 111, 0.12);
+  background: rgba(91, 165, 234, 0.14);
   color: var(--accent-primary);
 }
 
@@ -247,7 +246,7 @@ function formatSessionTime(dateStr: string) {
   flex-direction: column;
   gap: 6px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(55, 53, 47, 0.08);
+  border-bottom: 1px solid rgba(125, 175, 223, 0.14);
 }
 
 .sidebar__link {
@@ -264,12 +263,12 @@ function formatSessionTime(dateStr: string) {
 }
 
 .sidebar__link:hover {
-  background: rgba(74, 124, 111, 0.08);
+  background: rgba(91, 165, 234, 0.1);
   color: var(--text-primary);
 }
 
 .sidebar__link.is-active {
-  background: rgba(74, 124, 111, 0.06);
+  background: rgba(255, 255, 255, 0.68);
   color: var(--accent-primary);
 }
 
@@ -281,7 +280,7 @@ function formatSessionTime(dateStr: string) {
   bottom: 11px;
   width: 2px;
   border-radius: 999px;
-  background: var(--accent-primary);
+  background: linear-gradient(180deg, rgba(91, 165, 234, 0.9), rgba(121, 189, 248, 0.92));
 }
 
 .sidebar__icon {
@@ -355,7 +354,7 @@ function formatSessionTime(dateStr: string) {
   padding: 0 10px;
   border: none;
   border-radius: 999px;
-  background: var(--accent-primary-light);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--accent-primary);
   cursor: pointer;
   font-size: 12px;
@@ -380,20 +379,20 @@ function formatSessionTime(dateStr: string) {
   padding: 12px 14px;
   border: none;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.62);
   cursor: pointer;
   text-align: left;
   transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .sidebar__history-item:hover {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 18px rgba(55, 53, 47, 0.06);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 22px rgba(84, 138, 197, 0.08);
 }
 
 .sidebar__history-item.is-active {
-  background: rgba(237, 245, 242, 0.98);
-  box-shadow: inset 0 0 0 1px rgba(74, 124, 111, 0.1);
+  background: rgba(231, 244, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(91, 165, 234, 0.12);
 }
 
 .sidebar__history-item-title {
@@ -437,7 +436,7 @@ function formatSessionTime(dateStr: string) {
 }
 
 .sidebar__settings-action:hover {
-  background: rgba(74, 124, 111, 0.08);
+  background: rgba(91, 165, 234, 0.1);
 }
 
 @media (max-width: 959px) {

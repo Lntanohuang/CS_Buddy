@@ -105,7 +105,7 @@ const isEmpty = computed(() => props.messages.length === 0)
   min-height: 0;
   overflow-y: auto;
   padding: 24px;
-  background-color: var(--bg-primary);
+  background: transparent;
   scroll-behavior: smooth;
 }
 

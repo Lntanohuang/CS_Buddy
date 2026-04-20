@@ -36,7 +36,7 @@ function handleSend(text: string) {
   min-height: 0;
   height: 100%;
   display: flex;
-  background: var(--bg-primary);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -48,8 +48,8 @@ function handleSend(text: string) {
   flex-direction: column;
   overflow: hidden;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(55, 53, 47, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(241, 248, 255, 0.78));
+  box-shadow: 0 14px 36px rgba(84, 138, 197, 0.08);
 }
 
 @media (max-width: 720px) {

@@ -142,18 +142,18 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 42px;
   height: 42px;
-  border: 1px solid rgba(74, 124, 111, 0.12);
+  border: 1px solid rgba(91, 165, 234, 0.14);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--text-primary);
-  box-shadow: 0 12px 24px rgba(55, 53, 47, 0.06);
+  box-shadow: 0 10px 24px rgba(84, 138, 197, 0.08);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .notification-trigger:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 28px rgba(55, 53, 47, 0.1);
+  box-shadow: 0 16px 28px rgba(84, 138, 197, 0.12);
   background: rgba(255, 255, 255, 0.96);
 }
 
@@ -165,7 +165,7 @@ onBeforeUnmount(() => {
   content: '';
   position: absolute;
   inset: -6px;
-  border: 1px solid rgba(232, 192, 122, 0.6);
+  border: 1px solid rgba(141, 200, 255, 0.72);
   border-radius: 18px;
   animation: ripple 1.2s ease-out 2;
 }
@@ -243,7 +243,7 @@ onBeforeUnmount(() => {
   width: 100%;
   border: none;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 246, 243, 0.92));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 255, 0.92));
   padding: 14px;
   text-align: left;
   cursor: pointer;
@@ -252,11 +252,11 @@ onBeforeUnmount(() => {
 
 .notification-item:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 22px rgba(55, 53, 47, 0.08);
+  box-shadow: 0 12px 22px rgba(84, 138, 197, 0.1);
 }
 
 .notification-item--unread {
-  background: linear-gradient(180deg, rgba(237, 245, 242, 1), rgba(255, 255, 255, 0.96));
+  background: linear-gradient(180deg, rgba(228, 242, 255, 1), rgba(255, 255, 255, 0.96));
 }
 
 .notification-item__marker {
@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
   margin-top: 7px;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  box-shadow: 0 0 0 4px rgba(74, 124, 111, 0.1);
+  box-shadow: 0 0 0 4px rgba(91, 165, 234, 0.12);
   flex-shrink: 0;
 }
 
