@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, shallowRef, nextTick, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
 import { welcomeDialogueScript } from '@/mock/data'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const messagesContainer = ref<HTMLElement | null>(null)
@@ -16,6 +17,27 @@ const dialogueComplete = shallowRef(false)
 const showButton = shallowRef(false)
 const headerVisible = shallowRef(false)
 const isUnmounted = shallowRef(false)
+const isSubmitting = shallowRef(false)
+
+const isProfileRefreshFlow = computed(() => route.query.mode === 'refresh-profile')
+
+const refreshReturnPath = computed(() => {
+  const target = route.query.redirect
+  if (typeof target === 'string' && target.startsWith('/app/')) {
+    return target
+  }
+  return '/app/profile'
+})
+
+const welcomeTitle = computed(() =>
+  isProfileRefreshFlow.value ? '🌿 欢迎回来，更新你的学习画像' : '🌿 欢迎加入CS Buddy',
+)
+
+const welcomeSubtitle = computed(() =>
+  isProfileRefreshFlow.value
+    ? '我们将通过同样的问答快速更新你的个人画像'
+    : '让我们通过一段对话来了解你',
+)
 
 // Count dialogue rounds (each ASSISTANT+USER pair = 1 round)
 const totalRounds = computed(() => {
@@ -97,6 +119,7 @@ async function playDialogue() {
   dialogueComplete.value = true
   await wait(500)
   if (isUnmounted.value) return
+
   showButton.value = true
   scrollToBottom()
 }
@@ -118,8 +141,7 @@ function wait(ms: number): Promise<void> {
   })
 }
 
-async function handleStart() {
-  // Initialize profile from dialogue data
+async function applyProfileUpdateAndRedirect(targetPath: string) {
   const profileStore = useProfileStore()
   profileStore.initFromDialogue({
     major: '计算机科学与技术',
@@ -131,7 +153,23 @@ async function handleStart() {
     subjects: ['DATA_STRUCTURE', 'ALGORITHM'],
   })
   authStore.completeProfile()
-  router.push('/app/chat')
+  await router.push(targetPath)
+}
+
+async function handleStart() {
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+
+  try {
+    if (isProfileRefreshFlow.value) {
+      await applyProfileUpdateAndRedirect(refreshReturnPath.value)
+      return
+    }
+
+    await applyProfileUpdateAndRedirect('/app/chat')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 onMounted(() => {
@@ -160,6 +198,7 @@ onUnmounted(() => {
   dialogueComplete.value = false
   showButton.value = false
   headerVisible.value = false
+  isSubmitting.value = false
 })
 </script>
 
@@ -168,8 +207,8 @@ onUnmounted(() => {
     <div class="welcome-container">
       <!-- Header -->
       <div class="welcome-header" :class="{ visible: headerVisible }">
-        <h1 class="welcome-title">🌿 欢迎加入CS Buddy</h1>
-        <p class="welcome-subtitle">让我们通过一段对话来了解你</p>
+        <h1 class="welcome-title">{{ welcomeTitle }}</h1>
+        <p class="welcome-subtitle">{{ welcomeSubtitle }}</p>
       </div>
 
       <!-- Progress -->
@@ -212,7 +251,9 @@ onUnmounted(() => {
 
         <!-- CTA button -->
         <div v-if="showButton" class="cta-wrapper">
-          <button class="cta-btn" @click="handleStart">开始学习</button>
+          <button class="cta-btn" :disabled="isSubmitting" @click="handleStart">
+            {{ isSubmitting ? '处理中...' : '开始学习' }}
+          </button>
         </div>
       </div>
     </div>
@@ -425,6 +466,11 @@ onUnmounted(() => {
 
 .cta-btn:hover {
   background: var(--accent-primary-hover);
+}
+
+.cta-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 /* Scrollbar */

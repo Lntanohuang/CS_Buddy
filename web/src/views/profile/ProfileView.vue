@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import UserRadarChart from '@/components/charts/UserRadarChart.vue'
 import { useNotificationStore } from '@/stores/notification'
 import { useUserStore } from '@/stores/user'
 
+const router = useRouter()
 const userStore = useUserStore()
 const notificationStore = useNotificationStore()
+const showRefreshDialog = ref(false)
 
 const TOPIC_LABELS: Record<string, string> = {
   array: '数组基础',
@@ -97,6 +100,25 @@ function handleSimulateNotification() {
     title: 'AI 导师发来新的提醒',
     content: '建议把今晚的 20 分钟留给“树与图的关系图谱”，通知角标和铃铛动画会同步更新。',
     actionUrl: '/app/profile',
+  })
+}
+
+function handleOpenRefreshDialog() {
+  showRefreshDialog.value = true
+}
+
+function handleCloseRefreshDialog() {
+  showRefreshDialog.value = false
+}
+
+function handleStartProfileRefresh() {
+  showRefreshDialog.value = false
+  router.push({
+    path: '/welcome',
+    query: {
+      mode: 'refresh-profile',
+      redirect: '/app/profile',
+    },
   })
 }
 </script>
@@ -283,6 +305,37 @@ function handleSimulateNotification() {
         </div>
       </article>
     </section>
+
+    <button
+      class="refresh-fab"
+      type="button"
+      aria-label="更新画像"
+      @click="handleOpenRefreshDialog"
+    >
+      更新画像
+    </button>
+
+    <div
+      v-if="showRefreshDialog"
+      class="refresh-dialog-backdrop"
+      @click.self="handleCloseRefreshDialog"
+    >
+      <div class="refresh-dialog" role="dialog" aria-modal="true" aria-labelledby="refresh-dialog-title">
+        <p class="refresh-dialog__eyebrow">欢迎问答</p>
+        <h3 id="refresh-dialog-title">重新生成学习画像</h3>
+        <p class="refresh-dialog__desc">
+          将再次进入欢迎界面的问答流程。问答结束后系统会自动更新画像，并返回个人中心。
+        </p>
+        <div class="refresh-dialog__actions">
+          <button type="button" class="refresh-dialog__cancel" @click="handleCloseRefreshDialog">
+            取消
+          </button>
+          <button type="button" class="refresh-dialog__confirm" @click="handleStartProfileRefresh">
+            开始更新
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -667,6 +720,98 @@ function handleSimulateNotification() {
   color: var(--text-tertiary);
 }
 
+.refresh-fab {
+  position: fixed;
+  right: 34px;
+  bottom: 34px;
+  z-index: 40;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4a7c6f, #3b6b5f);
+  box-shadow: 0 16px 34px rgba(55, 53, 47, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.refresh-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 38px rgba(55, 53, 47, 0.24);
+}
+
+.refresh-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(30, 30, 30, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.refresh-dialog {
+  width: min(460px, 100%);
+  border-radius: 22px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(55, 53, 47, 0.12);
+  box-shadow: 0 24px 50px rgba(30, 30, 30, 0.2);
+}
+
+.refresh-dialog__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.refresh-dialog h3 {
+  margin: 10px 0 8px;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.refresh-dialog__desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-tertiary);
+}
+
+.refresh-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.refresh-dialog__cancel,
+.refresh-dialog__confirm {
+  border: none;
+  border-radius: 10px;
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refresh-dialog__cancel {
+  background: rgba(55, 53, 47, 0.08);
+  color: var(--text-primary);
+}
+
+.refresh-dialog__confirm {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+
 @media (max-width: 1360px) {
   .ability-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -711,6 +856,11 @@ function handleSimulateNotification() {
 
   .ability-grid {
     grid-template-columns: 1fr;
+  }
+
+  .refresh-fab {
+    right: 20px;
+    bottom: 20px;
   }
 }
 </style>
