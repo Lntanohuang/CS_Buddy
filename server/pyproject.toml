@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learnpal-server"
+version = "0.1.0"
+description = "Phase 1 backend for CS Buddy"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "langgraph",
+  "langchain-openai",
+  "langchain-core",
+  "pydantic",
+  "pydantic-settings",
+  "python-dotenv",
+  "sse-starlette",
+]
