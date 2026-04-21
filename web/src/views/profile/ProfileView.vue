@@ -126,6 +126,15 @@ function handleStartProfileRefresh() {
 <template>
   <div class="profile-dashboard">
     <section class="hero-card">
+      <button
+        class="refresh-fab"
+        type="button"
+        aria-label="更新画像"
+        @click="handleOpenRefreshDialog"
+      >
+        更新画像
+      </button>
+
       <div class="hero-card__main">
         <div class="hero-card__avatar">
           <img :src="userStore.userInfo.avatar" :alt="userStore.userInfo.name" />
@@ -306,15 +315,6 @@ function handleStartProfileRefresh() {
       </article>
     </section>
 
-    <button
-      class="refresh-fab"
-      type="button"
-      aria-label="更新画像"
-      @click="handleOpenRefreshDialog"
-    >
-      更新画像
-    </button>
-
     <div
       v-if="showRefreshDialog"
       class="refresh-dialog-backdrop"
@@ -350,8 +350,8 @@ function handleStartProfileRefresh() {
 .hero-card,
 .panel,
 .ability-card {
-  border: 1px solid rgba(55, 53, 47, 0.08);
-  box-shadow: 0 18px 32px rgba(55, 53, 47, 0.05);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .hero-card {
@@ -359,16 +359,14 @@ function handleStartProfileRefresh() {
   overflow: hidden;
   padding: 28px;
   border-radius: 28px;
-  background:
-    radial-gradient(circle at top left, rgba(232, 192, 122, 0.36), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(74, 124, 111, 0.2), transparent 28%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 246, 243, 0.96));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), var(--bg-card));
 }
 
 .hero-card__main {
   display: flex;
   gap: 20px;
   align-items: center;
+  padding-right: 150px;
 }
 
 .hero-card__avatar {
@@ -431,12 +429,12 @@ function handleStartProfileRefresh() {
 }
 
 .hero-card__tag {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--accent-primary-light);
   color: var(--text-primary);
 }
 
 .hero-card__subject {
-  background: rgba(74, 124, 111, 0.12);
+  background: var(--accent-secondary-light);
   color: var(--accent-primary);
 }
 
@@ -453,7 +451,8 @@ function handleStartProfileRefresh() {
   gap: 8px;
   padding: 18px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
 }
 
 .hero-stat__label {
@@ -721,25 +720,26 @@ function handleStartProfileRefresh() {
 }
 
 .refresh-fab {
-  position: fixed;
-  right: 34px;
-  bottom: 34px;
-  z-index: 40;
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 2;
   border: none;
   border-radius: 999px;
-  padding: 14px 20px;
+  padding: 12px 18px;
   font-size: 14px;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(135deg, #4a7c6f, #3b6b5f);
-  box-shadow: 0 16px 34px rgba(55, 53, 47, 0.2);
+  background: var(--accent-primary);
+  box-shadow: var(--shadow-md);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .refresh-fab:hover {
+  background: var(--accent-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 20px 38px rgba(55, 53, 47, 0.24);
+  box-shadow: var(--shadow-lg);
 }
 
 .refresh-dialog-backdrop {
@@ -848,6 +848,7 @@ function handleStartProfileRefresh() {
   .hero-card__main {
     flex-direction: column;
     align-items: flex-start;
+    padding-right: 0;
   }
 
   .hero-card__copy h1 {
@@ -859,8 +860,10 @@ function handleStartProfileRefresh() {
   }
 
   .refresh-fab {
-    right: 20px;
-    bottom: 20px;
+    top: 18px;
+    right: 18px;
+    padding: 10px 14px;
+    font-size: 13px;
   }
 }
 </style>
