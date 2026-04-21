@@ -61,20 +61,27 @@ function handleKeydown(event: KeyboardEvent) {
 
 <style scoped>
 .chat-input-wrapper {
+  position: relative;
+  z-index: 4;
+  flex-shrink: 0;
+  margin-top: auto;
   padding: 16px 24px 20px;
-  background: var(--bg-primary);
+  background: transparent;
+  box-shadow: none;
 }
 
 .chat-input-container {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  background: var(--bg-card);
-  border: 1.5px solid var(--border);
+  width: min(100%, 920px);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(125, 175, 223, 0.18);
   border-radius: 24px;
   padding: 8px 8px 8px 18px;
   transition: all 0.2s ease;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 8px 18px rgba(84, 138, 197, 0.08);
 }
 
 .chat-input-container--focused {
@@ -135,5 +142,11 @@ function handleKeydown(event: KeyboardEvent) {
 
 .chat-input-send:disabled {
   cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .chat-input-wrapper {
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+  }
 }
 </style>

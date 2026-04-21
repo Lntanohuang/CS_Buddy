@@ -20,6 +20,26 @@ export interface AuthUser {
   has_profile: boolean
 }
 
+export interface DashboardUserInfo {
+  id: string
+  name: string
+  avatar: string
+  role: string
+  goal: string
+  major: string
+  bio: string
+  streakDays: number
+  weeklyMinutes: number
+  masteryRate: number
+}
+
+export interface LearningRadarMetric {
+  key: string
+  label: string
+  max: number
+  description: string
+}
+
 // ---- Profile (7 dimensions) ----
 export interface UserProfile {
   user_id: string
@@ -123,13 +143,38 @@ export interface EvalRecommendation {
 }
 
 // ---- Notification ----
+export type NotificationType =
+  | 'DAILY_RECOMMEND'
+  | 'STUDY_REMINDER'
+  | 'INACTIVE_RECALL'
+  | 'EVAL_RESULT'
+  | 'ACHIEVEMENT'
+
 export interface Notification {
   id: string
-  type: 'DAILY_RECOMMEND' | 'STUDY_REMINDER' | 'INACTIVE_RECALL' | 'EVAL_RESULT' | 'ACHIEVEMENT'
+  type: NotificationType
   title: string
   content: string
   is_read: boolean
   created_at: string
+  action_url?: string
+  read?: boolean
+  time?: string
+  actionUrl?: string
+  createdAt?: string
+}
+
+export interface NotificationMessage {
+  id: string
+  type: NotificationType
+  title: string
+  content: string
+  time: string
+  read: boolean
+  createdAt: string
+  is_read: boolean
+  created_at: string
+  actionUrl?: string
   action_url?: string
 }
 

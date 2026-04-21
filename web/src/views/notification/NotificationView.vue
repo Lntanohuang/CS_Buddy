@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Delete } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notification'
 import type { Notification } from '@/types'
@@ -7,18 +8,23 @@ const router = useRouter()
 const notificationStore = useNotificationStore()
 
 const typeIcons: Record<Notification['type'], string> = {
-  DAILY_RECOMMEND: '🎯',
+  DAILY_RECOMMEND: '📘',
   EVAL_RESULT: '📊',
-  STUDY_REMINDER: '⏰',
+  STUDY_REMINDER: '🔔',
   INACTIVE_RECALL: '⏰',
-  ACHIEVEMENT: '🏅',
+  ACHIEVEMENT: '🏆',
 }
 
 function handleClick(notification: Notification) {
   notificationStore.markRead(notification.id)
+
   if (notification.action_url) {
-    router.push(notification.action_url)
+    void router.push(notification.action_url)
   }
+}
+
+function handleDelete(id: string) {
+  notificationStore.removeMessage(id)
 }
 
 function formatTime(dateStr: string) {
@@ -52,26 +58,35 @@ function formatTime(dateStr: string) {
     </div>
 
     <div v-if="notificationStore.notifications.length === 0" class="empty-state">
-      <span class="empty-icon">🔔</span>
+      <span class="empty-icon">🔕</span>
       <p class="empty-text">暂无通知</p>
     </div>
 
     <div v-else class="notification-list">
-      <button
+      <div
         v-for="n in notificationStore.notifications"
         :key="n.id"
         class="notification-item"
         :class="{ 'notification-item--unread': !n.is_read }"
-        @click="handleClick(n)"
       >
         <span class="item-icon">{{ typeIcons[n.type] || '🔔' }}</span>
-        <div class="item-body">
-          <span class="item-title">{{ n.title }}</span>
-          <span class="item-content">{{ n.content }}</span>
-          <span class="item-time">{{ formatTime(n.created_at) }}</span>
-        </div>
+        <button class="item-main" type="button" @click="handleClick(n)">
+          <div class="item-body">
+            <span class="item-title">{{ n.title }}</span>
+            <span class="item-content">{{ n.content }}</span>
+            <span class="item-time">{{ formatTime(n.created_at) }}</span>
+          </div>
+        </button>
+        <button
+          class="item-delete"
+          type="button"
+          aria-label="删除消息"
+          @click.stop="handleDelete(n.id)"
+        >
+          <el-icon :size="15"><Delete /></el-icon>
+        </button>
         <span v-if="!n.is_read" class="unread-dot" />
-      </button>
+      </div>
     </div>
   </div>
 </template>
@@ -90,10 +105,10 @@ function formatTime(dateStr: string) {
 }
 
 .notification-title {
+  margin: 0;
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0;
 }
 
 .mark-all-btn {
@@ -128,9 +143,9 @@ function formatTime(dateStr: string) {
 }
 
 .empty-text {
+  margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
-  margin: 0;
 }
 
 .notification-list {
@@ -143,13 +158,9 @@ function formatTime(dateStr: string) {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 12px;
-  border: none;
   border-bottom: 1px solid var(--border);
   background: none;
-  text-align: left;
-  cursor: pointer;
   transition: background 0.15s ease;
-  font-family: inherit;
   width: 100%;
 }
 
@@ -176,8 +187,18 @@ function formatTime(dateStr: string) {
   margin-top: 2px;
 }
 
-.item-body {
+.item-main {
   flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.item-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -204,9 +225,29 @@ function formatTime(dateStr: string) {
 }
 
 .item-time {
+  margin-top: 2px;
   font-size: 11px;
   color: var(--text-secondary);
-  margin-top: 2px;
+}
+
+.item-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.item-delete:hover {
+  background: rgba(196, 85, 77, 0.12);
+  color: var(--status-error);
 }
 
 .unread-dot {
