@@ -1,0 +1,111 @@
+{
+  "skill_name": "tutor-agent",
+  "evals": [
+    {
+      "id": 1,
+      "skill": "explain",
+      "prompt": "讲讲快速排序的原理",
+      "expected_output": "用 Markdown 解释快速排序，包含代码示例与时间复杂度。",
+      "expectations": [
+        "output is markdown",
+        "contains code example",
+        "mentions time complexity O(n log n)",
+        "is in Chinese"
+      ]
+    },
+    {
+      "id": 2,
+      "skill": "explain",
+      "prompt": "什么是二叉搜索树？和普通二叉树有什么区别？",
+      "expected_output": "用 Markdown 说明 BST 性质并和普通二叉树做对比。",
+      "expectations": [
+        "output is markdown",
+        "explains BST property (left < root < right)",
+        "contains comparison",
+        "is in Chinese"
+      ]
+    },
+    {
+      "id": 3,
+      "skill": "explain",
+      "prompt": "解释一下哈希冲突的解决方法",
+      "expected_output": "用 Markdown 介绍至少两种哈希冲突处理方法。",
+      "expectations": [
+        "output is markdown",
+        "mentions at least 2 methods (chaining, open addressing)",
+        "is in Chinese"
+      ]
+    },
+    {
+      "id": 4,
+      "skill": "quiz",
+      "prompt": "给我出几道排序算法的练习题",
+      "expected_output": "只输出合法 JSON 数组，恰好 3 道题且字段完整。",
+      "expectations": [
+        "output is valid JSON array",
+        "contains exactly 3 questions",
+        "each has question_id/type/correct_answer/explanation fields",
+        "types are SINGLE_CHOICE or FILL_BLANK"
+      ]
+    },
+    {
+      "id": 5,
+      "skill": "quiz",
+      "prompt": "出题：链表相关",
+      "expected_output": "只输出合法 JSON 数组，恰好 3 道链表题且字段完整。",
+      "expectations": [
+        "output is valid JSON array",
+        "contains exactly 3 questions",
+        "each has question_id/type/correct_answer/explanation fields",
+        "types are SINGLE_CHOICE or FILL_BLANK",
+        "questions are about linked list concepts"
+      ]
+    },
+    {
+      "id": 6,
+      "skill": "quiz",
+      "prompt": "练习二叉树",
+      "expected_output": "只输出合法 JSON 数组，恰好 3 道二叉树题且字段完整。",
+      "expectations": [
+        "output is valid JSON array",
+        "contains exactly 3 questions",
+        "each has question_id/type/correct_answer/explanation fields",
+        "types are SINGLE_CHOICE or FILL_BLANK",
+        "questions are about binary tree"
+      ]
+    },
+    {
+      "id": 7,
+      "skill": "clarify",
+      "prompt": "帮我学习",
+      "expected_output": "先用中文项目符号提出追问，不直接展开完整讲解。",
+      "expectations": [
+        "response contains follow-up question(s)",
+        "does NOT directly teach content",
+        "uses bullet points",
+        "is in Chinese"
+      ]
+    },
+    {
+      "id": 8,
+      "skill": "clarify",
+      "prompt": "我想提高编程能力",
+      "expected_output": "先追问具体方向或目标，不给完整课程，语气友好。",
+      "expectations": [
+        "response asks about specific area/goal",
+        "does NOT give a full lesson",
+        "friendly tone"
+      ]
+    },
+    {
+      "id": 9,
+      "skill": "clarify",
+      "prompt": "数据结构",
+      "expected_output": "追问数据结构的具体点，并询问用户当前水平或目标。",
+      "expectations": [
+        "response asks what specifically about data structures",
+        "asks about user's level or goal"
+      ]
+    }
+  ]
+}
