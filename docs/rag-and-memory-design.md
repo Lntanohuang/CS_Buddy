@@ -56,28 +56,44 @@ Document（page_content + metadata）
 
 | 配置项 | 值 |
 |--------|-----|
-| Embedding 模型 | 讯飞星火 `embedding-3`（与 LLM 共用 API） |
+| Embedding 模型 | `shibing624/text2vec-base-chinese`（本地，768 维） |
 | 向量数据库 | FAISS（本地文件持久化） |
 | 索引位置 | `server/knowledge_index/`（gitignore） |
+| Chunk 总数 | 643 |
 | 检索 Top-K | 3 |
-| 相似度阈值 | 0.72（低于不返回，优雅降级） |
+| L2 距离阈值 | 250（超过不返回，优雅降级） |
 | 首次构建 | 启动时懒加载，第一次调用 `search_knowledge` 时自动构建 |
+
+> **为什么不用讯飞星火 Embedding？**
+> 讯飞星火的 OpenAI 兼容接口（`spark-api-open.xf-yun.com/v1`）不支持 `/embeddings` endpoint（返回 404）。
+> 测试了 `embedding-2`、`embedding-3`、`text-embedding-v1` 等模型名均失败。
+> 改用本地 `text2vec-base-chinese`，免费、无网络依赖、中文效果好。
 
 ### 2.4 检索流程
 
 ```
 用户提问 → Agent 决定调用 search_knowledge tool
   ↓
-query → Embedding → FAISS similarity_search_with_relevance_scores(top_k=3)
+query → text2vec Embedding → FAISS similarity_search_with_score(top_k=3)
   ↓
-过滤 score < 0.72 的结果
+过滤 L2 距离 > 250 的结果（距离越小越相似）
   ↓
 格式化返回：【课程 - 文件名】+ 知识片段
   ↓
-Agent 结合知识片段生成回答
+Agent 结合知识片段生成回答（无结果时降级为 LLM 自身知识）
 ```
 
-### 2.5 文件结构
+### 2.5 实测检索效果
+
+| 查询 | 命中数 | Top-1 L2 距离 | Top-1 来源 |
+|------|--------|-------------|-----------|
+| 进程和线程的区别 | 3 | 195.2 | 操作系统-并发程序设计/进程 |
+| 什么是虚拟内存 | 2 | 228.9 | 操作系统-虚拟设备 |
+| 冯诺依曼体系结构 | 2 | 202.0 | 计组-冯诺依曼体系 |
+| 页面置换算法 | 3 | 157.9 | 操作系统-页面置换 |
+| 死锁 | 0 | 302.2 | 超过阈值，优雅降级 |
+
+### 2.6 文件结构
 
 ```
 server/app/rag/
@@ -88,7 +104,7 @@ server/app/rag/
 └── retriever.py       # 对外检索接口（lazy init）
 ```
 
-### 2.6 与 XDAN 方案的对比
+### 2.7 与 XDAN 方案的对比
 
 | 维度 | XDAN（法律调解） | CS Buddy（教育） |
 |------|-----------------|------------------|
