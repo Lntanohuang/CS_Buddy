@@ -1,4 +1,5 @@
 import json
+import time
 from uuid import uuid4
 
 from fastapi import APIRouter, Request
@@ -6,6 +7,7 @@ from langchain_core.messages import HumanMessage
 from sse_starlette.sse import EventSourceResponse
 
 from app.agent.graph import build_graph
+from app.db.retrieval_logger import log_retrieval
 from app.models.schemas import ChatRequest, SSEEvent
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -56,6 +58,8 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
     }
 
     async def event_generator():
+        start_time = time.time()
+        full_response = ""
         try:
             async for event in graph.astream_events(initial_state, version="v2"):
                 if await request.is_disconnected():
@@ -69,7 +73,24 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                 if not token:
                     continue
 
+                full_response += token
                 yield _serialize_sse_event(SSEEvent(type="token", content=token))
+
+            latency_ms = int((time.time() - start_time) * 1000)
+            try:
+                await log_retrieval(
+                    session_id=payload.session_id,
+                    user_id=None,
+                    query=payload.message,
+                    skill=active_skill,
+                    retrieved_chunks=[],
+                    memory_context=None,
+                    response_length=len(full_response),
+                    feedback=None,
+                    latency_ms=latency_ms,
+                )
+            except Exception:
+                pass
 
             yield _serialize_sse_event(
                 SSEEvent(type="done", data={"message_id": str(uuid4())})

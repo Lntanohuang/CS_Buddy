@@ -18,6 +18,8 @@ dependencies = [
   "langchain-text-splitters",
   "pydantic",
   "pydantic-settings",
+  "motor",
+  "pymongo",
   "python-dotenv",
   "sse-starlette",
 ]

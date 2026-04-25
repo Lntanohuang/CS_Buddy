@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.db.mongo import close_client
 from app.routers.chat import router as chat_router
 
-app = FastAPI(title="CS Buddy Backend", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    yield
+    await close_client()
+
+
+app = FastAPI(title="CS Buddy Backend", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
