@@ -197,6 +197,7 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
   display: flex;
   flex-direction: column;
   min-width: 0;
+  margin-top: 14px;
 }
 
 .message-row--user .message-body {

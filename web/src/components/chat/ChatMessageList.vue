@@ -102,9 +102,10 @@ const isEmpty = computed(() => props.messages.length === 0)
 <style scoped>
 .chat-message-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 24px;
-  background-color: var(--bg-primary);
+  background: transparent;
   scroll-behavior: smooth;
 }
 
@@ -112,8 +113,9 @@ const isEmpty = computed(() => props.messages.length === 0)
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 800px;
+  max-width: 920px;
   margin: 0 auto;
+  width: 100%;
 }
 
 /* Empty state */

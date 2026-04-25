@@ -23,7 +23,7 @@ const router = createRouter({
     },
     {
       path: '/app',
-      component: () => import('@/components/layout/AppLayout.vue'),
+      component: () => import('@/layouts/BasicLayout.vue'),
       children: [
         { path: '', redirect: '/app/chat' },
         { path: 'chat', name: 'chat', component: () => import('@/views/chat/ChatView.vue') },
@@ -45,6 +45,7 @@ router.beforeEach((to) => {
   const hasProfile = currentUser?.has_profile === true
   const isGuestPage = to.meta.guest === true
   const isWelcomePage = to.name === 'welcome'
+  const isProfileRefreshFlow = isWelcomePage && to.query.mode === 'refresh-profile'
 
   // Unauthenticated users can only access guest routes.
   if (!isLoggedIn) {
@@ -57,7 +58,7 @@ router.beforeEach((to) => {
   }
 
   // Authenticated users with a complete profile should be in app routes.
-  if (isGuestPage || isWelcomePage) {
+  if (isGuestPage || (isWelcomePage && !isProfileRefreshFlow)) {
     return { path: '/app/chat' }
   }
 
