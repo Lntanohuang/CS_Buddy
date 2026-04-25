@@ -17,20 +17,25 @@ def _get_vector_store() -> FAISS:
     return _VECTOR_STORE
 
 
-def retrieve(query: str, top_k: int = 3, score_threshold: float = 0.72) -> list[dict]:
+def retrieve(query: str, top_k: int = 3, max_l2_distance: float = 250.0) -> list[dict]:
+    """检索知识库。
+
+    FAISS 返回 L2 距离（越小越相似）。
+    max_l2_distance: 过滤阈值，超过此距离的结果不返回。
+    """
     vector_store = _get_vector_store()
-    pairs = vector_store.similarity_search_with_relevance_scores(query, k=top_k)
+    pairs = vector_store.similarity_search_with_score(query, k=top_k)
 
     results: list[dict] = []
-    for doc, score in pairs:
-        if score < score_threshold:
+    for doc, distance in pairs:
+        if distance > max_l2_distance:
             continue
         results.append(
             {
                 "content": doc.page_content,
                 "source": doc.metadata.get("source", ""),
                 "course": doc.metadata.get("course", ""),
-                "score": float(score),
+                "score": float(distance),
             }
         )
     return results
