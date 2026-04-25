@@ -1,10 +1,11 @@
 import { ref, shallowRef, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { ChatSession, ChatMessage, AgentStep } from '@/types'
-import { mockSessions, mockMessages, mockStreamReply, mockAgentSteps, mockPersonalizedReply } from '@/mock/data'
+import { mockSessions, mockMessages, mockAgentSteps } from '@/mock/data'
 import { usePathStore } from './path'
 import { useNotificationStore } from './notification'
 import { useProfileStore } from './profile'
+import { streamChat } from '@/api/chat'
 
 export const useChatStore = defineStore('chat', () => {
   const isValidSession = (session: unknown): session is ChatSession => {
@@ -145,41 +146,33 @@ export const useChatStore = defineStore('chat', () => {
       isAgentWorking.value = false
     }
 
-    // Choose reply based on context
-    const replyContent = isFirstMessage ? mockStreamReply : mockPersonalizedReply
     const assistantMsg: ChatMessage = {
       message_id: `msg_${Date.now() + 1}`,
       session_id: sid,
       role: 'ASSISTANT',
       content: '',
-      intent: 'learn',
-      metadata: isFirstMessage
-        ? {
-            type: 'resource_card',
-            resource_type: 'doc',
-            title: '二叉树',
-            difficulty: 'INTERMEDIATE',
-            est_minutes: 15,
-            knowledge_point: 'binary_tree',
-            agent: 'DocAgent',
-          }
-        : undefined,
       created_at: new Date().toISOString(),
     }
     messagesBySession.value[sid].push(assistantMsg)
     isStreaming.value = true
 
-    const chars = replyContent.split('')
-    for (let i = 0; i < chars.length; i++) {
-      assistantMsg.content += chars[i]
-      if (i % 3 === 0) {
-        await new Promise((r) => setTimeout(r, 15))
-      }
-    }
-
-    isStreaming.value = false
-    if (session) {
-      session.message_count += 1
+    try {
+      await streamChat(
+        sid,
+        content,
+        (token) => { assistantMsg.content += token },
+        () => {
+          isStreaming.value = false
+          if (session) session.message_count += 1
+        },
+        (error) => {
+          assistantMsg.content += `\n\n⚠️ ${error}`
+          isStreaming.value = false
+        },
+      )
+    } catch {
+      assistantMsg.content += '\n\n⚠️ 网络连接失败，请检查后端服务是否启动'
+      isStreaming.value = false
     }
 
     // --- Cross-store side effects ---

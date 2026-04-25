@@ -35,10 +35,14 @@ def get_profile(user_id: str) -> dict:
 
 @tool
 def search_knowledge(query: str) -> str:
-    """搜索知识库（模拟数据）。"""
-    return (
-        "【知识库命中】数据结构是组织和存储数据的方式，目标是在不同场景下实现更高效的访问与修改。"
-        "常见数据结构包括数组、链表、栈、队列、哈希表、树、图。"
-        "选择数据结构时应优先结合操作类型（查找/插入/删除）、数据规模和时间复杂度要求。"
-        f"当前查询：{query}。"
-    )
+    """搜索知识库。"""
+    from app.rag.retriever import retrieve
+
+    results = retrieve(query)
+    if not results:
+        return "知识库中未找到与该查询高度相关的内容。"
+
+    parts = []
+    for r in results:
+        parts.append(f'【{r["course"]} - {r["source"]}】\n{r["content"]}')
+    return "\n\n---\n\n".join(parts)
