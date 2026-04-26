@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import * as echarts from 'echarts'
+import { useThemeStore } from '@/stores/theme'
 import type { LearningRadarMetric } from '@/types'
 
 const props = defineProps<{
@@ -10,6 +11,7 @@ const props = defineProps<{
 
 const chartRoot = ref<HTMLElement | null>(null)
 const chartInstance = shallowRef<echarts.ECharts | null>(null)
+const themeStore = useThemeStore()
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -27,10 +29,12 @@ function renderChart() {
 
   const accentPrimary = getThemeValue('--accent-primary', '#4A7C6F')
   const accentSecondary = getThemeValue('--accent-secondary', '#E8C07A')
+  const accentPrimaryRgb = getThemeValue('--accent-primary-rgb', '74, 124, 111')
   const borderColor = getThemeValue('--border', '#EBEBEA')
   const textColor = getThemeValue('--text-primary', '#37352F')
   const mutedTextColor = getThemeValue('--text-secondary', '#9B9A97')
   const panelColor = getThemeValue('--bg-card', '#FFFFFF')
+  const hoverColor = getThemeValue('--bg-hover', '#F7F6F3')
 
   chartInstance.value.setOption(
     {
@@ -60,10 +64,10 @@ function renderChart() {
         splitArea: {
           areaStyle: {
             color: [
-              'rgba(255,255,255,0.92)',
-              'rgba(247, 246, 243, 0.9)',
-              'rgba(255,255,255,0.82)',
-              'rgba(247, 246, 243, 0.72)',
+              panelColor,
+              hoverColor,
+              panelColor,
+              hoverColor,
             ],
           },
         },
@@ -92,7 +96,7 @@ function renderChart() {
             borderWidth: 2,
           },
           areaStyle: {
-            color: 'rgba(74, 124, 111, 0.22)',
+            color: `rgba(${accentPrimaryRgb}, 0.22)`,
           },
           label: {
             show: true,
@@ -136,6 +140,14 @@ watch(
     renderChart()
   },
   { deep: true },
+)
+
+watch(
+  () => themeStore.currentTheme,
+  async () => {
+    await nextTick()
+    renderChart()
+  },
 )
 
 onBeforeUnmount(() => {

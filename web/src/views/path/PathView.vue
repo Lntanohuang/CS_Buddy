@@ -231,7 +231,7 @@ function handleSelect(_nodeId: string) {
 
 .stat-icon-completed {
   background: var(--accent-primary-light);
-  color: var(--status-success);
+  color: var(--accent-primary);
 }
 
 .stat-icon-remaining {
@@ -253,7 +253,7 @@ function handleSelect(_nodeId: string) {
 }
 
 .stat-value-success {
-  color: var(--status-success);
+  color: var(--accent-primary);
 }
 
 .stat-value-warning {

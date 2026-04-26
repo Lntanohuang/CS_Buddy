@@ -21,7 +21,7 @@ const difficultyLabel = (difficulty: string) => {
 }
 
 const statusConfig = {
-  COMPLETED: { color: 'var(--el-color-success)', icon: 'CircleCheckFilled', label: '已完成' },
+  COMPLETED: { color: 'var(--accent-primary)', icon: 'CircleCheckFilled', label: '已完成' },
   IN_PROGRESS: { color: 'var(--el-color-primary)', icon: '', label: '学习中' },
   PENDING: { color: 'var(--el-color-info-light-5)', icon: '', label: '待学习' },
   SKIPPED: { color: 'var(--el-color-info)', icon: '', label: '已跳过' },
@@ -122,7 +122,7 @@ const difficultyPillColor = (difficulty: string) => {
       <template v-else-if="node.status === 'COMPLETED'">
         <span class="completed-label">
           <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
-            <path d="M2.5 6L5 8.5L9.5 4" stroke="var(--status-success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2.5 6L5 8.5L9.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           已完成
         </span>
@@ -215,7 +215,7 @@ const difficultyPillColor = (difficulty: string) => {
 }
 
 .status-circle.status-completed {
-  background: var(--status-success);
+  background: var(--accent-primary);
 }
 
 .status-circle.status-in-progress {
@@ -357,7 +357,7 @@ const difficultyPillColor = (difficulty: string) => {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: var(--status-success);
+  color: var(--accent-primary);
   font-weight: 500;
 }
 

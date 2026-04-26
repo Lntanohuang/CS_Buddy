@@ -82,8 +82,8 @@ function onAnswerChange(val: string) {
         <span class="option-key">{{ opt.key }}</span>
         <span class="option-text">{{ opt.value }}</span>
         <!-- Correct/wrong icon -->
-        <svg v-if="disabled && question.correct_answer === opt.key" class="option-icon option-icon--correct" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--status-success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        <svg v-else-if="disabled && userAnswer === opt.key && question.is_correct === false" class="option-icon option-icon--wrong" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--status-error)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <svg v-if="disabled && question.correct_answer === opt.key" class="option-icon option-icon--correct" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--score-high)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg v-else-if="disabled && userAnswer === opt.key && question.is_correct === false" class="option-icon option-icon--wrong" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--score-low)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </label>
     </div>
 
@@ -132,13 +132,13 @@ function onAnswerChange(val: string) {
 }
 
 .quiz-question.is-correct {
-  border-color: var(--status-success);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--status-success) 10%, transparent);
+  border-color: var(--score-high);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--score-high) 10%, transparent);
 }
 
 .quiz-question.is-wrong {
-  border-color: var(--status-error);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--status-error) 10%, transparent);
+  border-color: var(--score-low);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--score-low) 10%, transparent);
 }
 
 /* Header */
@@ -192,13 +192,13 @@ function onAnswerChange(val: string) {
 }
 
 .result-badge--correct {
-  background: var(--accent-primary-light);
-  color: var(--status-success);
+  background: var(--score-high-light);
+  color: var(--score-high);
 }
 
 .result-badge--wrong {
-  background: var(--status-error-light);
-  color: var(--status-error);
+  background: var(--score-low-light);
+  color: var(--score-low);
 }
 
 /* Question content */
@@ -246,13 +246,13 @@ function onAnswerChange(val: string) {
 }
 
 .option-card.is-correct-answer {
-  border-color: var(--status-success);
-  background: var(--accent-primary-light);
+  border-color: var(--score-high);
+  background: var(--score-high-light);
 }
 
 .option-card.is-wrong-answer {
-  border-color: var(--status-error);
-  background: var(--status-error-light);
+  border-color: var(--score-low);
+  background: var(--score-low-light);
 }
 
 .option-radio {
@@ -284,14 +284,14 @@ function onAnswerChange(val: string) {
 }
 
 .option-card.is-correct-answer .option-key {
-  border-color: var(--status-success);
-  background: var(--status-success);
+  border-color: var(--score-high);
+  background: var(--score-high);
   color: var(--bg-card);
 }
 
 .option-card.is-wrong-answer .option-key {
-  border-color: var(--status-error);
-  background: var(--status-error);
+  border-color: var(--score-low);
+  background: var(--score-low);
   color: var(--bg-card);
 }
 
@@ -342,13 +342,13 @@ function onAnswerChange(val: string) {
 }
 
 .fill-input--correct {
-  border-color: var(--status-success);
-  background: var(--accent-primary-light);
+  border-color: var(--score-high);
+  background: var(--score-high-light);
 }
 
 .fill-input--wrong {
-  border-color: var(--status-error);
-  background: var(--status-error-light);
+  border-color: var(--score-low);
+  background: var(--score-low-light);
 }
 
 .correct-answer-line {
@@ -358,7 +358,7 @@ function onAnswerChange(val: string) {
 }
 
 .correct-answer-line strong {
-  color: var(--status-success);
+  color: var(--score-high);
   font-weight: 600;
 }
 

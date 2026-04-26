@@ -15,7 +15,7 @@ const emit = defineEmits<{
 
 const dotColor = (status: PathNode['status']) => {
   const map: Record<PathNode['status'], string> = {
-    COMPLETED: 'var(--status-success)',
+    COMPLETED: 'var(--accent-primary)',
     IN_PROGRESS: 'var(--accent-primary)',
     PENDING: 'var(--border-strong)',
     SKIPPED: 'var(--text-secondary)',
@@ -25,7 +25,7 @@ const dotColor = (status: PathNode['status']) => {
 
 const segmentColor = (status: PathNode['status']) => {
   const map: Record<PathNode['status'], string> = {
-    COMPLETED: 'var(--status-success)',
+    COMPLETED: 'var(--accent-primary)',
     IN_PROGRESS: 'var(--accent-primary)',
     PENDING: 'var(--border)',
     SKIPPED: 'var(--border-strong)',
@@ -66,7 +66,7 @@ const segmentColor = (status: PathNode['status']) => {
             <defs>
               <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stop-color="var(--accent-primary)" />
-                <stop offset="100%" stop-color="var(--status-success)" />
+                <stop offset="100%" stop-color="var(--accent-secondary)" />
               </linearGradient>
             </defs>
           </svg>

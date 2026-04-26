@@ -77,11 +77,11 @@ function handleKeydown(event: KeyboardEvent) {
   width: min(100%, 920px);
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(125, 175, 223, 0.18);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.18);
   border-radius: 24px;
   padding: 8px 8px 8px 18px;
   transition: all 0.2s ease;
-  box-shadow: 0 8px 18px rgba(84, 138, 197, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .chat-input-container--focused {
