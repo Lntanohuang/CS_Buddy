@@ -51,16 +51,19 @@ def _extract_chunk_text(chunk: object) -> str:
     return ""
 
 
+_langfuse_env_set = False
+
 def _create_langfuse_handler(session_id: str, skill: str) -> CallbackHandler | None:
     if not settings.LANGFUSE_PUBLIC_KEY:
         return None
-    return CallbackHandler(
-        public_key=settings.LANGFUSE_PUBLIC_KEY,
-        secret_key=settings.LANGFUSE_SECRET_KEY,
-        host=settings.LANGFUSE_BASE_URL,
-        session_id=session_id,
-        metadata={"skill": skill},
-    )
+    global _langfuse_env_set
+    if not _langfuse_env_set:
+        import os
+        os.environ["LANGFUSE_PUBLIC_KEY"] = settings.LANGFUSE_PUBLIC_KEY
+        os.environ["LANGFUSE_SECRET_KEY"] = settings.LANGFUSE_SECRET_KEY
+        os.environ["LANGFUSE_HOST"] = settings.LANGFUSE_BASE_URL
+        _langfuse_env_set = True
+    return CallbackHandler()
 
 
 @router.post("/stream")
