@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Request
 from langchain_core.messages import HumanMessage
+from langfuse import get_client
 from langfuse.langchain import CallbackHandler
 from sse_starlette.sse import EventSourceResponse
 
@@ -121,6 +122,6 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
             )
         finally:
             if langfuse_handler:
-                langfuse_handler.flush()
+                get_client().flush()
 
     return EventSourceResponse(event_generator())
