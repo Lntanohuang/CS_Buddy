@@ -22,4 +22,5 @@ dependencies = [
   "pymongo",
   "python-dotenv",
   "sse-starlette",
+  "langfuse",
 ]

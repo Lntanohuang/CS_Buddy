@@ -4,9 +4,11 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Request
 from langchain_core.messages import HumanMessage
+from langfuse.callback import CallbackHandler
 from sse_starlette.sse import EventSourceResponse
 
 from app.agent.graph import build_graph
+from app.config import settings
 from app.db.retrieval_logger import log_retrieval
 from app.models.schemas import ChatRequest, SSEEvent
 
@@ -49,6 +51,22 @@ def _extract_chunk_text(chunk: object) -> str:
     return ""
 
 
+def _create_langfuse_handler(session_id: str, skill: str) -> CallbackHandler | None:
+    if not settings.LANGFUSE_PUBLIC_KEY:
+        return None
+    import os
+    os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1")
+    if "localhost" not in os.environ.get("NO_PROXY", ""):
+        os.environ["NO_PROXY"] = os.environ.get("NO_PROXY", "") + ",localhost,127.0.0.1"
+    return CallbackHandler(
+        public_key=settings.LANGFUSE_PUBLIC_KEY,
+        secret_key=settings.LANGFUSE_SECRET_KEY,
+        host=settings.LANGFUSE_BASE_URL,
+        session_id=session_id,
+        metadata={"skill": skill},
+    )
+
+
 @router.post("/stream")
 async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResponse:
     active_skill = _detect_active_skill(payload.message)
@@ -57,11 +75,14 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
         "active_skill": active_skill,
     }
 
+    langfuse_handler = _create_langfuse_handler(payload.session_id, active_skill)
+    config = {"callbacks": [langfuse_handler]} if langfuse_handler else {}
+
     async def event_generator():
         start_time = time.time()
         full_response = ""
         try:
-            async for event in graph.astream_events(initial_state, version="v2"):
+            async for event in graph.astream_events(initial_state, version="v2", config=config):
                 if await request.is_disconnected():
                     break
 
@@ -99,5 +120,8 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
             yield _serialize_sse_event(
                 SSEEvent(type="error", content=f"服务暂时不可用：{exc}")
             )
+        finally:
+            if langfuse_handler:
+                langfuse_handler.flush()
 
     return EventSourceResponse(event_generator())

@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str | None = None
     MONGO_URI: str = "mongodb://localhost:27017"
     MONGO_DB: str = "csbuddy"
+    LANGFUSE_SECRET_KEY: str = ""
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_BASE_URL: str = "http://localhost:3010"
 
     model_config = SettingsConfigDict(
         env_file=".env",
