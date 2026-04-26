@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Request
 from langchain_core.messages import HumanMessage
-from langfuse.callback import CallbackHandler
+from langfuse.langchain import CallbackHandler
 from sse_starlette.sse import EventSourceResponse
 
 from app.agent.graph import build_graph
