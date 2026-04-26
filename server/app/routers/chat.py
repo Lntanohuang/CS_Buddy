@@ -54,10 +54,6 @@ def _extract_chunk_text(chunk: object) -> str:
 def _create_langfuse_handler(session_id: str, skill: str) -> CallbackHandler | None:
     if not settings.LANGFUSE_PUBLIC_KEY:
         return None
-    import os
-    os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1")
-    if "localhost" not in os.environ.get("NO_PROXY", ""):
-        os.environ["NO_PROXY"] = os.environ.get("NO_PROXY", "") + ",localhost,127.0.0.1"
     return CallbackHandler(
         public_key=settings.LANGFUSE_PUBLIC_KEY,
         secret_key=settings.LANGFUSE_SECRET_KEY,
