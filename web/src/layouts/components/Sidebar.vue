@@ -1,10 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChatDotRound, EditPen, Expand, Fold, Guide, Plus, Setting, SwitchButton, User } from '@element-plus/icons-vue'
+import {
+  Brush,
+  ChatDotRound,
+  Check,
+  EditPen,
+  Expand,
+  Fold,
+  Guide,
+  Plus,
+  Setting,
+  SwitchButton,
+  User,
+} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useLayoutStore } from '@/stores/layout'
+import { useThemeStore } from '@/stores/theme'
 
 const props = defineProps<{
   isMobile: boolean
@@ -15,6 +28,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const layoutStore = useLayoutStore()
 const chatStore = useChatStore()
+const themeStore = useThemeStore()
 const settingsVisible = ref(false)
 
 const menuItems = [
@@ -157,7 +171,7 @@ function formatSessionTime(dateStr: string) {
         v-model:visible="settingsVisible"
         placement="top-start"
         trigger="click"
-        :width="168"
+        :width="264"
         popper-class="sidebar-settings-popover"
       >
         <template #reference>
@@ -174,6 +188,42 @@ function formatSessionTime(dateStr: string) {
         </template>
 
         <div class="sidebar__settings-panel">
+          <section class="sidebar__theme-section" aria-labelledby="sidebar-theme-title">
+            <div class="sidebar__settings-title" id="sidebar-theme-title">
+              <el-icon :size="15"><Brush /></el-icon>
+              <span>主题色</span>
+            </div>
+
+            <div class="sidebar__theme-options" role="radiogroup" aria-label="主题色">
+              <button
+                v-for="theme in themeStore.themeOptions"
+                :key="theme.id"
+                class="sidebar__theme-option"
+                :class="{ 'is-active': themeStore.currentTheme === theme.id }"
+                type="button"
+                role="radio"
+                :aria-checked="themeStore.currentTheme === theme.id"
+                @click="themeStore.setTheme(theme.id)"
+              >
+                <span class="sidebar__theme-swatches" aria-hidden="true">
+                  <span
+                    v-for="color in theme.swatches"
+                    :key="color"
+                    class="sidebar__theme-swatch"
+                    :style="{ background: color }"
+                  />
+                </span>
+                <span class="sidebar__theme-copy">
+                  <span class="sidebar__theme-label">{{ theme.label }}</span>
+                  <span class="sidebar__theme-desc">{{ theme.description }}</span>
+                </span>
+                <el-icon v-if="themeStore.currentTheme === theme.id" class="sidebar__theme-check" :size="14">
+                  <Check />
+                </el-icon>
+              </button>
+            </div>
+          </section>
+
           <button class="sidebar__settings-action" type="button" @click="handleLogout">
             <el-icon :size="15"><SwitchButton /></el-icon>
             <span>退出登录</span>
@@ -194,9 +244,9 @@ function formatSessionTime(dateStr: string) {
   width: 304px;
   padding: 16px 12px 12px;
   background:
-    radial-gradient(circle at top left, rgba(141, 200, 255, 0.24), transparent 34%),
-    linear-gradient(180deg, rgba(250, 253, 255, 0.98), rgba(233, 244, 255, 0.98));
-  border-right: 1px solid rgba(125, 175, 223, 0.18);
+    radial-gradient(circle at top left, rgba(var(--accent-secondary-rgb), 0.24), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 96%, white), color-mix(in srgb, var(--bg-sidebar) 96%, white));
+  border-right: 1px solid rgba(var(--accent-primary-rgb), 0.18);
   box-shadow: none;
   overflow: hidden;
   transition: width 0.24s ease;
@@ -237,7 +287,7 @@ function formatSessionTime(dateStr: string) {
 
 .sidebar__toggle:hover,
 .sidebar__settings:hover {
-  background: rgba(91, 165, 234, 0.14);
+  background: rgba(var(--accent-primary-rgb), 0.14);
   color: var(--accent-primary);
 }
 
@@ -246,7 +296,7 @@ function formatSessionTime(dateStr: string) {
   flex-direction: column;
   gap: 6px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(125, 175, 223, 0.14);
+  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.14);
 }
 
 .sidebar__link {
@@ -263,7 +313,7 @@ function formatSessionTime(dateStr: string) {
 }
 
 .sidebar__link:hover {
-  background: rgba(91, 165, 234, 0.1);
+  background: rgba(var(--accent-primary-rgb), 0.1);
   color: var(--text-primary);
 }
 
@@ -280,7 +330,7 @@ function formatSessionTime(dateStr: string) {
   bottom: 11px;
   width: 2px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(91, 165, 234, 0.9), rgba(121, 189, 248, 0.92));
+  background: linear-gradient(180deg, rgba(var(--accent-primary-rgb), 0.9), rgba(var(--accent-secondary-rgb), 0.92));
 }
 
 .sidebar__icon {
@@ -387,12 +437,12 @@ function formatSessionTime(dateStr: string) {
 
 .sidebar__history-item:hover {
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 22px rgba(84, 138, 197, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .sidebar__history-item.is-active {
-  background: rgba(231, 244, 255, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(91, 165, 234, 0.12);
+  background: color-mix(in srgb, var(--accent-primary-light) 72%, white);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-primary-rgb), 0.12);
 }
 
 .sidebar__history-item-title {
@@ -416,7 +466,108 @@ function formatSessionTime(dateStr: string) {
 }
 
 .sidebar__settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 4px 0;
+}
+
+.sidebar__theme-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar__settings-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sidebar__theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar__theme-option {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.sidebar__theme-option:hover {
+  background: rgba(var(--accent-primary-rgb), 0.09);
+}
+
+.sidebar__theme-option.is-active {
+  background: var(--accent-primary-light);
+  border-color: rgba(var(--accent-primary-rgb), 0.22);
+}
+
+.sidebar__theme-swatches {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar__theme-swatch {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.sidebar__theme-swatch + .sidebar__theme-swatch {
+  margin-left: -7px;
+}
+
+.sidebar__theme-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar__theme-label {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__theme-desc {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__theme-check {
+  color: var(--accent-primary);
 }
 
 .sidebar__settings-action {
@@ -436,7 +587,7 @@ function formatSessionTime(dateStr: string) {
 }
 
 .sidebar__settings-action:hover {
-  background: rgba(91, 165, 234, 0.1);
+  background: rgba(var(--accent-primary-rgb), 0.1);
 }
 
 @media (max-width: 959px) {

@@ -80,9 +80,9 @@ onBeforeUnmount(() => {
   height: 100dvh;
   min-height: 100dvh;
   background:
-    radial-gradient(circle at top right, rgba(137, 197, 255, 0.34), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(91, 165, 234, 0.18), transparent 24%),
-    linear-gradient(180deg, rgba(248, 252, 255, 0.7), rgba(238, 247, 255, 0.96)),
+    radial-gradient(circle at top right, rgba(var(--accent-secondary-rgb), 0.34), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(var(--accent-primary-rgb), 0.18), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 72%, transparent), color-mix(in srgb, var(--bg-primary) 96%, white)),
     var(--bg-primary);
   overflow: hidden;
 }

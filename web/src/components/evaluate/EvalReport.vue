@@ -14,17 +14,17 @@ const score = computed(() => props.evaluation.score ?? 0)
 
 const scoreColor = computed(() => {
   const s = props.evaluation.score ?? 0
-  if (s >= 70) return 'var(--status-success)'
-  if (s >= 40) return 'var(--accent-secondary)'
-  return 'var(--status-error)'
+  if (s >= 70) return 'var(--score-high)'
+  if (s >= 40) return 'var(--score-mid)'
+  return 'var(--score-low)'
 })
 
 const masteryPercent = computed(() => Math.round((props.evaluation.mastery_level ?? 0) * 100))
 
 const masteryBarColor = computed(() => {
-  if (masteryPercent.value >= 70) return 'var(--status-success)'
-  if (masteryPercent.value >= 40) return 'var(--accent-secondary)'
-  return 'var(--status-error)'
+  if (masteryPercent.value >= 70) return 'var(--score-high)'
+  if (masteryPercent.value >= 40) return 'var(--score-mid)'
+  return 'var(--score-low)'
 })
 
 const timeDisplay = computed(() => {
@@ -67,9 +67,9 @@ const trendInfo = computed(() => {
   const trend = props.evaluation.progress_trend
   if (!trend) return null
   const map: Record<string, { arrow: string; label: string; color: string }> = {
-    UP: { arrow: '\u2191', label: '进步中', color: 'var(--status-success)' },
+    UP: { arrow: '\u2191', label: '进步中', color: 'var(--score-high)' },
     STABLE: { arrow: '\u2192', label: '保持稳定', color: 'var(--text-tertiary)' },
-    DOWN: { arrow: '\u2193', label: '需要加强', color: 'var(--status-error)' },
+    DOWN: { arrow: '\u2193', label: '需要加强', color: 'var(--score-low)' },
   }
   return map[trend] ?? null
 })
@@ -161,7 +161,7 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
             class="dim-bar-fill"
             :style="{
               width: efficiencyPercent + '%',
-              background: efficiencyPercent >= 70 ? 'var(--status-success)' : efficiencyPercent >= 40 ? 'var(--accent-secondary)' : 'var(--status-error)',
+              background: efficiencyPercent >= 70 ? 'var(--score-high)' : efficiencyPercent >= 40 ? 'var(--score-mid)' : 'var(--score-low)',
             }"
           ></div>
         </div>
@@ -340,8 +340,8 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
 }
 
 .stat-icon--correct {
-  background: var(--accent-primary-light);
-  color: var(--status-success);
+  background: var(--score-high-light);
+  color: var(--score-high);
 }
 
 .stat-icon--time {
@@ -350,8 +350,8 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
 }
 
 .stat-icon--mastery {
-  background: var(--accent-secondary-light);
-  color: var(--accent-secondary);
+  background: var(--score-mid-light);
+  color: var(--score-mid);
 }
 
 .stat-number {
@@ -463,18 +463,18 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
 }
 
 .recommendation-card--success {
-  background: var(--accent-primary-light);
-  border-left-color: var(--status-success);
+  background: var(--score-high-light);
+  border-left-color: var(--score-high);
 }
 
 .recommendation-card--warning {
-  background: var(--accent-secondary-light);
-  border-left-color: var(--accent-secondary);
+  background: var(--score-mid-light);
+  border-left-color: var(--score-mid);
 }
 
 .recommendation-card--error {
-  background: var(--status-error-light);
-  border-left-color: var(--status-error);
+  background: var(--score-low-light);
+  border-left-color: var(--score-low);
 }
 
 .recommendation-icon {
@@ -483,15 +483,15 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
 }
 
 .recommendation-card--success .recommendation-icon {
-  color: var(--status-success);
+  color: var(--score-high);
 }
 
 .recommendation-card--warning .recommendation-icon {
-  color: var(--accent-secondary);
+  color: var(--score-mid);
 }
 
 .recommendation-card--error .recommendation-icon {
-  color: var(--status-error);
+  color: var(--score-low);
 }
 
 .recommendation-body {
@@ -599,9 +599,9 @@ const weakPoints = computed(() => props.evaluation.weak_point_analysis ?? [])
 
 .confetti-piece:nth-child(5n+1) { background: var(--accent-primary); left: 10%; }
 .confetti-piece:nth-child(5n+2) { background: var(--accent-secondary); left: 30%; }
-.confetti-piece:nth-child(5n+3) { background: var(--status-success); left: 50%; }
+.confetti-piece:nth-child(5n+3) { background: var(--score-high); left: 50%; }
 .confetti-piece:nth-child(5n+4) { background: var(--accent-secondary); left: 70%; }
-.confetti-piece:nth-child(5n+5) { background: var(--status-error); left: 90%; }
+.confetti-piece:nth-child(5n+5) { background: var(--score-low); left: 90%; }
 
 .confetti-piece:nth-child(odd) {
   width: 6px;

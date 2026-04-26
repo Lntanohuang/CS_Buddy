@@ -46,16 +46,16 @@ function onReportClose() {
 
 function scoreColor(score?: number): string {
   const s = score ?? 0
-  if (s >= 70) return 'var(--status-success)'
-  if (s >= 40) return 'var(--accent-secondary)'
-  return 'var(--status-error)'
+  if (s >= 70) return 'var(--score-high)'
+  if (s >= 40) return 'var(--score-mid)'
+  return 'var(--score-low)'
 }
 
 function recommendationTag(eval_: Evaluation) {
   const action = eval_.recommendation?.action
-  if (action === 'ADVANCE') return { label: '推进', color: 'var(--status-success)', bg: 'var(--accent-primary-light)' }
-  if (action === 'SUPPLEMENT') return { label: '补强', color: 'var(--accent-secondary)', bg: 'var(--accent-secondary-light)' }
-  if (action === 'RETREAT') return { label: '回退', color: 'var(--status-error)', bg: 'var(--status-error-light)' }
+  if (action === 'ADVANCE') return { label: '推进', color: 'var(--score-high)', bg: 'var(--score-high-light)' }
+  if (action === 'SUPPLEMENT') return { label: '补强', color: 'var(--score-mid)', bg: 'var(--score-mid-light)' }
+  if (action === 'RETREAT') return { label: '回退', color: 'var(--score-low)', bg: 'var(--score-low-light)' }
   return { label: '-', color: 'var(--text-secondary)', bg: 'var(--bg-primary)' }
 }
 
