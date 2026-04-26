@@ -76,7 +76,9 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
     }
 
     langfuse_handler = _create_langfuse_handler(payload.session_id, active_skill)
-    config = {"callbacks": [langfuse_handler]} if langfuse_handler else {}
+    config = {"configurable": {"thread_id": payload.session_id}}
+    if langfuse_handler:
+        config["callbacks"] = [langfuse_handler]
 
     async def event_generator():
         start_time = time.time()
