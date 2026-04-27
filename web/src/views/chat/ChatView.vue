@@ -255,14 +255,19 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 
 <style scoped>
 .chat-view {
+  --classroom-pad-x: 24px;
+  --learning-status-width: 320px;
+  --classroom-gap: 16px;
+
   flex: 1;
+  position: relative;
   min-height: 0;
   height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 16px;
-  padding: 18px 24px 20px;
+  grid-template-columns: minmax(0, 1fr) var(--learning-status-width);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--classroom-gap);
+  padding: 18px var(--classroom-pad-x) 20px;
   background: transparent;
   overflow: hidden;
 }
@@ -284,7 +289,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 
 .learning-status {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   position: relative;
   display: grid;
   grid-template-rows: 260px minmax(0, 1fr) auto;
@@ -491,16 +496,21 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .classroom-input {
-  grid-column: 1;
-  grid-row: 2;
+  position: absolute;
+  left: var(--classroom-pad-x);
+  right: calc(var(--classroom-pad-x) + var(--learning-status-width) + var(--classroom-gap));
+  bottom: 20px;
+  z-index: 10;
   min-width: 0;
-  align-self: end;
-  padding-top: 8px;
+  padding-top: 0;
   border-top: 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 .classroom-input :deep(.chat-input-wrapper) {
   width: 100%;
+  pointer-events: auto;
 }
 
 .classroom-input :deep(.chat-input-container) {
@@ -509,14 +519,15 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 
 @media (max-width: 1180px) {
   .chat-view {
-    grid-template-columns: minmax(0, 1fr) 300px;
+    --learning-status-width: 300px;
   }
 }
 
 @media (max-width: 920px) {
   .chat-view {
+    --classroom-pad-x: 14px;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-rows: minmax(0, 1fr) auto;
     padding: 14px;
   }
 
@@ -537,8 +548,9 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   }
 
   .classroom-input {
-    grid-column: 1;
-    grid-row: 3;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
   }
 
   .learning-status::before,

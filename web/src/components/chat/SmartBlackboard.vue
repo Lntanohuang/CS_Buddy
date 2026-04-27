@@ -237,13 +237,15 @@ function isTreeDiagram(code: string) {
         <article v-else-if="currentMessage" :key="currentMessage.message_id" class="blackboard-content">
           <header class="blackboard-lesson">
             <p class="blackboard-lesson__eyebrow">小海豹课堂白板</p>
-            <div class="blackboard-lesson__item">
-              <span>当前讲解</span>
-              <h1>{{ lectureTitle }}</h1>
-            </div>
-            <div v-if="visibleQuestion" class="blackboard-lesson__item blackboard-lesson__item--question">
-              <span>本节问题</span>
-              <p>{{ visibleQuestion }}</p>
+            <div class="blackboard-lesson__main">
+              <div class="blackboard-lesson__item">
+                <span>当前讲解</span>
+                <h1>{{ lectureTitle }}</h1>
+              </div>
+              <div v-if="visibleQuestion" class="blackboard-lesson__item blackboard-lesson__item--question">
+                <span>本节问题</span>
+                <p>{{ visibleQuestion }}</p>
+              </div>
             </div>
           </header>
 
@@ -370,12 +372,11 @@ function isTreeDiagram(code: string) {
 
 .blackboard-lesson {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: auto minmax(160px, 0.85fr) minmax(220px, 1.15fr);
-  align-items: center;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding-bottom: 18px;
-  border-bottom: 1px solid rgba(29, 29, 31, 0.1);
+  border-bottom: 0;
 }
 
 .blackboard-lesson__eyebrow {
@@ -384,15 +385,29 @@ function isTreeDiagram(code: string) {
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0;
-  white-space: nowrap;
+}
+
+.blackboard-lesson__main {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
 }
 
 .blackboard-lesson__item {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  min-width: min(100%, 260px);
+  max-width: 100%;
+  display: flex;
   align-items: baseline;
   gap: 8px;
+}
+
+.blackboard-lesson__item--question {
+  flex: 1 1 340px;
+}
+
+.blackboard-lesson__item:not(.blackboard-lesson__item--question) {
+  flex: 0 1 420px;
 }
 
 .blackboard-lesson__item span {
@@ -407,9 +422,7 @@ function isTreeDiagram(code: string) {
   min-width: 0;
   margin: 0;
   color: var(--blackboard-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .blackboard-lesson h1 {
@@ -460,6 +473,7 @@ function isTreeDiagram(code: string) {
   min-height: 0;
   overflow: auto;
   padding-right: 4px;
+  padding-bottom: 112px;
 }
 
 .teaching-sections {
@@ -488,6 +502,7 @@ function isTreeDiagram(code: string) {
 
 .teaching-card:first-child {
   padding-top: 18px;
+  border-top: 0;
 }
 
 .teaching-card:last-child {
@@ -692,13 +707,12 @@ function isTreeDiagram(code: string) {
   }
 
   .blackboard-lesson {
-    grid-template-columns: 1fr;
-    align-items: start;
     gap: 10px;
   }
 
   .blackboard-lesson__item {
-    grid-template-columns: 64px minmax(0, 1fr);
+    min-width: 0;
+    flex-basis: 100%;
   }
 
   .blackboard-question {
