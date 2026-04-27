@@ -1,0 +1,53 @@
+{
+  "id": "thinking",
+  "finishDelay": 8300,
+  "steps": [
+    {
+      "delay": 0,
+      "pose": {
+        "eyes": { "left": "low", "right": "low" },
+        "mouth": "normal",
+        "flipperFrame": "frame1",
+        "headLift": false,
+        "tailBoost": false,
+        "specialEyes": null,
+        "cheeks": false,
+        "effect": "thinking",
+        "poseFrame": null
+      }
+    },
+    {
+      "delay": 900,
+      "pose": {
+        "eyes": { "left": "close", "right": "close" }
+      }
+    },
+    {
+      "delay": 1700,
+      "pose": {
+        "eyes": { "left": "low", "right": "low" },
+        "headLift": true
+      }
+    },
+    {
+      "delay": 6700,
+      "pose": {
+        "eyes": { "left": "open", "right": "open" },
+        "mouth": "speak1",
+        "flipperFrame": "frame2",
+        "tailBoost": true,
+        "effect": "light"
+      }
+    },
+    {
+      "delay": 7600,
+      "pose": {
+        "mouth": "normal",
+        "flipperFrame": "frame1",
+        "headLift": false,
+        "tailBoost": false,
+        "effect": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "laugh",
+  "finishDelay": 1080,
+  "steps": [
+    {
+      "delay": 0,
+      "pose": {
+        "eyes": { "left": "upturn", "right": "upturn" },
+        "mouth": "laugh",
+        "flipperFrame": "frame2",
+        "headLift": true,
+        "tailBoost": true,
+        "cheeks": true,
+        "effect": "love1"
+      }
+    },
+    {
+      "delay": 180,
+      "pose": {
+        "flipperFrame": "frame1"
+      }
+    },
+    {
+      "delay": 340,
+      "pose": {
+        "flipperFrame": "frame2",
+        "tailBoost": true
+      }
+    },
+    {
+      "delay": 560,
+      "pose": {
+        "eyes": { "left": "upturn", "right": "upturn" },
+        "flipperFrame": "frame1",
+        "headLift": false
+      }
+    },
+    {
+      "delay": 820,
+      "pose": {
+        "eyes": { "left": "open", "right": "open" },
+        "mouth": "normal",
+        "cheeks": false,
+        "tailBoost": false,
+        "effect": null
+      }
+    }
+  ]
+}

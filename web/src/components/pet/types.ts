@@ -1,0 +1,10 @@
+export type LilSealAction =
+  | 'idle'
+  | 'think'
+  | 'thinking'
+  | 'talk'
+  | 'talking'
+  | 'happy'
+  | 'starry'
+  | 'sleep'
+  | 'wave'

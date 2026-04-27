@@ -12,6 +12,10 @@ const props = defineProps<{
   message: ChatMessage
 }>()
 
+const emit = defineEmits<{
+  feedback: [payload: { messageId: string; feedback: 'USEFUL' | 'NOT_USEFUL' }]
+}>()
+
 const MermaidFallback = defineComponent({
   name: 'MermaidFallback',
   props: {
@@ -143,7 +147,10 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
             :resource-type="(message.metadata!.resource_type as any)"
           />
 
-          <FeedbackButtons :message-id="message.message_id" />
+          <FeedbackButtons
+            :message-id="message.message_id"
+            @feedback="emit('feedback', $event)"
+          />
         </div>
       </div>
 

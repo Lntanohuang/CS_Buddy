@@ -10,6 +10,10 @@ const props = defineProps<{
   isAgentWorking?: boolean
 }>()
 
+const emit = defineEmits<{
+  feedback: [payload: { messageId: string; feedback: 'USEFUL' | 'NOT_USEFUL' }]
+}>()
+
 const scrollContainer = ref<HTMLDivElement>()
 
 function scrollToBottom() {
@@ -66,6 +70,7 @@ const isEmpty = computed(() => props.messages.length === 0)
         v-for="msg in messages"
         :key="msg.message_id"
         :message="msg"
+        @feedback="emit('feedback', $event)"
       />
 
       <!-- Agent working steps -->

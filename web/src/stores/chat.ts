@@ -6,6 +6,8 @@ import { usePathStore } from './path'
 import { useNotificationStore } from './notification'
 import { useProfileStore } from './profile'
 
+export type ChatRuntimeStatus = 'idle' | 'thinking' | 'talking'
+
 export const useChatStore = defineStore('chat', () => {
   const isValidSession = (session: unknown): session is ChatSession => {
     if (!session || typeof session !== 'object') return false
@@ -77,6 +79,12 @@ export const useChatStore = defineStore('chat', () => {
   const activeMessages = computed(
     () => messagesBySession.value[activeSessionId.value] ?? []
   )
+
+  const runtimeStatus = computed<ChatRuntimeStatus>(() => {
+    if (isAgentWorking.value) return 'thinking'
+    if (isStreaming.value) return 'talking'
+    return 'idle'
+  })
 
   function selectSession(id: string) {
     if (!messagesBySession.value[id]) return
@@ -220,6 +228,7 @@ export const useChatStore = defineStore('chat', () => {
     activeSessionId,
     activeSession,
     activeMessages,
+    runtimeStatus,
     isStreaming,
     agentSteps,
     isAgentWorking,

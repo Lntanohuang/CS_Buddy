@@ -1,0 +1,741 @@
+.pet-host {
+  position: var(--pet-layer-position, fixed);
+  inset: 0;
+  z-index: var(--pet-z-index, 40);
+  pointer-events: none;
+}
+
+.pet-host[hidden] {
+  display: none !important;
+}
+
+.pet-shell {
+  position: absolute;
+  top: var(--pet-offset-top, auto);
+  right: var(--pet-offset-right, auto);
+  bottom: var(--pet-offset-bottom, clamp(16px, 3vw, 28px));
+  left: var(--pet-offset-left, clamp(16px, 3vw, 28px));
+  transform: scale(var(--pet-scale, 0.9));
+  transform-origin: left bottom;
+  pointer-events: none;
+}
+
+.pet {
+  position: relative;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.pet:focus-visible {
+  outline: 3px solid rgba(13, 141, 187, 0.35);
+  outline-offset: 6px;
+  border-radius: 24px;
+}
+
+.pet__scene {
+  position: relative;
+  display: block;
+  width: clamp(168px, 20vw, 252px);
+  aspect-ratio: 513 / 512;
+  transform-origin: center bottom;
+}
+
+.pet__layer,
+.pet__head-wrap,
+.pet__head-track {
+  position: absolute;
+  inset: 0;
+}
+
+.pet__layer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.pet [hidden],
+.pet__layer[hidden] {
+  display: none !important;
+}
+
+.pet__shadow {
+  z-index: 1;
+  transform-origin: center bottom;
+}
+
+.pet__tail {
+  z-index: 4;
+  transform-origin: 24% 58%;
+}
+
+.pet__tail-cover {
+  z-index: 2;
+}
+
+.pet__body {
+  z-index: 3;
+}
+
+.pet__flipper {
+  z-index: 5;
+}
+
+.pet__head-wrap {
+  z-index: 6;
+  transform-origin: center 42%;
+}
+
+.pet__head-track {
+  transform-origin: center 42%;
+}
+
+.pet__head {
+  z-index: 1;
+}
+
+.pet__eye {
+  z-index: 2;
+}
+
+.pet__special-eyes,
+.pet__cheek {
+  z-index: 2;
+}
+
+.pet__mouth {
+  z-index: 3;
+}
+
+.pet__bubble {
+  z-index: 7;
+  transform-origin: 51% 39%;
+  will-change: transform, opacity;
+}
+
+.pet__effect {
+  z-index: 8;
+  transform-origin: center center;
+  animation: effect-pop 0.7s ease-out both;
+}
+
+.pet__thought-content {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: block;
+  color: #3a1b00;
+  pointer-events: none;
+}
+
+.pet__thought-stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  transform: translateY(2px) scale(0.9);
+  transform-origin: 15.5% 27.5%;
+  animation: thought-stage 6.4s linear infinite;
+}
+
+.pet__thought-symbol {
+  position: absolute;
+  top: 21.3%;
+  left: 6.3%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22%;
+  aspect-ratio: 1.52;
+}
+
+.pet__thought-stage--question {
+  animation-delay: 0.8s;
+}
+
+.pet__thought-symbol--question {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pet__thought-stage--gear {
+  animation-delay: 1.6s;
+}
+
+.pet__thought-stage--fish {
+  animation-delay: 2.4s;
+}
+
+.pet__thought-stage--shrimp {
+  animation-delay: 3.2s;
+}
+
+.pet__thought-stage--code {
+  animation-delay: 4s;
+}
+
+.pet__thought-symbol--code {
+  gap: 8px;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pet__thought-stage--book {
+  animation-delay: 4.8s;
+}
+
+.pet__thought-stage--pencil {
+  animation-delay: 5.6s;
+}
+
+.pet__thought-asset {
+  object-fit: contain;
+}
+
+.pet__thought-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: thought-dot 1.2s ease-in-out infinite;
+}
+
+.pet__thought-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.pet__thought-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.pet__thought-gear {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border: 2px dashed currentColor;
+  border-radius: 999px;
+  opacity: 0.85;
+  animation: thought-spin 2.4s linear infinite;
+}
+
+.pet__thought-gear::after {
+  position: absolute;
+  inset: 7px;
+  content: "";
+  border: 2px solid currentColor;
+  border-radius: inherit;
+}
+
+.pet[data-effect="thinking"] .pet__effect {
+  animation: effect-pop 0.45s ease-out both,
+    thought-bubble-drift 3.8s ease-in-out 0.45s infinite;
+}
+
+.pet[data-effect="light"] .pet__effect {
+  animation: light-pop 0.68s cubic-bezier(0.16, 0.86, 0.2, 1) both;
+}
+
+.pet__effect-bursts {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.pet__love-particle {
+  position: absolute;
+  top: var(--love-y, 28%);
+  left: var(--love-x, 52%);
+  display: block;
+  width: var(--love-size, 70px);
+  aspect-ratio: var(--love-crop-ratio, 75 / 58);
+  overflow: hidden;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(var(--love-start-scale, 0.5))
+    rotate(var(--love-rotate-start, 0deg));
+  transform-origin: center center;
+  animation: love-float var(--love-duration, 1.1s)
+    cubic-bezier(0.16, 0.74, 0.28, 1) var(--love-delay, 0ms) forwards;
+  will-change: transform, opacity;
+}
+
+.pet__love-particle-image {
+  position: absolute;
+  top: var(--love-image-top, -450%);
+  left: var(--love-image-left, -289.33%);
+  display: block;
+  width: var(--love-image-width, 1024%);
+  height: auto;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.pet__zzz {
+  z-index: 9;
+  transform-origin: center center;
+  animation: zzz-fade 3.4s ease-in-out infinite;
+}
+
+.pet__pose {
+  z-index: 10;
+}
+
+.pet[data-main-state="idle"] .pet__scene {
+  animation: scene-idle 3s ease-in-out infinite;
+}
+
+.pet[data-main-state="sleep"] .pet__scene {
+  animation: scene-sleep 4.8s ease-in-out infinite;
+}
+
+.pet[data-main-state="idle"] .pet__head-wrap {
+  animation: head-idle 3s ease-in-out infinite;
+}
+
+.pet[data-main-state="sleep"] .pet__head-wrap {
+  animation: head-sleep 4.8s ease-in-out infinite;
+}
+
+.pet[data-main-state="idle"] .pet__tail {
+  animation: tail-idle 3.5s ease-in-out infinite;
+}
+
+.pet[data-main-state="sleep"] .pet__tail {
+  animation: tail-sleep 6.4s ease-in-out infinite;
+}
+
+.pet[data-main-state="idle"] .pet__shadow {
+  animation: shadow-idle 3s ease-in-out infinite;
+}
+
+.pet[data-main-state="sleep"] .pet__shadow {
+  animation: shadow-sleep 4.8s ease-in-out infinite;
+}
+
+.pet.pet--head-lift .pet__head-wrap {
+  animation: head-lift 0.45s ease-out 1;
+}
+
+.pet.pet--tail-boost .pet__tail {
+  animation: tail-boost 0.7s ease-out 1;
+}
+
+.pet.pet--talking .pet__bubble {
+  animation: bubble-speak 1.8s ease-in-out infinite;
+}
+
+.pet.pet--voice-pop .pet__head-wrap {
+  animation: voice-pop 0.16s ease-out 1;
+}
+
+.pet[data-sleep-bubble-phase="enter"] .pet__bubble {
+  animation: sleep-bubble-enter 0.72s cubic-bezier(0.2, 0.82, 0.22, 1) both;
+}
+
+.pet[data-sleep-bubble-phase="breath"] .pet__bubble {
+  animation: sleep-bubble-breath 3.6s ease-in-out infinite;
+}
+
+.pet[data-sleep-bubble-phase="charge"] .pet__bubble {
+  animation: sleep-bubble-charge 2s cubic-bezier(0.25, 0.82, 0.18, 1) both;
+}
+
+.pet[data-sleep-bubble-phase="pop"] .pet__bubble {
+  animation: sleep-bubble-pop 0.44s cubic-bezier(0.14, 0.86, 0.22, 1) both;
+}
+
+.pet.pet--wake-jolt .pet__scene {
+  animation: wake-jolt 0.34s cubic-bezier(0.18, 0.9, 0.2, 1) both;
+}
+
+.pet__fallback {
+  position: absolute;
+  left: var(--pet-offset-left, clamp(16px, 3vw, 28px));
+  bottom: var(--pet-offset-bottom, clamp(16px, 3vw, 28px));
+  max-width: 300px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 247, 247, 0.96);
+  color: #8f3d3d;
+  box-shadow: 0 24px 60px rgba(32, 83, 111, 0.15);
+}
+
+@keyframes scene-idle {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-5px) scale(1.012);
+  }
+}
+
+@keyframes scene-sleep {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.006);
+  }
+}
+
+@keyframes head-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-1px) rotate(-1deg);
+  }
+}
+
+@keyframes head-sleep {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(1px) rotate(0.5deg);
+  }
+}
+
+@keyframes tail-idle {
+  0%,
+  100% {
+    transform: rotate(1deg);
+  }
+
+  50% {
+    transform: rotate(-1.4deg);
+  }
+}
+
+@keyframes tail-sleep {
+  0%,
+  100% {
+    transform: rotate(0.5deg);
+  }
+
+  50% {
+    transform: rotate(-0.7deg);
+  }
+}
+
+@keyframes shadow-idle {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+
+  50% {
+    transform: scale(0.95);
+    opacity: 0.72;
+  }
+}
+
+@keyframes shadow-sleep {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.78;
+  }
+
+  50% {
+    transform: scale(0.97);
+    opacity: 0.66;
+  }
+}
+
+@keyframes head-lift {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  35% {
+    transform: translateY(-4px) rotate(-2deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes tail-boost {
+  0% {
+    transform: rotate(0.8deg);
+  }
+
+  32% {
+    transform: rotate(-3deg);
+  }
+
+  64% {
+    transform: rotate(1.8deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes zzz-fade {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes effect-pop {
+  0% {
+    transform: translateY(2px) scale(0.96);
+    opacity: 0;
+  }
+
+  35% {
+    transform: translateY(0) scale(1.03);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-2px) scale(1);
+    opacity: 0.92;
+  }
+}
+
+@keyframes thought-bubble-drift {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.015);
+  }
+}
+
+@keyframes thought-stage {
+  0%,
+  9% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  13%,
+  100% {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.92);
+  }
+}
+
+@keyframes thought-dot {
+  0%,
+  100% {
+    transform: translateY(1px) scale(0.82);
+    opacity: 0.45;
+  }
+
+  45% {
+    transform: translateY(-2px) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes thought-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes light-pop {
+  0% {
+    transform: translateY(8px) scale(0.45) rotate(-8deg);
+    opacity: 0;
+  }
+
+  46% {
+    transform: translateY(-3px) scale(1.2) rotate(4deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 0.98;
+  }
+}
+
+@keyframes love-float {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 5px)
+      scale(var(--love-start-scale, 0.5)) rotate(var(--love-rotate-start, 0deg));
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.96;
+  }
+
+  62% {
+    opacity: 0.74;
+  }
+
+  100% {
+    transform: translate(-50%, -50%)
+      translate(var(--love-drift, 0), var(--love-rise, -72px))
+      scale(var(--love-end-scale, 0.8)) rotate(var(--love-rotate-end, 28deg));
+    opacity: 0;
+  }
+}
+
+@keyframes bubble-speak {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.01);
+  }
+}
+
+@keyframes sleep-bubble-enter {
+  0% {
+    transform: translate(-2px, 2px) scale(0.18);
+    opacity: 0;
+  }
+
+  58% {
+    transform: translate(0, -1px) scale(1.06);
+    opacity: 0.94;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.86;
+  }
+}
+
+@keyframes sleep-bubble-breath {
+  0%,
+  100% {
+    transform: translateY(1px) scale(0.94);
+    opacity: 0.72;
+  }
+
+  50% {
+    transform: translateY(-2px) scale(1.08);
+    opacity: 0.96;
+  }
+}
+
+@keyframes sleep-bubble-charge {
+  0% {
+    transform: translateY(1px) scale(0.96);
+    opacity: 0.74;
+  }
+
+  45% {
+    transform: translateY(-2px) scale(1.08);
+    opacity: 0.92;
+  }
+
+  82% {
+    transform: translateY(-4px) scale(1.18);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-3px) scale(1.14);
+    opacity: 0.98;
+  }
+}
+
+@keyframes sleep-bubble-pop {
+  0% {
+    transform: translateY(-3px) scale(1.02);
+    opacity: 1;
+  }
+
+  70% {
+    transform: translateY(-8px) scale(1.28);
+    opacity: 0.78;
+  }
+
+  100% {
+    transform: translateY(-12px) scale(1.44);
+    opacity: 0;
+  }
+}
+
+@keyframes wake-jolt {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+
+  22% {
+    transform: translate(-8px, 3px) rotate(-4deg) scale(1.02);
+  }
+
+  46% {
+    transform: translate(6px, -2px) rotate(3deg) scale(1);
+  }
+
+  68% {
+    transform: translate(-3px, 1px) rotate(-1.5deg) scale(1.01);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes voice-pop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  45% {
+    transform: translateY(-1px) scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet__scene,
+  .pet__head-wrap,
+  .pet__tail,
+  .pet__shadow,
+  .pet__bubble,
+  .pet__effect,
+  .pet__thought-stage,
+  .pet__thought-dot,
+  .pet__thought-gear,
+  .pet__love-particle,
+  .pet__zzz {
+    animation: none !important;
+  }
+}
