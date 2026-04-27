@@ -6,7 +6,15 @@ import FeedbackButtons from '@/components/common/FeedbackButtons.vue'
 import ResourceCard from './ResourceCard.vue'
 import MindmapViewer from '@/components/resource/MindmapViewer.vue'
 import CodeViewer from '@/components/resource/CodeViewer.vue'
+import TreeDiagram from '@/components/resource/TreeDiagram.vue'
 import VideoCard from '@/components/resource/VideoCard.vue'
+
+type TeachingSection =
+  | { id: string; type: 'text'; title: string; content: string }
+  | { id: string; type: 'tip'; title: string; content: string }
+  | { id: string; type: 'code'; title: string; code: string; language: string }
+  | { id: string; type: 'diagram'; title: string; code: string; renderAsTree: boolean }
+  | { id: string; type: 'resource'; title: string }
 
 const props = defineProps<{
   currentMessage: ChatMessage | null
@@ -22,14 +30,8 @@ const emit = defineEmits<{
 
 const MermaidFallback = defineComponent({
   name: 'BlackboardMermaidFallback',
-  props: {
-    code: {
-      type: String,
-      default: '',
-    },
-  },
-  setup(props) {
-    return () => h('pre', { class: 'blackboard-mermaid-fallback' }, props.code)
+  setup() {
+    return () => h('p', { class: 'blackboard-diagram-fallback' }, '图示暂不可用')
   },
 })
 
@@ -41,43 +43,175 @@ const MermaidRenderer = defineAsyncComponent({
 })
 
 const resourceType = computed(() => props.currentMessage?.resource_type)
+const metadata = computed(() => props.currentMessage?.metadata)
+const visibleQuestion = computed(() => props.currentQuestion.trim())
 
 const hasResourceCard = computed(() => {
-  return props.currentMessage?.metadata?.type === 'resource_card'
+  return metadata.value?.type === 'resource_card'
 })
 
-const contentParts = computed(() => {
-  const content = props.currentMessage?.content ?? ''
-  if (!content) return [{ type: 'markdown' as const, content: '' }]
+const lectureTitle = computed(() => {
+  const title = metadata.value?.title
+  if (typeof title === 'string' && title.trim()) return title.trim()
+  if (visibleQuestion.value) return visibleQuestion.value.slice(0, 28)
+  return '本节学习内容'
+})
 
-  const mermaidRegex = /```mermaid\s*\r?\n([\s\S]*?)```/g
-  const mermaidMatches = Array.from(content.matchAll(mermaidRegex))
-  if (mermaidMatches.length === 0) {
-    return [{ type: 'markdown' as const, content }]
-  }
+const teachingSections = computed<TeachingSection[]>(() => {
+  const message = props.currentMessage
+  if (!message?.content) return []
 
-  const parts: Array<{ type: 'markdown' | 'mermaid'; content: string }> = []
+  return buildTeachingSections(message.content, hasResourceCard.value)
+})
+
+const hasActiveContent = computed(() => teachingSections.value.length > 0)
+const hasSpecialViewer = computed(() =>
+  Boolean(
+    (resourceType.value === 'mindmap' && metadata.value?.mindmap_data)
+      || (resourceType.value === 'code' && metadata.value?.code)
+      || (resourceType.value === 'video' && metadata.value?.title)
+      || (resourceType.value === 'mermaid' && metadata.value?.mermaid_code),
+  ),
+)
+
+function buildTeachingSections(content: string, includeResourceCard: boolean): TeachingSection[] {
+  const sections: TeachingSection[] = []
+  const fencedBlockRegex = /```(\w+)?\s*\r?\n([\s\S]*?)```/g
   let lastIndex = 0
+  let blockIndex = 0
 
-  for (const match of mermaidMatches) {
+  for (const match of content.matchAll(fencedBlockRegex)) {
     const matchIndex = match.index ?? 0
-    if (matchIndex > lastIndex) {
-      parts.push({ type: 'markdown', content: content.slice(lastIndex, matchIndex) })
+    pushTextSections(sections, content.slice(lastIndex, matchIndex))
+
+    const language = match[1]?.trim() || 'text'
+    const code = match[2].trim()
+
+    if (language.toLowerCase() === 'mermaid') {
+      sections.push({
+        id: `diagram-${blockIndex}`,
+        type: 'diagram',
+        title: '图示讲解',
+        code,
+        renderAsTree: isTreeDiagram(code),
+      })
+    } else {
+      sections.push({
+        id: `code-${blockIndex}`,
+        type: 'code',
+        title: '代码演示',
+        code,
+        language,
+      })
     }
-    parts.push({ type: 'mermaid', content: match[1].trim() })
+
+    blockIndex += 1
     lastIndex = matchIndex + match[0].length
   }
 
-  if (lastIndex < content.length) {
-    parts.push({ type: 'markdown', content: content.slice(lastIndex) })
+  pushTextSections(sections, content.slice(lastIndex))
+
+  if (includeResourceCard) {
+    sections.push({
+      id: 'resource-card',
+      type: 'resource',
+      title: '随堂练习',
+    })
   }
 
-  return parts.length ? parts : [{ type: 'markdown' as const, content }]
-})
+  return sections.length
+    ? sections
+    : [{ id: 'empty-text', type: 'text' as const, title: '思路拆解', content }]
+}
 
-const hasMermaidBlocks = computed(() => contentParts.value.some((part) => part.type === 'mermaid'))
-const hasActiveContent = computed(() => Boolean(props.currentMessage?.content))
-const visibleQuestion = computed(() => props.currentQuestion.trim())
+function pushTextSections(sections: TeachingSection[], segment: string) {
+  const normalized = segment.trim()
+  if (!normalized) return
+
+  const { body, tips } = extractTips(normalized)
+  const chunks = splitMarkdownByHeading(body)
+
+  chunks.forEach((chunk, index) => {
+    if (!chunk.content.trim()) return
+    sections.push({
+      id: `text-${sections.length}-${index}`,
+      type: 'text',
+      title: normalizeSectionTitle(chunk.heading, sections.length),
+      content: chunk.content.trim(),
+    })
+  })
+
+  tips.forEach((tip, index) => {
+    sections.push({
+      id: `tip-${sections.length}-${index}`,
+      type: 'tip',
+      title: '易错提醒',
+      content: tip,
+    })
+  })
+}
+
+function extractTips(content: string) {
+  const tips: string[] = []
+  const bodyLines: string[] = []
+
+  content.split(/\r?\n/).forEach((line) => {
+    if (line.trim().startsWith('>')) {
+      tips.push(line.replace(/^>\s?/, '').trim())
+      return
+    }
+
+    bodyLines.push(line)
+  })
+
+  return {
+    body: bodyLines.join('\n').trim(),
+    tips,
+  }
+}
+
+function splitMarkdownByHeading(content: string) {
+  const lines = content.split(/\r?\n/)
+  const chunks: Array<{ heading: string; content: string }> = []
+  let currentHeading = ''
+  let currentLines: string[] = []
+
+  lines.forEach((line) => {
+    const headingMatch = line.match(/^#{1,3}\s+(.+)$/)
+    if (headingMatch) {
+      if (currentLines.join('\n').trim()) {
+        chunks.push({ heading: currentHeading, content: currentLines.join('\n') })
+      }
+      currentHeading = headingMatch[1].trim()
+      currentLines = []
+      return
+    }
+
+    currentLines.push(line)
+  })
+
+  if (currentLines.join('\n').trim()) {
+    chunks.push({ heading: currentHeading, content: currentLines.join('\n') })
+  }
+
+  return chunks
+}
+
+function normalizeSectionTitle(heading: string, index: number) {
+  if (/代码|实现|示例/i.test(heading)) return '代码演示'
+  if (/图|结构|mermaid/i.test(heading)) return '图示讲解'
+  if (/总结|结果|输出/i.test(heading)) return '本节总结'
+  if (/练习|题目|巩固/i.test(heading)) return '随堂练习'
+  if (/复杂度|注意|技巧|重点|提醒/i.test(heading)) return '易错提醒'
+  if (/类型|概念|思想|原理|基础|核心/i.test(heading)) return '思路拆解'
+  if (heading) return heading.replace(/^#+\s*/, '')
+  return index === 0 ? '思路拆解' : '小海豹板书'
+}
+
+function isTreeDiagram(code: string) {
+  return /graph\s+(TD|TB)/i.test(code) && /-->|---/.test(code)
+}
+
 </script>
 
 <template>
@@ -86,7 +220,7 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
       <Transition name="blackboard-fade" mode="out-in">
         <div v-if="isThinking && !hasActiveContent" key="thinking" class="blackboard-state blackboard-state--thinking">
           <div class="blackboard-state__pulse" />
-          <p class="blackboard-state__title">正在思考</p>
+          <p class="blackboard-state__title">小海豹正在拆解这个问题</p>
           <div v-if="agentSteps?.length" class="blackboard-agents">
             <div
               v-for="step in agentSteps"
@@ -101,55 +235,86 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
         </div>
 
         <article v-else-if="currentMessage" :key="currentMessage.message_id" class="blackboard-content">
-          <header v-if="visibleQuestion" class="blackboard-question">
-            <span class="blackboard-question__label">问题</span>
-            <p>{{ visibleQuestion }}</p>
+          <header class="blackboard-lesson">
+            <p class="blackboard-lesson__eyebrow">小海豹课堂白板</p>
+            <h1>当前讲解：{{ lectureTitle }}</h1>
           </header>
 
-          <div class="blackboard-writing" :class="{ 'is-generating': isGenerating }">
-            <template v-if="hasMermaidBlocks">
-              <template v-for="(part, idx) in contentParts" :key="idx">
+          <section v-if="visibleQuestion" class="blackboard-question">
+            <span class="blackboard-question__label">本节问题</span>
+            <p>{{ visibleQuestion }}</p>
+          </section>
+
+          <div class="blackboard-board-title">小海豹板书</div>
+
+          <div class="teaching-scroll">
+            <div class="teaching-sections" :class="{ 'is-generating': isGenerating }">
+              <section
+                v-for="section in teachingSections"
+                :key="section.id"
+                class="teaching-card"
+                :class="`teaching-card--${section.type}`"
+              >
+                <div class="teaching-card__title">{{ section.title }}</div>
+
                 <MarkdownRenderer
-                  v-if="part.type === 'markdown' && part.content.trim()"
-                  :content="part.content"
+                  v-if="section.type === 'text' || section.type === 'tip'"
+                  :content="section.content"
                 />
-                <MermaidRenderer v-else-if="part.type === 'mermaid'" :code="part.content" />
-              </template>
-            </template>
-            <MarkdownRenderer v-else :content="currentMessage.content" />
 
-            <MindmapViewer
-              v-if="resourceType === 'mindmap' && currentMessage.metadata?.mindmap_data"
-              :data="(currentMessage.metadata.mindmap_data as any)"
-            />
+                <CodeViewer
+                  v-else-if="section.type === 'code'"
+                  :code="section.code"
+                  :language="section.language"
+                />
 
-            <CodeViewer
-              v-if="resourceType === 'code' && currentMessage.metadata?.code"
-              :code="(currentMessage.metadata.code as string)"
-              :language="(currentMessage.metadata.language as string) ?? 'text'"
-              :expected-output="(currentMessage.metadata.expected_output as string)"
-            />
+                <TreeDiagram
+                  v-else-if="section.type === 'diagram' && section.renderAsTree"
+                  :code="section.code"
+                />
 
-            <VideoCard
-              v-if="resourceType === 'video' && currentMessage.metadata?.title"
-              :title="(currentMessage.metadata.title as string)"
-              :duration="(currentMessage.metadata.duration as number)"
-              :status="(currentMessage.metadata.status as 'generating' | 'ready' | 'error')"
-            />
+                <MermaidRenderer
+                  v-else-if="section.type === 'diagram'"
+                  :code="section.code"
+                />
 
-            <MermaidRenderer
-              v-if="resourceType === 'mermaid' && currentMessage.metadata?.mermaid_code"
-              :code="(currentMessage.metadata.mermaid_code as string)"
-            />
+                <ResourceCard
+                  v-else-if="section.type === 'resource' && currentMessage.metadata"
+                  :title="(currentMessage.metadata.title as string)"
+                  :difficulty="(currentMessage.metadata.difficulty as string)"
+                  :est-minutes="(currentMessage.metadata.est_minutes as number)"
+                  :knowledge-point="(currentMessage.metadata.knowledge_point as string)"
+                  :resource-type="(currentMessage.metadata.resource_type as any)"
+                />
+              </section>
 
-            <ResourceCard
-              v-if="hasResourceCard"
-              :title="(currentMessage.metadata!.title as string)"
-              :difficulty="(currentMessage.metadata!.difficulty as string)"
-              :est-minutes="(currentMessage.metadata!.est_minutes as number)"
-              :knowledge-point="(currentMessage.metadata!.knowledge_point as string)"
-              :resource-type="(currentMessage.metadata!.resource_type as any)"
-            />
+              <section v-if="hasSpecialViewer" class="teaching-card teaching-card--resource">
+                <div class="teaching-card__title">拓展材料</div>
+                <MindmapViewer
+                  v-if="resourceType === 'mindmap' && metadata?.mindmap_data"
+                  :data="(metadata.mindmap_data as any)"
+                />
+
+                <CodeViewer
+                  v-if="resourceType === 'code' && metadata?.code"
+                  :code="(metadata.code as string)"
+                  :language="(metadata.language as string) ?? 'text'"
+                  :expected-output="(metadata.expected_output as string)"
+                />
+
+                <VideoCard
+                  v-if="resourceType === 'video' && metadata?.title"
+                  :title="(metadata.title as string)"
+                  :duration="(metadata.duration as number)"
+                  :status="(metadata.status as 'generating' | 'ready' | 'error')"
+                />
+
+                <MermaidRenderer
+                  v-if="resourceType === 'mermaid' && metadata?.mermaid_code"
+                  :code="(metadata.mermaid_code as string)"
+                />
+              </section>
+            </div>
           </div>
 
           <footer v-if="!isGenerating" class="blackboard-feedback">
@@ -161,7 +326,7 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
         </article>
 
         <div v-else key="empty" class="blackboard-state blackboard-state--empty">
-          <p class="blackboard-state__eyebrow">CS Buddy</p>
+          <p class="blackboard-state__eyebrow">小海豹导师</p>
           <h1>今天想学点什么？</h1>
         </div>
       </Transition>
@@ -181,13 +346,12 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 28px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.56)),
-    color-mix(in srgb, var(--bg-card) 72%, transparent);
-  box-shadow: 0 22px 70px rgba(55, 77, 96, 0.14);
-  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .blackboard-content {
@@ -195,8 +359,30 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: clamp(22px, 3vw, 38px);
+  gap: 12px;
+  padding: clamp(18px, 2.5vw, 30px);
+}
+
+.blackboard-lesson {
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
+
+.blackboard-lesson__eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.blackboard-lesson h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(21px, 1.9vw, 24px);
+  font-weight: 650;
+  line-height: 1.28;
+  word-break: break-word;
 }
 
 .blackboard-question {
@@ -204,69 +390,107 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.12);
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.blackboard-question__label {
+.blackboard-question__label,
+.blackboard-board-title {
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: var(--radius-full);
   background: var(--accent-primary-light);
   color: var(--accent-primary);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.blackboard-board-title {
+  align-self: flex-start;
+  margin-top: 2px;
 }
 
 .blackboard-question p {
   min-width: 0;
   margin: 0;
   color: var(--text-primary);
-  font-size: clamp(16px, 1.8vw, 21px);
+  font-size: 15px;
   font-weight: 650;
-  line-height: 1.5;
+  line-height: 1.55;
   word-break: break-word;
 }
 
-.blackboard-writing {
+.teaching-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding-right: 6px;
+  padding-right: 4px;
 }
 
-.blackboard-writing :deep(.markdown-renderer) {
-  font-size: 15px;
-  line-height: 1.85;
+.teaching-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 4px;
 }
 
-.blackboard-writing :deep(.markdown-renderer h1),
-.blackboard-writing :deep(.markdown-renderer h2),
-.blackboard-writing :deep(.markdown-renderer h3) {
-  margin-top: 0.85em;
+.teaching-card {
+  padding: 15px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.56);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.blackboard-writing :deep(.code-viewer),
-.blackboard-writing :deep(.mindmap-viewer),
-.blackboard-writing :deep(.resource-card) {
+.teaching-card--tip {
+  border-color: color-mix(in srgb, var(--accent-secondary) 24%, transparent);
+  background: color-mix(in srgb, var(--accent-secondary-light) 28%, rgba(255, 255, 255, 0.72));
+}
+
+.teaching-card__title {
+  margin-bottom: 9px;
+  color: var(--accent-primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.teaching-card :deep(.markdown-renderer) {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.teaching-card :deep(.markdown-renderer h1),
+.teaching-card :deep(.markdown-renderer h2),
+.teaching-card :deep(.markdown-renderer h3) {
+  margin-top: 0.5em;
+}
+
+.teaching-card :deep(.code-viewer),
+.teaching-card :deep(.mindmap-viewer),
+.teaching-card :deep(.resource-card) {
   max-width: 100%;
 }
 
-.blackboard-writing.is-generating::after {
+.teaching-sections.is-generating::after {
   content: "";
-  display: inline-block;
-  width: 8px;
-  height: 18px;
-  margin-left: 4px;
+  display: block;
+  width: 34px;
+  height: 4px;
   border-radius: 999px;
   background: var(--accent-primary);
   animation: caret-blink 0.9s ease-in-out infinite;
-  vertical-align: text-bottom;
 }
 
 .blackboard-feedback {
   flex-shrink: 0;
-  padding-top: 8px;
+  padding-top: 2px;
 }
 
 .blackboard-state {
@@ -283,7 +507,7 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
 .blackboard-state--empty h1 {
   margin: 0;
   color: var(--text-primary);
-  font-size: clamp(28px, 4vw, 48px);
+  font-size: clamp(28px, 4vw, 44px);
   font-weight: 760;
   line-height: 1.12;
 }
@@ -294,7 +518,6 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .blackboard-state__pulse {
@@ -358,14 +581,10 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
   white-space: nowrap;
 }
 
-.blackboard-mermaid-fallback {
-  margin: 12px 0;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  overflow-x: auto;
+.blackboard-diagram-fallback {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .blackboard-fade-enter-active,
@@ -409,7 +628,7 @@ const visibleQuestion = computed(() => props.currentQuestion.trim())
 
 @media (max-width: 760px) {
   .blackboard-content {
-    padding: 18px;
+    padding: 16px;
   }
 
   .blackboard-question {

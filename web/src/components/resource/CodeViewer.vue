@@ -9,6 +9,20 @@ const props = defineProps<{
 }>()
 
 const copied = ref(false)
+const languageLabel = computed(() => {
+  const map: Record<string, string> = {
+    js: 'JavaScript',
+    javascript: 'JavaScript',
+    ts: 'TypeScript',
+    typescript: 'TypeScript',
+    py: 'Python',
+    python: 'Python',
+    java: 'Java',
+    cpp: 'C++',
+  }
+
+  return map[props.language.toLowerCase()] ?? props.language
+})
 
 const highlightedCode = computed(() => {
   if (props.language && hljs.getLanguage(props.language)) {
@@ -38,8 +52,8 @@ async function copyCode() {
 <template>
   <div class="code-viewer">
     <div class="code-viewer__header">
-      <span class="code-viewer__lang">{{ language }}</span>
-      <button class="code-viewer__copy" @click="copyCode">
+      <span class="code-viewer__lang">{{ languageLabel }} 示例</span>
+      <button class="code-viewer__copy" type="button" @click="copyCode">
         {{ copied ? '已复制' : '复制代码' }}
       </button>
     </div>
@@ -53,8 +67,11 @@ async function copyCode() {
 
 <style scoped>
 .code-viewer {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66), 0 8px 22px rgba(15, 23, 42, 0.035);
   overflow: hidden;
   margin: 8px 0;
 }
@@ -64,8 +81,10 @@ async function copyCode() {
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  background: var(--bg-hover);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.08);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
 }
 
 .code-viewer__lang {
@@ -79,10 +98,10 @@ async function copyCode() {
 }
 
 .code-viewer__copy {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.14);
+  border-radius: 999px;
+  padding: 4px 10px;
   font-size: 12px;
   color: var(--text-tertiary);
   cursor: pointer;
@@ -96,8 +115,9 @@ async function copyCode() {
 
 .code-viewer__pre {
   margin: 0;
-  padding: 16px;
+  padding: 18px;
   background: var(--code-bg);
+  border-radius: 0 0 12px 12px;
   overflow-x: auto;
   font-size: 13px;
   line-height: 1.6;
@@ -109,7 +129,10 @@ async function copyCode() {
 }
 
 .code-viewer__output {
-  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  border: 1px solid rgba(var(--accent-primary-rgb), 0.08);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .code-viewer__output-label {
@@ -117,14 +140,14 @@ async function copyCode() {
   font-size: 11px;
   font-weight: 500;
   color: var(--text-tertiary);
-  background: var(--bg-hover);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.08);
 }
 
 .code-viewer__output-pre {
   margin: 0;
   padding: 12px 16px;
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.58);
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;

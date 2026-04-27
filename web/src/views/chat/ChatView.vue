@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
+import { useUserStore } from '@/stores/user'
 import type { LilSealAction } from '@/components/pet/types'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import SmartBlackboard from '@/components/chat/SmartBlackboard.vue'
 import LilSealPet from '@/components/pet/LilSealPet.vue'
 
 const chatStore = useChatStore()
+const userStore = useUserStore()
 
 const activeMessages = computed(() => chatStore.activeMessages)
 const isStreaming = computed(() => chatStore.isStreaming)
@@ -16,6 +18,25 @@ const isGenerating = computed(() => isStreaming.value || isAgentWorking.value)
 const sealRewardAction = ref<LilSealAction | null>(null)
 const sealActionKey = ref(0)
 let rewardTimer: number | undefined
+
+const knowledgeLabels: Record<string, string> = {
+  array: '数组基础',
+  linked_list: '链表',
+  stack: '栈与队列',
+  sorting: '排序算法',
+  quick_sort: '快速排序',
+  binary_tree: '二叉树 / 前序遍历',
+  graph: '图论基础',
+  hash_table: '哈希表',
+}
+
+const recommendationLabels: Record<string, string> = {
+  sorting: '排序算法稳定性专项',
+  quick_sort: '快速排序分区练习',
+  binary_tree: '二叉树遍历专项',
+  graph: '图遍历 BFS / DFS 练习',
+  hash_table: '哈希冲突处理练习',
+}
 
 const sealAction = computed<LilSealAction>(() => {
   if (sealRewardAction.value) return sealRewardAction.value
@@ -33,9 +54,74 @@ const currentResponse = computed(() => {
   return latestMessage?.role === 'ASSISTANT' ? latestMessage : null
 })
 
+const currentKnowledgeKey = computed(() => {
+  const value = currentResponse.value?.metadata?.knowledge_point
+  if (typeof value === 'string') return value
+
+  if (/快排|快速排序|排序/.test(currentQuestion.value)) return 'sorting'
+  if (/树|二叉树|递归|遍历/.test(currentQuestion.value)) return 'binary_tree'
+  if (/图|BFS|DFS/i.test(currentQuestion.value)) return 'graph'
+
+  return 'binary_tree'
+})
+
+const currentKnowledgeLabel = computed(() => {
+  return knowledgeLabels[currentKnowledgeKey.value] ?? currentKnowledgeKey.value
+})
+
+const currentLessonTitle = computed(() => {
+  const title = currentResponse.value?.metadata?.title
+  if (typeof title === 'string' && title.trim()) return title.trim()
+  if (currentQuestion.value) return currentQuestion.value.slice(0, 24)
+  return currentKnowledgeLabel.value
+})
+
+const currentMastery = computed(() => {
+  const key = currentKnowledgeKey.value
+  const normalizedKey = key === 'quick_sort' ? 'sorting' : key
+  return Math.round((userStore.knowledgeMastery[normalizedKey] ?? 0.72) * 100)
+})
+
+const boardModeLabel = computed(() => {
+  const content = currentResponse.value?.content ?? ''
+  if (sealRewardAction.value === 'happy') return '鼓励中'
+  if (sealRewardAction.value === 'starry') return '记录反馈'
+  if (chatStore.runtimeStatus === 'thinking') return '思考中'
+  if (/```(python|py|javascript|js|ts|java|cpp)/i.test(content)) return '写代码示例'
+  if (/```mermaid/i.test(content)) return '画图讲解'
+  if (/练习|题目|巩固/.test(content)) return '布置练习'
+  if (chatStore.runtimeStatus === 'talking') return '板书中'
+  return '待命'
+})
+
+const stateLabel = computed(() => {
+  if (sealRewardAction.value === 'happy') return '收到正反馈'
+  if (sealRewardAction.value === 'starry') return '记录你的反馈'
+  if (chatStore.runtimeStatus === 'thinking') return '正在拆解问题'
+  if (boardModeLabel.value === '写代码示例') return '正在写代码示例'
+  if (boardModeLabel.value === '画图讲解') return '正在画图讲解'
+  if (boardModeLabel.value === '布置练习') return '正在布置练习'
+  if (chatStore.runtimeStatus === 'talking') return `正在讲解${currentKnowledgeLabel.value}`
+  return '等待提问'
+})
+
+const currentRecommendation = computed(() => {
+  return recommendationLabels[currentKnowledgeKey.value] ?? '基础概念巩固练习'
+})
+
 const sealSpeechText = computed(() => {
-  if (chatStore.runtimeStatus !== 'talking') return ''
-  return currentResponse.value?.content ?? ''
+  return ''
+})
+
+const sealCoachLine = computed(() => {
+  if (sealRewardAction.value === 'happy') return '做得很好，我们继续保持这个节奏。'
+  if (sealRewardAction.value === 'starry') return '我记下来了，下一版讲解会更贴近你。'
+  if (chatStore.runtimeStatus === 'thinking') return `我正在帮你拆解「${currentLessonTitle.value}」。`
+  if (boardModeLabel.value === '写代码示例') return `我正在把「${currentKnowledgeLabel.value}」写成代码演示。`
+  if (boardModeLabel.value === '画图讲解') return '我正在把结构画出来，方便你看清关系。'
+  if (boardModeLabel.value === '布置练习') return '我给你准备一道随堂练习。'
+  if (chatStore.runtimeStatus === 'talking') return `我正在讲解「${currentLessonTitle.value}」。`
+  return '问我一个学习问题，我们马上开讲。'
 })
 
 function handleSend(text: string) {
@@ -61,28 +147,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 <template>
   <div class="chat-view">
     <div class="classroom-stage">
-      <aside class="tutor-zone" aria-label="小海豹导师">
-        <div class="tutor-zone__header">
-          <span class="tutor-zone__status" :class="`tutor-zone__status--${sealAction}`" />
-          <span>小海豹导师</span>
-        </div>
-        <LilSealPet
-          :action="sealAction"
-          :action-key="sealActionKey"
-          :speech-text="sealSpeechText"
-          speech-placement="local"
-          :position="{
-            strategy: 'absolute',
-            right: 'clamp(4px, 2vw, 28px)',
-            bottom: 'clamp(4px, 4vh, 28px)',
-            left: 'auto',
-            scale: 0.92,
-            zIndex: 4,
-          }"
-        />
-      </aside>
-
-      <main class="blackboard-zone">
+      <main class="teaching-zone">
         <SmartBlackboard
           :current-message="currentResponse"
           :current-question="currentQuestion"
@@ -92,6 +157,71 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
           @feedback="handleFeedback"
         />
       </main>
+
+      <aside class="learning-status" aria-label="小海豹学习状态区">
+        <section class="learning-status__seal">
+          <div class="learning-status__speech">
+            <span>小海豹：</span>
+            <p>{{ sealCoachLine }}</p>
+          </div>
+          <LilSealPet
+            :action="sealAction"
+            :action-key="sealActionKey"
+            :speech-text="sealSpeechText"
+            speech-placement="local"
+            :position="{
+              strategy: 'absolute',
+              right: '20px',
+              bottom: '30px',
+              left: 'auto',
+              scale: 0.64,
+              zIndex: 4,
+            }"
+          />
+        </section>
+
+        <section class="learning-status__info">
+          <div class="learning-status__header">
+            <span class="learning-status__dot" :class="`learning-status__dot--${sealAction}`" />
+            <div>
+              <h2>小海豹导师</h2>
+              <p>{{ stateLabel }}</p>
+            </div>
+          </div>
+
+          <dl class="learning-status__list">
+            <div>
+              <dt>正在讲解</dt>
+              <dd>{{ currentLessonTitle }}</dd>
+            </div>
+            <div>
+              <dt>当前状态</dt>
+              <dd>{{ boardModeLabel }} / {{ stateLabel }}</dd>
+            </div>
+            <div>
+              <dt>当前知识点</dt>
+              <dd>{{ currentKnowledgeLabel }}</dd>
+            </div>
+            <div>
+              <dt>掌握度</dt>
+              <dd>
+                <span>{{ currentMastery }}%</span>
+                <span class="learning-status__bar" aria-hidden="true">
+                  <span :style="{ width: `${currentMastery}%` }" />
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>今日学习</dt>
+              <dd>35 分钟</dd>
+            </div>
+            <div>
+              <dt>推荐练习</dt>
+              <dd>{{ currentRecommendation }}</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
     </div>
 
     <footer class="classroom-input">
@@ -109,6 +239,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   min-height: 0;
   height: 100%;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 16px;
   padding: 18px 24px 20px;
@@ -117,102 +248,271 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .classroom-stage {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(220px, 28%) minmax(0, 1fr);
-  gap: 22px;
+  display: contents;
 }
 
-.tutor-zone {
-  position: relative;
+.teaching-zone,
+.learning-status {
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  border-radius: 28px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0.36)),
-    color-mix(in srgb, var(--accent-secondary-light) 22%, transparent);
-  box-shadow: 0 18px 56px rgba(55, 77, 96, 0.1);
-  backdrop-filter: blur(20px);
 }
 
-.tutor-zone__header {
+.teaching-zone {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.learning-status {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   position: relative;
-  z-index: 5;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 18px;
-  padding: 8px 12px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.68);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 650;
-  box-shadow: var(--shadow-sm);
+  display: grid;
+  grid-template-rows: 260px minmax(0, 1fr);
+  gap: 14px;
 }
 
-.tutor-zone__status {
-  width: 9px;
+.learning-status::before {
+  content: "";
+  position: absolute;
+  top: 110px;
+  left: -30px;
+  z-index: 2;
+  width: 42px;
+  height: 62px;
+  border-radius: 999px 0 0 999px;
+  background:
+    linear-gradient(90deg, rgba(var(--accent-primary-rgb), 0), rgba(var(--accent-primary-rgb), 0.16)),
+    rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.learning-status::after {
+  content: "";
+  position: absolute;
+  top: 136px;
+  left: -17px;
+  z-index: 3;
+  width: 44px;
   height: 9px;
+  border-radius: 999px;
+  background: rgba(var(--accent-primary-rgb), 0.2);
+}
+
+.learning-status__seal,
+.learning-status__info {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.learning-status__seal {
+  position: relative;
+}
+
+.learning-status__seal :deep(.lil-seal-pet) {
+  position: absolute;
+  inset: 0;
+}
+
+.learning-status__speech {
+  position: relative;
+  z-index: 6;
+  max-width: calc(100% - 28px);
+  margin: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 18px 18px 6px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.learning-status__speech::after {
+  content: "";
+  position: absolute;
+  right: 42px;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.78);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.78);
+  transform: rotate(45deg);
+}
+
+.learning-status__speech span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--accent-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.learning-status__speech p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.learning-status__info {
+  padding: 18px;
+}
+
+.learning-status__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.12);
+}
+
+.learning-status__header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.learning-status__header p {
+  margin: 3px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.learning-status__dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
   border-radius: 50%;
   background: var(--status-success);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-success) 18%, transparent);
 }
 
-.tutor-zone__status--thinking {
+.learning-status__dot--thinking {
   background: var(--accent-primary);
   box-shadow: 0 0 0 4px rgba(var(--accent-primary-rgb), 0.16);
 }
 
-.tutor-zone__status--talking {
+.learning-status__dot--talking {
   background: var(--accent-secondary);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-secondary) 18%, transparent);
 }
 
-.blackboard-zone {
+.learning-status__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 14px 0 0;
+}
+
+.learning-status__list div {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.learning-status__list dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.learning-status__list dd {
   min-width: 0;
-  min-height: 0;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.learning-status__bar {
+  display: block;
+  height: 7px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(var(--accent-primary-rgb), 0.12);
+}
+
+.learning-status__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
 }
 
 .classroom-input {
+  grid-column: 1;
+  grid-row: 2;
   min-width: 0;
+  align-self: end;
 }
 
 .classroom-input :deep(.chat-input-wrapper) {
-  padding: 0;
+  width: 100%;
 }
 
-.classroom-input :deep(.chat-input-container) {
-  width: min(100%, 980px);
+.classroom-input :deep(.chat-input-container),
+.classroom-input :deep(.chat-input-prompts) {
+  width: 100%;
 }
 
-@media (max-width: 1100px) {
-  .classroom-stage {
-    grid-template-columns: minmax(190px, 25%) minmax(0, 1fr);
-    gap: 16px;
+@media (max-width: 1180px) {
+  .chat-view {
+    grid-template-columns: minmax(0, 1fr) 300px;
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 920px) {
   .chat-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto auto;
     padding: 14px;
   }
 
-  .classroom-stage {
-    grid-template-columns: 1fr;
-    grid-template-rows: 170px minmax(0, 1fr);
+  .teaching-zone {
+    grid-column: 1;
+    grid-row: 1;
   }
 
-  .tutor-zone__header {
-    margin: 12px;
+  .learning-status {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    grid-template-rows: 180px;
+  }
+
+  .classroom-input {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .learning-status::before,
+  .learning-status::after {
+    display: none;
   }
 }
 
-@media (max-width: 560px) {
-  .classroom-stage {
-    grid-template-rows: 138px minmax(0, 1fr);
+@media (max-width: 640px) {
+  .learning-status {
+    grid-template-columns: 1fr;
+    grid-template-rows: 150px auto;
+  }
+
+  .learning-status__list div {
+    grid-template-columns: 76px minmax(0, 1fr);
   }
 }
 </style>
