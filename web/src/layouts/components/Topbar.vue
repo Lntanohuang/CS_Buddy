@@ -10,7 +10,7 @@ const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
 const pageMetaMap: Record<string, string> = {
-  chat: 'AI 对话课堂',
+  chat: '对话课堂',
   path: '学习路径',
   evaluate: '测评中心',
   profile: '个人画像',

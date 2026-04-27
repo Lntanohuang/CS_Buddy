@@ -28,7 +28,7 @@ const chatStore = useChatStore()
 const settingsVisible = ref(false)
 
 const menuItems = [
-  { title: 'AI 对话课堂', icon: ChatDotRound, route: '/app/chat' },
+  { title: '对话课堂', icon: ChatDotRound, route: '/app/chat' },
   { title: '学习路径', icon: Guide, route: '/app/path' },
   { title: '测评中心', icon: EditPen, route: '/app/evaluate' },
   { title: '个人画像', icon: User, route: '/app/profile' },
