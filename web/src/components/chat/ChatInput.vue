@@ -84,13 +84,13 @@ function handleQuickPrompt(prompt: string) {
   z-index: 4;
   flex-shrink: 0;
   margin-top: auto;
-  padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .chat-input-prompts {
@@ -104,10 +104,10 @@ function handleQuickPrompt(prompt: string) {
 
 .chat-input-prompt {
   min-height: 28px;
-  padding: 0 11px;
-  border: 1px solid rgba(var(--accent-primary-rgb), 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.54);
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 650;
@@ -116,8 +116,7 @@ function handleQuickPrompt(prompt: string) {
 }
 
 .chat-input-prompt:hover:not(:disabled) {
-  border-color: rgba(var(--accent-primary-rgb), 0.32);
-  background: var(--accent-primary-light);
+  background: transparent;
   color: var(--accent-primary);
 }
 
@@ -132,22 +131,23 @@ function handleQuickPrompt(prompt: string) {
   gap: 10px;
   width: 100%;
   margin: 0;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 22px;
-  padding: 8px 8px 8px 18px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(29, 29, 31, 0.16);
+  border-radius: 0;
+  padding: 8px 0 10px;
   transition: all 0.2s ease;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: none;
 }
 
 .chat-input-container--focused {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 1px rgba(var(--accent-primary-rgb), 0.32) inset, 0 0 0 4px rgba(var(--accent-primary-rgb), 0.1);
+  border-bottom-color: var(--accent-primary);
+  box-shadow: none;
 }
 
 .chat-input-container--disabled {
   opacity: 0.6;
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 .chat-input-textarea {
@@ -202,8 +202,7 @@ function handleQuickPrompt(prompt: string) {
 
 @media (max-width: 720px) {
   .chat-input-wrapper {
-    padding: 9px;
-    border-radius: 24px;
+    padding: 0;
   }
 }
 </style>

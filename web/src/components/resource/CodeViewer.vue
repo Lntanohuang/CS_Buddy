@@ -67,57 +67,56 @@ async function copyCode() {
 
 <style scoped>
 .code-viewer {
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66), 0 8px 22px rgba(15, 23, 42, 0.035);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   overflow: hidden;
-  margin: 8px 0;
+  margin: 4px 0 0;
 }
 
 .code-viewer__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(var(--accent-primary-rgb), 0.08);
-  border-bottom: 0;
-  border-radius: 12px 12px 0 0;
+  padding: 0 0 10px;
+  background: transparent;
+  border-bottom: 1px solid rgba(29, 29, 31, 0.08);
 }
 
 .code-viewer__lang {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 4px 11px;
   border-radius: var(--radius-full);
-  background: var(--accent-primary-light);
-  color: var(--accent-primary);
+  background: rgba(var(--accent-primary-rgb), 0.1);
+  color: color-mix(in srgb, var(--accent-primary) 82%, #1d1d1f);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .code-viewer__copy {
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(var(--accent-primary-rgb), 0.14);
+  background: transparent;
+  border: 0;
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: #424245;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .code-viewer__copy:hover {
-  border-color: var(--border-strong);
+  background: rgba(29, 29, 31, 0.04);
   color: var(--text-primary);
 }
 
 .code-viewer__pre {
-  margin: 0;
-  padding: 18px;
+  margin: 12px 0 0;
+  padding: 18px 20px;
   background: var(--code-bg);
-  border-radius: 0 0 12px 12px;
+  border: 0;
+  border-radius: 12px;
   overflow-x: auto;
   font-size: 13px;
   line-height: 1.6;
@@ -129,28 +128,29 @@ async function copyCode() {
 }
 
 .code-viewer__output {
-  margin-top: 8px;
-  border: 1px solid rgba(var(--accent-primary-rgb), 0.08);
-  border-radius: 12px;
+  margin-top: 12px;
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
+  border-radius: 0;
   overflow: hidden;
 }
 
 .code-viewer__output-label {
-  padding: 6px 14px;
+  padding: 10px 0 6px;
   font-size: 11px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  background: rgba(255, 255, 255, 0.72);
-  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.08);
+  font-weight: 700;
+  color: #5f6368;
+  background: transparent;
+  border-bottom: 0;
 }
 
 .code-viewer__output-pre {
   margin: 0;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.6;
-  color: var(--text-primary);
+  color: #1d1d1f;
 }
 </style>

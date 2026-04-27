@@ -268,52 +268,34 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   position: relative;
   display: grid;
   grid-template-rows: 260px minmax(0, 1fr);
-  gap: 14px;
+  gap: 0;
+  padding-left: 22px;
+  border-left: 1px solid rgba(29, 29, 31, 0.1);
 }
 
 .learning-status::before {
-  content: "";
-  position: absolute;
-  top: 110px;
-  left: -30px;
-  z-index: 2;
-  width: 42px;
-  height: 62px;
-  border-radius: 999px 0 0 999px;
-  background:
-    linear-gradient(90deg, rgba(var(--accent-primary-rgb), 0), rgba(var(--accent-primary-rgb), 0.16)),
-    rgba(255, 255, 255, 0.5);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  display: none;
 }
 
 .learning-status::after {
-  content: "";
-  position: absolute;
-  top: 136px;
-  left: -17px;
-  z-index: 3;
-  width: 44px;
-  height: 9px;
-  border-radius: 999px;
-  background: rgba(var(--accent-primary-rgb), 0.2);
+  display: none;
 }
 
 .learning-status__seal,
 .learning-status__info {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .learning-status__seal {
   position: relative;
+  border-bottom: 1px solid rgba(29, 29, 31, 0.1);
 }
 
 .learning-status__seal :deep(.lil-seal-pet) {
@@ -324,28 +306,19 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 .learning-status__speech {
   position: relative;
   z-index: 6;
-  max-width: calc(100% - 28px);
-  margin: 14px;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 18px 18px 6px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  max-width: 100%;
+  margin: 0;
+  padding: 2px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .learning-status__speech::after {
-  content: "";
-  position: absolute;
-  right: 42px;
-  bottom: -7px;
-  width: 14px;
-  height: 14px;
-  border-right: 1px solid rgba(255, 255, 255, 0.78);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.78);
-  transform: rotate(45deg);
+  display: none;
 }
 
 .learning-status__speech span {
@@ -365,7 +338,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .learning-status__info {
-  padding: 18px;
+  padding: 18px 0 0;
 }
 
 .learning-status__header {
@@ -412,7 +385,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 .learning-status__list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   margin: 14px 0 0;
 }
 
@@ -420,6 +393,8 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   display: grid;
   grid-template-columns: 82px minmax(0, 1fr);
   gap: 10px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
 }
 
 .learning-status__list dt {
@@ -458,6 +433,8 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   grid-row: 2;
   min-width: 0;
   align-self: end;
+  padding-top: 14px;
+  border-top: 1px solid rgba(29, 29, 31, 0.1);
 }
 
 .classroom-input :deep(.chat-input-wrapper) {
@@ -492,6 +469,10 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
     grid-row: 2;
     grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
     grid-template-rows: 180px;
+    padding-left: 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(29, 29, 31, 0.1);
+    border-left: 0;
   }
 
   .classroom-input {

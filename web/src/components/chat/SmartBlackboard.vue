@@ -205,7 +205,7 @@ function normalizeSectionTitle(heading: string, index: number) {
   if (/复杂度|注意|技巧|重点|提醒/i.test(heading)) return '易错提醒'
   if (/类型|概念|思想|原理|基础|核心/i.test(heading)) return '思路拆解'
   if (heading) return heading.replace(/^#+\s*/, '')
-  return index === 0 ? '思路拆解' : '小海豹板书'
+  return index === 0 ? '思路拆解' : '补充说明'
 }
 
 function isTreeDiagram(code: string) {
@@ -237,15 +237,15 @@ function isTreeDiagram(code: string) {
         <article v-else-if="currentMessage" :key="currentMessage.message_id" class="blackboard-content">
           <header class="blackboard-lesson">
             <p class="blackboard-lesson__eyebrow">小海豹课堂白板</p>
-            <h1>当前讲解：{{ lectureTitle }}</h1>
+            <div class="blackboard-lesson__item">
+              <span>当前讲解</span>
+              <h1>{{ lectureTitle }}</h1>
+            </div>
+            <div v-if="visibleQuestion" class="blackboard-lesson__item blackboard-lesson__item--question">
+              <span>本节问题</span>
+              <p>{{ visibleQuestion }}</p>
+            </div>
           </header>
-
-          <section v-if="visibleQuestion" class="blackboard-question">
-            <span class="blackboard-question__label">本节问题</span>
-            <p>{{ visibleQuestion }}</p>
-          </section>
-
-          <div class="blackboard-board-title">小海豹板书</div>
 
           <div class="teaching-scroll">
             <div class="teaching-sections" :class="{ 'is-generating': isGenerating }">
@@ -336,6 +336,11 @@ function isTreeDiagram(code: string) {
 
 <style scoped>
 .smart-blackboard {
+  --blackboard-text: #1d1d1f;
+  --blackboard-muted: #5f6368;
+  --blackboard-tag-bg: rgba(var(--accent-primary-rgb), 0.1);
+  --blackboard-tag-text: color-mix(in srgb, var(--accent-primary) 82%, #1d1d1f);
+
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -346,12 +351,12 @@ function isTreeDiagram(code: string) {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.84);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.045);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .blackboard-content {
@@ -359,68 +364,93 @@ function isTreeDiagram(code: string) {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: clamp(18px, 2.5vw, 30px);
+  gap: 16px;
+  padding: 0;
 }
 
 .blackboard-lesson {
   flex-shrink: 0;
-  padding-bottom: 4px;
+  display: grid;
+  grid-template-columns: auto minmax(160px, 0.85fr) minmax(220px, 1.15fr);
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(29, 29, 31, 0.1);
 }
 
 .blackboard-lesson__eyebrow {
-  margin: 0 0 6px;
-  color: var(--accent-primary);
+  margin: 0;
+  color: var(--blackboard-tag-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 750;
   letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.blackboard-lesson__item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+}
+
+.blackboard-lesson__item span {
+  color: var(--blackboard-muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.blackboard-lesson h1,
+.blackboard-lesson__item p {
+  min-width: 0;
+  margin: 0;
+  color: var(--blackboard-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .blackboard-lesson h1 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: clamp(21px, 1.9vw, 24px);
-  font-weight: 650;
-  line-height: 1.28;
-  word-break: break-word;
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.blackboard-lesson__item p {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .blackboard-question {
   flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  display: grid;
+  gap: 10px;
+  padding: 2px 0 18px;
+  border-bottom: 1px solid rgba(29, 29, 31, 0.1);
 }
 
-.blackboard-question__label,
-.blackboard-board-title {
+.blackboard-question__label {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
   flex-shrink: 0;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: var(--radius-full);
-  background: var(--accent-primary-light);
-  color: var(--accent-primary);
+  background: var(--blackboard-tag-bg);
+  color: var(--blackboard-tag-text);
   font-size: 12px;
-  font-weight: 700;
-}
-
-.blackboard-board-title {
-  align-self: flex-start;
-  margin-top: 2px;
+  font-weight: 750;
 }
 
 .blackboard-question p {
   min-width: 0;
   margin: 0;
-  color: var(--text-primary);
+  color: var(--blackboard-text);
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 500;
   line-height: 1.55;
   word-break: break-word;
 }
@@ -435,41 +465,71 @@ function isTreeDiagram(code: string) {
 .teaching-sections {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-bottom: 4px;
+  gap: 0;
+  padding-bottom: 8px;
 }
 
 .teaching-card {
-  padding: 15px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.56);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  padding: 24px 0;
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
+  background: transparent;
+}
+
+.teaching-card--code,
+.teaching-card--diagram,
+.teaching-card--resource {
+  background: transparent;
 }
 
 .teaching-card--tip {
-  border-color: color-mix(in srgb, var(--accent-secondary) 24%, transparent);
-  background: color-mix(in srgb, var(--accent-secondary-light) 28%, rgba(255, 255, 255, 0.72));
+  border-top-color: color-mix(in srgb, var(--accent-secondary) 22%, rgba(29, 29, 31, 0.08));
+  background: transparent;
+}
+
+.teaching-card:first-child {
+  padding-top: 18px;
+}
+
+.teaching-card:last-child {
+  padding-bottom: 8px;
 }
 
 .teaching-card__title {
-  margin-bottom: 9px;
-  color: var(--accent-primary);
-  font-size: 13px;
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 14px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  background: var(--blackboard-tag-bg);
+  color: var(--blackboard-tag-text);
+  font-size: 12px;
+  font-weight: 750;
 }
 
 .teaching-card :deep(.markdown-renderer) {
-  font-size: 14px;
-  line-height: 1.8;
+  color: var(--blackboard-text);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.82;
+}
+
+.teaching-card :deep(.markdown-renderer p),
+.teaching-card :deep(.markdown-renderer li) {
+  color: var(--blackboard-text);
+}
+
+.teaching-card :deep(.markdown-renderer strong) {
+  color: var(--blackboard-text);
+  font-weight: 700;
 }
 
 .teaching-card :deep(.markdown-renderer h1),
 .teaching-card :deep(.markdown-renderer h2),
 .teaching-card :deep(.markdown-renderer h3) {
   margin-top: 0.5em;
+  color: var(--blackboard-text);
+  font-weight: 650;
 }
 
 .teaching-card :deep(.code-viewer),
@@ -500,7 +560,7 @@ function isTreeDiagram(code: string) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 0;
   text-align: center;
 }
 
@@ -550,10 +610,10 @@ function isTreeDiagram(code: string) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border: 1px solid rgba(var(--accent-primary-rgb), 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.56);
+  padding: 9px 0;
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
+  border-radius: 0;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
   text-align: left;
@@ -629,6 +689,16 @@ function isTreeDiagram(code: string) {
 @media (max-width: 760px) {
   .blackboard-content {
     padding: 16px;
+  }
+
+  .blackboard-lesson {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .blackboard-lesson__item {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
 
   .blackboard-question {
