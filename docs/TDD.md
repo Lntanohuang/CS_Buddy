@@ -2502,7 +2502,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 cd web
 npm install
 cp .env.example .env.local            # 配置 VITE_API_BASE_URL=http://localhost:8090/api/v1
-npm run dev                           # 默认 http://localhost:5183
+npm run dev                           # 默认 http://localhost:5193
 ```
 
 **Docker Compose（基础设施）**：

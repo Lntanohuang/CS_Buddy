@@ -1,10 +1,31 @@
-import { ref, shallowRef, computed } from 'vue'
+import { ref, shallowRef, computed, triggerRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { ChatSession, ChatMessage, AgentStep } from '@/types'
-import { mockSessions, mockMessages, mockStreamReply, mockAgentSteps, mockPersonalizedReply } from '@/mock/data'
+import { mockSessions, mockMessages, mockAgentSteps } from '@/mock/data'
 import { usePathStore } from './path'
 import { useNotificationStore } from './notification'
 import { useProfileStore } from './profile'
+import { streamChat } from '@/api/chat'
+
+const STORAGE_SESSIONS_KEY = 'csbuddy_sessions'
+const STORAGE_MESSAGES_KEY = 'csbuddy_messages'
+
+function loadFromStorage<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveToStorage(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // ignore quota errors
+  }
+}
 
 export type ChatRuntimeStatus = 'idle' | 'thinking' | 'talking'
 
@@ -38,31 +59,44 @@ export const useChatStore = defineStore('chat', () => {
     )
   }
 
+  // Load from localStorage first, fallback to mock data
+  const storedSessions = loadFromStorage<ChatSession[]>(STORAGE_SESSIONS_KEY)
+  const storedMessages = loadFromStorage<Record<string, ChatMessage[]>>(STORAGE_MESSAGES_KEY)
+
   const now = new Date().toISOString()
-  const validSessions = mockSessions.filter(isValidSession)
-  const validMessages = mockMessages.filter(isValidMessage)
 
-  const seededSessions: ChatSession[] = validSessions.length > 0
-    ? validSessions.map((session) => ({ ...session }))
-    : [{
-        session_id: `sess_bootstrap_${Date.now()}`,
-        title: '新对话',
-        status: 'ACTIVE',
-        session_type: 'NORMAL',
-        message_count: 0,
-        created_at: now,
-        updated_at: now,
-      }]
+  let seededSessions: ChatSession[]
+  let seededMessagesBySession: Record<string, ChatMessage[]>
 
-  const seededMessagesBySession = seededSessions.reduce<Record<string, ChatMessage[]>>(
-    (acc, session) => {
-      acc[session.session_id] = validMessages
-        .filter((msg) => msg.session_id === session.session_id)
-        .map((msg) => ({ ...msg }))
-      return acc
-    },
-    {},
-  )
+  if (storedSessions && storedSessions.length > 0) {
+    seededSessions = storedSessions.filter(isValidSession)
+    seededMessagesBySession = storedMessages ?? {}
+  } else {
+    const validSessions = mockSessions.filter(isValidSession)
+    const validMessages = mockMessages.filter(isValidMessage)
+
+    seededSessions = validSessions.length > 0
+      ? validSessions.map((session) => ({ ...session }))
+      : [{
+          session_id: `sess_bootstrap_${Date.now()}`,
+          title: '新对话',
+          status: 'ACTIVE',
+          session_type: 'NORMAL',
+          message_count: 0,
+          created_at: now,
+          updated_at: now,
+        }]
+
+    seededMessagesBySession = seededSessions.reduce<Record<string, ChatMessage[]>>(
+      (acc, session) => {
+        acc[session.session_id] = validMessages
+          .filter((msg) => msg.session_id === session.session_id)
+          .map((msg) => ({ ...msg }))
+        return acc
+      },
+      {},
+    )
+  }
 
   const sessions = ref<ChatSession[]>(seededSessions)
   const activeSessionId = shallowRef<string>(seededSessions[0].session_id)
@@ -71,6 +105,11 @@ export const useChatStore = defineStore('chat', () => {
   const agentSteps = ref<AgentStep[]>([])
   const isAgentWorking = shallowRef(false)
   let sendCounter = 0
+
+  function persist() {
+    saveToStorage(STORAGE_SESSIONS_KEY, sessions.value)
+    saveToStorage(STORAGE_MESSAGES_KEY, messagesBySession.value)
+  }
 
   const activeSession = computed(() =>
     sessions.value.find((s) => s.session_id === activeSessionId.value)
@@ -105,6 +144,7 @@ export const useChatStore = defineStore('chat', () => {
     sessions.value.unshift(session)
     messagesBySession.value[id] = []
     activeSessionId.value = id
+    persist()
   }
 
   async function sendMessage(content: string) {
@@ -153,46 +193,56 @@ export const useChatStore = defineStore('chat', () => {
       isAgentWorking.value = false
     }
 
-    // Choose reply based on context
-    const replyContent = isFirstMessage ? mockStreamReply : mockPersonalizedReply
     const assistantMsg: ChatMessage = {
       message_id: `msg_${Date.now() + 1}`,
       session_id: sid,
       role: 'ASSISTANT',
       content: '',
-      intent: 'learn',
-      metadata: isFirstMessage
-        ? {
-            type: 'resource_card',
-            resource_type: 'doc',
-            title: '二叉树',
-            difficulty: 'INTERMEDIATE',
-            est_minutes: 15,
-            knowledge_point: 'binary_tree',
-            agent: 'DocAgent',
-          }
-        : undefined,
       created_at: new Date().toISOString(),
     }
-    messagesBySession.value[sid].push(assistantMsg)
+    const msgArray = messagesBySession.value[sid]
+    msgArray.push(assistantMsg)
+    const assistantIdx = msgArray.length - 1
     isStreaming.value = true
 
-    const chars = replyContent.split('')
-    for (let i = 0; i < chars.length; i++) {
-      assistantMsg.content += chars[i]
-      if (i % 3 === 0) {
-        await new Promise((r) => setTimeout(r, 15))
+    try {
+      await streamChat(
+        sid,
+        content,
+        (token) => {
+          msgArray[assistantIdx] = {
+            ...msgArray[assistantIdx],
+            content: msgArray[assistantIdx].content + token,
+          }
+          triggerRef(messagesBySession)
+        },
+        () => {
+          isStreaming.value = false
+          if (session) session.message_count += 1
+          persist()
+        },
+        (error) => {
+          msgArray[assistantIdx] = {
+            ...msgArray[assistantIdx],
+            content: msgArray[assistantIdx].content + `\n\n⚠️ ${error}`,
+          }
+          triggerRef(messagesBySession)
+          isStreaming.value = false
+          persist()
+        },
+      )
+    } catch {
+      msgArray[assistantIdx] = {
+        ...msgArray[assistantIdx],
+        content: msgArray[assistantIdx].content + '\n\n⚠️ 网络连接失败，请检查后端服务是否启动',
       }
-    }
-
-    isStreaming.value = false
-    if (session) {
-      session.message_count += 1
+      triggerRef(messagesBySession)
+      isStreaming.value = false
+      persist()
     }
 
     // --- Cross-store side effects ---
     if (isFirstMessage) {
-      // Add nodes to learning path
       const pathStore = usePathStore()
       pathStore.addNodes([
         {
@@ -208,7 +258,6 @@ export const useChatStore = defineStore('chat', () => {
         },
       ])
 
-      // Notify
       const notificationStore = useNotificationStore()
       notificationStore.addNotification({
         type: 'DAILY_RECOMMEND',
@@ -218,7 +267,6 @@ export const useChatStore = defineStore('chat', () => {
       })
     }
 
-    // Update profile (simulate "随学随新")
     const profileStore = useProfileStore()
     profileStore.updateMastery('binary_tree', Math.min(1, (profileStore.profile.knowledge_mastery['binary_tree'] ?? 0) + 0.05))
   }
