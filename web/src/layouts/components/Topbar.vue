@@ -67,9 +67,11 @@ const recommendationText = computed(() => {
   gap: 14px;
   min-height: 56px;
   padding: 10px 20px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 98%, white), color-mix(in srgb, var(--bg-sidebar) 86%, transparent));
+  background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.12);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .topbar__left,
@@ -109,7 +111,7 @@ const recommendationText = computed(() => {
 .topbar__divider {
   width: 1px;
   height: 18px;
-  background: rgba(var(--accent-primary-rgb), 0.22);
+  background: var(--border);
 }
 
 .topbar__title {
@@ -128,7 +130,7 @@ const recommendationText = computed(() => {
   padding: 0 12px;
   min-height: 36px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--bg-hover);
   white-space: nowrap;
 }
 
@@ -150,7 +152,7 @@ const recommendationText = computed(() => {
   gap: 10px;
   padding: 4px 10px 4px 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--bg-hover);
 }
 
 .topbar__user-avatar {

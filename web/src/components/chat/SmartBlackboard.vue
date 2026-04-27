@@ -357,25 +357,37 @@ function isTreeDiagram(code: string) {
 }
 
 .blackboard-content {
+  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
   padding: 0;
 }
 
 .blackboard-lesson {
-  flex-shrink: 0;
-  padding-bottom: 8px;
-  border-bottom: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 8;
+  max-width: min(640px, calc(100% - 12px));
+  border: 0;
+  pointer-events: none;
 }
 
 .blackboard-lesson__main {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 0;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .blackboard-lesson__item {
@@ -388,9 +400,10 @@ function isTreeDiagram(code: string) {
 }
 
 .blackboard-lesson__item span {
-  color: var(--blackboard-muted);
-  font-size: 12px;
-  font-weight: 650;
+  color: var(--accent-primary);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -404,9 +417,9 @@ function isTreeDiagram(code: string) {
 }
 
 .blackboard-lesson h1 {
-  font-size: clamp(16px, 1.35vw, 18px);
-  font-weight: 700;
-  line-height: 1.32;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
 }
 
 .blackboard-question {
@@ -444,6 +457,7 @@ function isTreeDiagram(code: string) {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  padding-top: 46px;
   padding-right: 4px;
   padding-bottom: 112px;
 }
@@ -679,12 +693,11 @@ function isTreeDiagram(code: string) {
   }
 
   .blackboard-lesson {
-    padding-bottom: 10px;
+    max-width: calc(100% - 8px);
   }
 
   .blackboard-lesson__item {
     min-width: 0;
-    flex-basis: 100%;
   }
 
   .blackboard-question {

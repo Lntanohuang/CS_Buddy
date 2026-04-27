@@ -79,11 +79,7 @@ onBeforeUnmount(() => {
   --sidebar-width: 304px;
   height: 100dvh;
   min-height: 100dvh;
-  background:
-    radial-gradient(circle at top right, rgba(var(--accent-secondary-rgb), 0.34), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(var(--accent-primary-rgb), 0.18), transparent 24%),
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-card) 72%, transparent), color-mix(in srgb, var(--bg-primary) 96%, white)),
-    var(--bg-primary);
+  background: var(--bg-primary);
   overflow: hidden;
 }
 

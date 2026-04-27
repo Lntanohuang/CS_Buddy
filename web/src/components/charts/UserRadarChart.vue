@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import * as echarts from 'echarts'
-import { useThemeStore } from '@/stores/theme'
 import type { LearningRadarMetric } from '@/types'
 
 const props = defineProps<{
@@ -11,7 +10,6 @@ const props = defineProps<{
 
 const chartRoot = ref<HTMLElement | null>(null)
 const chartInstance = shallowRef<echarts.ECharts | null>(null)
-const themeStore = useThemeStore()
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -140,14 +138,6 @@ watch(
     renderChart()
   },
   { deep: true },
-)
-
-watch(
-  () => themeStore.currentTheme,
-  async () => {
-    await nextTick()
-    renderChart()
-  },
 )
 
 onBeforeUnmount(() => {
