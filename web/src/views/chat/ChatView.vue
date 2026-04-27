@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import {
+  Aim,
+  ArrowRight,
+  Clock,
+  Medal,
+  Promotion,
+  StarFilled,
+} from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
 import type { LilSealAction } from '@/components/pet/types'
@@ -18,7 +26,7 @@ const isGenerating = computed(() => isStreaming.value || isAgentWorking.value)
 const sealRewardAction = ref<LilSealAction | null>(null)
 const sealActionKey = ref(0)
 let rewardTimer: number | undefined
-const quickPrompts = ['解释这段代码', '出一道类似题', '我没听懂', '帮我总结']
+const todayStudyMinutes = 35
 
 const knowledgeLabels: Record<string, string> = {
   array: '数组基础',
@@ -95,17 +103,6 @@ const boardModeLabel = computed(() => {
   return '待命'
 })
 
-const stateLabel = computed(() => {
-  if (sealRewardAction.value === 'happy') return '收到正反馈'
-  if (sealRewardAction.value === 'starry') return '记录你的反馈'
-  if (chatStore.runtimeStatus === 'thinking') return '正在拆解问题'
-  if (boardModeLabel.value === '写代码示例') return '正在写代码示例'
-  if (boardModeLabel.value === '画图讲解') return '正在画图讲解'
-  if (boardModeLabel.value === '布置练习') return '正在布置练习'
-  if (chatStore.runtimeStatus === 'talking') return `正在讲解${currentKnowledgeLabel.value}`
-  return '等待提问'
-})
-
 const currentRecommendation = computed(() => {
   return recommendationLabels[currentKnowledgeKey.value] ?? '基础概念巩固练习'
 })
@@ -130,8 +127,8 @@ function handleSend(text: string) {
   void chatStore.sendMessage(text)
 }
 
-function handleQuickPrompt(prompt: string) {
-  handleSend(prompt)
+function handleRecommendationClick() {
+  handleSend(currentRecommendation.value)
 }
 
 function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_USEFUL' }) {
@@ -166,7 +163,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
       <aside class="learning-status" aria-label="小海豹学习状态区">
         <section class="learning-status__seal">
           <div class="learning-status__speech">
-            <span>小海豹：</span>
+            <span>小海豹导师</span>
             <p>{{ sealCoachLine }}</p>
           </div>
           <LilSealPet
@@ -186,59 +183,61 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
         </section>
 
         <section class="learning-status__info">
-          <div class="learning-status__header">
-            <span class="learning-status__dot" :class="`learning-status__dot--${sealAction}`" />
-            <div>
-              <h2>小海豹导师</h2>
-              <p>{{ stateLabel }}</p>
-            </div>
-          </div>
+          <div class="pet-dashboard">
+            <section class="pet-dashboard__module">
+              <div class="pet-dashboard__module-title">
+                <el-icon :size="15"><Aim /></el-icon>
+                <span>当前聚焦</span>
+              </div>
+              <div class="pet-dashboard__focus-pill">{{ currentKnowledgeLabel }}</div>
+              <p>{{ currentLessonTitle }}</p>
+            </section>
 
-          <dl class="learning-status__list">
-            <div>
-              <dt>正在讲解</dt>
-              <dd>{{ currentLessonTitle }}</dd>
-            </div>
-            <div>
-              <dt>当前状态</dt>
-              <dd>{{ boardModeLabel }} / {{ stateLabel }}</dd>
-            </div>
-            <div>
-              <dt>当前知识点</dt>
-              <dd>{{ currentKnowledgeLabel }}</dd>
-            </div>
-            <div>
-              <dt>掌握度</dt>
-              <dd>
-                <span>{{ currentMastery }}%</span>
-                <span class="learning-status__bar" aria-hidden="true">
-                  <span :style="{ width: `${currentMastery}%` }" />
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt>今日学习</dt>
-              <dd>35 分钟</dd>
-            </div>
-            <div>
-              <dt>推荐练习</dt>
-              <dd>{{ currentRecommendation }}</dd>
-            </div>
-          </dl>
-        </section>
+            <section class="pet-dashboard__module pet-dashboard__module--mastery">
+              <div class="pet-dashboard__module-title">
+                <el-icon :size="15"><StarFilled /></el-icon>
+                <span>知识掌握度</span>
+              </div>
+              <div class="pet-dashboard__mastery">
+                <div class="pet-dashboard__ring" :style="{ '--mastery': `${currentMastery}%` }">
+                  <span>{{ currentMastery }}%</span>
+                </div>
+                <div class="pet-dashboard__mastery-copy">
+                  <strong>{{ boardModeLabel }}</strong>
+                  <span class="learning-status__bar" aria-hidden="true">
+                    <span :style="{ width: `${currentMastery}%` }" />
+                  </span>
+                </div>
+              </div>
+            </section>
 
-        <section class="learning-status__quick" aria-label="快捷提问">
-          <p>快捷提问</p>
-          <div class="learning-status__quick-list">
-            <button
-              v-for="prompt in quickPrompts"
-              :key="prompt"
-              type="button"
-              :disabled="isGenerating"
-              @click="handleQuickPrompt(prompt)"
-            >
-              {{ prompt }}
-            </button>
+            <section class="pet-dashboard__module pet-dashboard__module--time">
+              <div class="pet-dashboard__module-title">
+                <el-icon :size="15"><Clock /></el-icon>
+                <span>今日投入</span>
+              </div>
+              <div class="pet-dashboard__metric">
+                <strong>{{ todayStudyMinutes }}</strong>
+                <span>分钟</span>
+                <el-icon :size="16"><Medal /></el-icon>
+              </div>
+            </section>
+
+            <section class="pet-dashboard__module">
+              <div class="pet-dashboard__module-title">
+                <el-icon :size="15"><Promotion /></el-icon>
+                <span>导师推荐</span>
+              </div>
+              <button
+                class="pet-dashboard__cta"
+                type="button"
+                :disabled="isGenerating"
+                @click="handleRecommendationClick"
+              >
+                <span>{{ currentRecommendation }}</span>
+                <el-icon :size="15"><ArrowRight /></el-icon>
+              </button>
+            </section>
           </div>
         </section>
       </aside>
@@ -292,7 +291,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   grid-row: 1;
   position: relative;
   display: grid;
-  grid-template-rows: 260px minmax(0, 1fr) auto;
+  grid-template-rows: 260px minmax(0, 1fr);
   gap: 0;
   padding-left: 22px;
   border-left: 1px solid rgba(29, 29, 31, 0.1);
@@ -333,7 +332,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   z-index: 6;
   max-width: 100%;
   margin: 0;
-  padding: 2px 0 0;
+  padding: 46px 0 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -347,11 +346,24 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .learning-status__speech span {
-  display: block;
-  margin-bottom: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: var(--accent-primary);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .learning-status__speech p {
@@ -364,81 +376,169 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 
 .learning-status__info {
   overflow: visible;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
   padding: 18px 0 0;
 }
 
-.learning-status__header {
+.pet-dashboard {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-bottom: 6px;
-  border-bottom: 0;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.learning-status__header h2 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 16px;
+.pet-dashboard__module {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.pet-dashboard__module-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
   font-weight: 760;
 }
 
-.learning-status__header p {
-  margin: 3px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.4;
+.pet-dashboard__module-title .el-icon {
+  color: var(--accent-primary);
 }
 
-.learning-status__dot {
-  position: relative;
-  z-index: 1;
-  flex: 0 0 10px;
-  width: 10px;
-  height: 10px;
-  margin-top: 5px;
-  border-radius: 50%;
-  background: var(--status-success);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-success) 18%, transparent);
+.pet-dashboard__focus-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  font-size: 13px;
+  font-weight: 760;
 }
 
-.learning-status__dot--thinking {
-  background: var(--accent-primary);
-  box-shadow: 0 0 0 4px rgba(var(--accent-primary-rgb), 0.16);
-}
-
-.learning-status__dot--talking {
-  background: var(--accent-secondary);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-secondary) 18%, transparent);
-}
-
-.learning-status__list {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin: 14px 0 0;
-}
-
-.learning-status__list div {
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  gap: 10px;
-  padding: 0;
-  border-top: 0;
-}
-
-.learning-status__list dt {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.learning-status__list dd {
+.pet-dashboard__module p {
   min-width: 0;
   margin: 0;
+  overflow: hidden;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-dashboard__mastery {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pet-dashboard__ring {
+  --mastery: 0%;
+
+  position: relative;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent-primary) var(--mastery), var(--bg-hover) 0);
+}
+
+.pet-dashboard__ring::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: inherit;
+  background: var(--bg-card);
+}
+
+.pet-dashboard__ring span {
+  position: relative;
+  z-index: 1;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 820;
+}
+
+.pet-dashboard__mastery-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.pet-dashboard__mastery-copy strong {
+  display: block;
   color: var(--text-primary);
   font-size: 13px;
-  font-weight: 650;
-  line-height: 1.45;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.pet-dashboard__metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.pet-dashboard__metric strong {
+  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.pet-dashboard__metric .el-icon {
+  align-self: center;
+  margin-left: auto;
+  color: var(--accent-secondary);
+}
+
+.pet-dashboard__cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  font-size: 13px;
+  font-weight: 760;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+}
+
+.pet-dashboard__cta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-dashboard__cta:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-primary-light) 70%, white);
+  transform: translateY(-1px);
+}
+
+.pet-dashboard__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .learning-status__bar {
@@ -455,47 +555,6 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-}
-
-.learning-status__quick {
-  align-self: end;
-  padding-top: 14px;
-  border-top: 1px solid rgba(29, 29, 31, 0.1);
-}
-
-.learning-status__quick p {
-  margin: 0 0 6px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.learning-status__quick-list {
-  display: grid;
-  gap: 4px;
-}
-
-.learning-status__quick button {
-  width: 100%;
-  min-height: 34px;
-  padding: 8px 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 650;
-  text-align: left;
-  cursor: pointer;
-  transition: color 0.18s ease, opacity 0.18s ease;
-}
-
-.learning-status__quick button:hover:not(:disabled) {
-  color: var(--accent-primary);
-}
-
-.learning-status__quick button:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
 }
 
 .classroom-input {
@@ -542,7 +601,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   .learning-status {
     grid-column: 1;
     grid-row: 2;
-    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) minmax(160px, 0.8fr);
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
     grid-template-rows: 180px;
     padding-left: 0;
     padding-top: 14px;
@@ -565,11 +624,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 @media (max-width: 640px) {
   .learning-status {
     grid-template-columns: 1fr;
-    grid-template-rows: 150px auto auto;
-  }
-
-  .learning-status__list div {
-    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-rows: 150px auto;
   }
 }
 </style>
