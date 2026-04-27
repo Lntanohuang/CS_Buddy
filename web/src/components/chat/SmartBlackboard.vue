@@ -236,15 +236,10 @@ function isTreeDiagram(code: string) {
 
         <article v-else-if="currentMessage" :key="currentMessage.message_id" class="blackboard-content">
           <header class="blackboard-lesson">
-            <p class="blackboard-lesson__eyebrow">小海豹课堂白板</p>
             <div class="blackboard-lesson__main">
               <div class="blackboard-lesson__item">
-                <span>当前讲解</span>
+                <span>课堂白板：</span>
                 <h1>{{ lectureTitle }}</h1>
-              </div>
-              <div v-if="visibleQuestion" class="blackboard-lesson__item blackboard-lesson__item--question">
-                <span>本节问题</span>
-                <p>{{ visibleQuestion }}</p>
               </div>
             </div>
           </header>
@@ -372,42 +367,24 @@ function isTreeDiagram(code: string) {
 
 .blackboard-lesson {
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: 18px;
+  padding-bottom: 8px;
   border-bottom: 0;
-}
-
-.blackboard-lesson__eyebrow {
-  margin: 0;
-  color: var(--blackboard-tag-text);
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0;
 }
 
 .blackboard-lesson__main {
   min-width: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 26px;
+  align-items: center;
+  gap: 0;
 }
 
 .blackboard-lesson__item {
-  min-width: min(100%, 260px);
+  min-width: 0;
   max-width: 100%;
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.blackboard-lesson__item--question {
-  flex: 1 1 340px;
-}
-
-.blackboard-lesson__item:not(.blackboard-lesson__item--question) {
-  flex: 0 1 420px;
+  align-items: center;
+  flex: 1;
+  gap: 2px;
 }
 
 .blackboard-lesson__item span {
@@ -417,24 +394,19 @@ function isTreeDiagram(code: string) {
   white-space: nowrap;
 }
 
-.blackboard-lesson h1,
-.blackboard-lesson__item p {
+.blackboard-lesson h1 {
   min-width: 0;
   margin: 0;
   color: var(--blackboard-text);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .blackboard-lesson h1 {
-  font-size: clamp(18px, 1.6vw, 22px);
+  font-size: clamp(16px, 1.35vw, 18px);
   font-weight: 700;
-  line-height: 1.3;
-}
-
-.blackboard-lesson__item p {
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.32;
 }
 
 .blackboard-question {
@@ -707,7 +679,7 @@ function isTreeDiagram(code: string) {
   }
 
   .blackboard-lesson {
-    gap: 10px;
+    padding-bottom: 10px;
   }
 
   .blackboard-lesson__item {

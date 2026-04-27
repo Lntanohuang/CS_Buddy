@@ -309,7 +309,6 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 .learning-status__seal,
 .learning-status__info {
   min-width: 0;
-  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -320,6 +319,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 
 .learning-status__seal {
   position: relative;
+  overflow: hidden;
   border-bottom: 1px solid rgba(29, 29, 31, 0.1);
 }
 
@@ -363,6 +363,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .learning-status__info {
+  overflow: visible;
   padding: 18px 0 0;
 }
 
@@ -370,8 +371,8 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(var(--accent-primary-rgb), 0.12);
+  padding-bottom: 6px;
+  border-bottom: 0;
 }
 
 .learning-status__header h2 {
@@ -389,6 +390,9 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .learning-status__dot {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 10px;
   width: 10px;
   height: 10px;
   margin-top: 5px;
@@ -410,7 +414,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 .learning-status__list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 9px;
   margin: 14px 0 0;
 }
 
@@ -418,8 +422,8 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   display: grid;
   grid-template-columns: 82px minmax(0, 1fr);
   gap: 10px;
-  padding: 11px 0;
-  border-top: 1px solid rgba(29, 29, 31, 0.08);
+  padding: 0;
+  border-top: 0;
 }
 
 .learning-status__list dt {
@@ -468,7 +472,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 
 .learning-status__quick-list {
   display: grid;
-  gap: 0;
+  gap: 4px;
 }
 
 .learning-status__quick button {
@@ -476,7 +480,6 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   min-height: 34px;
   padding: 8px 0;
   border: 0;
-  border-top: 1px solid rgba(29, 29, 31, 0.08);
   background: transparent;
   color: var(--text-primary);
   font-size: 13px;
