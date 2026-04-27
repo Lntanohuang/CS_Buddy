@@ -88,8 +88,13 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
         message_count = 0
         current_messages = []
 
-    # 构建中期记忆上下文（Phase B）
-    memory_context = await build_memory_context(payload.session_id, message_count)
+    # 构建记忆上下文（Phase B + C）
+    memory_context = await build_memory_context(
+        session_id=payload.session_id,
+        message_count=message_count,
+        user_id=payload.user_id,
+        query=payload.message,
+    )
 
     initial_state = {
         "messages": [HumanMessage(content=payload.message)],
@@ -148,7 +153,9 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                     updated_state = graph.get_state(config)
                     all_messages = updated_state.values.get("messages", [])
                     asyncio.create_task(
-                        generate_and_store_summary(payload.session_id, all_messages)
+                        generate_and_store_summary(
+                            payload.session_id, all_messages, user_id=payload.user_id
+                        )
                     )
                 except Exception as e:
                     print(f"[memory] 摘要触发失败: {e}")

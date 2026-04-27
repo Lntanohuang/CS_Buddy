@@ -8,3 +8,4 @@ __pycache__/
 *.egg-info/
 eval-results/
 knowledge_index/
+event_memory_index/
