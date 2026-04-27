@@ -8,3 +8,4 @@ class AgentState(TypedDict, total=False):
     messages: Annotated[list[BaseMessage], add_messages]
     user_profile: dict | None
     active_skill: str | None
+    memory_context: str | None

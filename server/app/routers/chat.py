@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 from uuid import uuid4
@@ -11,6 +12,11 @@ from sse_starlette.sse import EventSourceResponse
 from app.agent.graph import build_graph
 from app.config import settings
 from app.db.retrieval_logger import log_retrieval
+from app.memory.service import (
+    build_memory_context,
+    generate_and_store_summary,
+    should_trigger_summary,
+)
 from app.models.schemas import ChatRequest, SSEEvent
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -54,6 +60,7 @@ def _extract_chunk_text(chunk: object) -> str:
 
 _langfuse_env_set = False
 
+
 def _create_langfuse_handler(session_id: str, skill: str) -> CallbackHandler | None:
     if not settings.LANGFUSE_PUBLIC_KEY:
         return None
@@ -70,10 +77,26 @@ def _create_langfuse_handler(session_id: str, skill: str) -> CallbackHandler | N
 @router.post("/stream")
 async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResponse:
     active_skill = _detect_active_skill(payload.message)
+
+    # 获取当前会话消息数（从 checkpointer state）
+    thread_config = {"configurable": {"thread_id": payload.session_id}}
+    try:
+        state_snapshot = graph.get_state(thread_config)
+        current_messages = state_snapshot.values.get("messages", [])
+        message_count = len(current_messages)
+    except Exception:
+        message_count = 0
+        current_messages = []
+
+    # 构建中期记忆上下文（Phase B）
+    memory_context = await build_memory_context(payload.session_id, message_count)
+
     initial_state = {
         "messages": [HumanMessage(content=payload.message)],
         "active_skill": active_skill,
     }
+    if memory_context:
+        initial_state["memory_context"] = memory_context
 
     langfuse_handler = _create_langfuse_handler(payload.session_id, active_skill)
     config = {"configurable": {"thread_id": payload.session_id}}
@@ -100,6 +123,8 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                 yield _serialize_sse_event(SSEEvent(type="token", content=token))
 
             latency_ms = int((time.time() - start_time) * 1000)
+
+            # retrieval log
             try:
                 await log_retrieval(
                     session_id=payload.session_id,
@@ -107,13 +132,26 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                     query=payload.message,
                     skill=active_skill,
                     retrieved_chunks=[],
-                    memory_context=None,
+                    memory_context=memory_context or None,
                     response_length=len(full_response),
                     feedback=None,
                     latency_ms=latency_ms,
                 )
             except Exception:
                 pass
+
+            # Phase B: 摘要触发（+2 因为本轮的 user + assistant 消息）
+            new_count = message_count + 2
+            if should_trigger_summary(new_count):
+                # 从 checkpointer 获取最新完整历史
+                try:
+                    updated_state = graph.get_state(config)
+                    all_messages = updated_state.values.get("messages", [])
+                    asyncio.create_task(
+                        generate_and_store_summary(payload.session_id, all_messages)
+                    )
+                except Exception as e:
+                    print(f"[memory] 摘要触发失败: {e}")
 
             yield _serialize_sse_event(
                 SSEEvent(type="done", data={"message_id": str(uuid4())})

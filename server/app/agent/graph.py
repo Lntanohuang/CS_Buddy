@@ -30,6 +30,10 @@ def tutor_node(state: AgentState) -> dict:
     active_skill = state.get("active_skill") or "explain"
     system_prompt = SKILLS.get(active_skill, SKILLS["explain"])
 
+    memory_block = state.get("memory_context") or ""
+    if memory_block:
+        system_prompt = system_prompt + "\n\n" + memory_block
+
     model = _create_model().bind_tools(TOOLS)
     model_input = [SystemMessage(content=system_prompt), *state.get("messages", [])]
     response = model.invoke(model_input)
