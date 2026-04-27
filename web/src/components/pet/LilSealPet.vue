@@ -1,22 +1,31 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { createPet, type PetController, type PetSpeechMode } from '@/lib/lil-seal/createPet.js'
+import {
+  createPet,
+  type PetController,
+  type PetPosition,
+  type PetSpeechMode,
+} from '@/lib/lil-seal/createPet.js'
 import type { LilSealAction } from './types'
 import '@/lib/lil-seal/styles.css'
 
 type NormalizedSealAction = 'idle' | 'thinking' | 'talking' | 'happy' | 'starry' | 'sleep' | 'wave'
+type SpeechPlacement = 'fixed' | 'local'
 
 const props = withDefaults(defineProps<{
   action?: LilSealAction
   actionKey?: string | number
   speechText?: string
   speechMode?: PetSpeechMode
+  position?: PetPosition
+  speechPlacement?: SpeechPlacement
   visible?: boolean
 }>(), {
   action: 'idle',
   actionKey: 0,
   speechText: '',
   speechMode: 'soft',
+  speechPlacement: 'fixed',
   visible: true,
 })
 
@@ -31,6 +40,14 @@ const speechPreview = computed(() => normalizeSpeech(props.speechText))
 const showSpeech = computed(() =>
   props.visible && normalizeAction(props.action) === 'talking' && speechPreview.value.length > 0
 )
+const petPosition = computed<PetPosition>(() => ({
+  right: 'clamp(16px, 3vw, 32px)',
+  bottom: 'clamp(96px, 13vh, 132px)',
+  left: 'auto',
+  scale: 0.72,
+  zIndex: 42,
+  ...props.position,
+}))
 
 onMounted(() => {
   if (!mountRef.value) return
@@ -42,13 +59,7 @@ onMounted(() => {
       idle: '小海豹学习搭档',
       sleep: '小海豹睡着了',
     },
-    position: {
-      right: 'clamp(16px, 3vw, 32px)',
-      bottom: 'clamp(96px, 13vh, 132px)',
-      left: 'auto',
-      scale: 0.72,
-      zIndex: 42,
-    },
+    position: petPosition.value,
   })
 
   void pet.ready.then(() => {
@@ -66,6 +77,14 @@ onBeforeUnmount(() => {
 watch(
   () => [props.action, props.actionKey, props.visible, props.speechMode] as const,
   ([nextAction]) => syncAction(normalizeAction(nextAction)),
+)
+
+watch(
+  petPosition,
+  (nextPosition) => {
+    pet?.setPosition(nextPosition)
+  },
+  { deep: true },
 )
 
 function syncAction(nextAction: NormalizedSealAction) {
@@ -172,7 +191,13 @@ function normalizeAction(action: LilSealAction): NormalizedSealAction {
 </script>
 
 <template>
-  <div class="lil-seal-pet" :class="{ 'is-ready': ready }">
+  <div
+    class="lil-seal-pet"
+    :class="{
+      'is-ready': ready,
+      'lil-seal-pet--local-speech': speechPlacement === 'local',
+    }"
+  >
     <div ref="mountRef" />
     <Transition name="seal-speech">
       <p v-if="showSpeech" class="lil-seal-pet__speech">
@@ -184,6 +209,8 @@ function normalizeAction(action: LilSealAction): NormalizedSealAction {
 
 <style scoped>
 .lil-seal-pet {
+  position: relative;
+  min-height: 0;
   pointer-events: none;
 }
 
@@ -206,6 +233,21 @@ function normalizeAction(action: LilSealAction): NormalizedSealAction {
   word-break: break-word;
 }
 
+.lil-seal-pet--local-speech {
+  width: 100%;
+  height: 100%;
+}
+
+.lil-seal-pet--local-speech .lil-seal-pet__speech {
+  position: absolute;
+  top: clamp(18px, 6vh, 52px);
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  max-width: min(260px, calc(100% - 28px));
+  transform: translateX(-50%);
+}
+
 .seal-speech-enter-active,
 .seal-speech-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -215,6 +257,11 @@ function normalizeAction(action: LilSealAction): NormalizedSealAction {
 .seal-speech-leave-to {
   opacity: 0;
   transform: translateY(6px) scale(0.98);
+}
+
+.lil-seal-pet--local-speech .seal-speech-enter-from,
+.lil-seal-pet--local-speech .seal-speech-leave-to {
+  transform: translateX(-50%) translateY(6px) scale(0.98);
 }
 
 @media (max-width: 720px) {
