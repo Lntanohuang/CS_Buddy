@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const props = defineProps<{
+defineProps<{
   disabled: boolean
 }>()
 
@@ -11,7 +11,6 @@ const emit = defineEmits<{
 
 const inputText = ref('')
 const isFocused = ref(false)
-const quickPrompts = ['解释这段代码', '出一道类似题', '我没听懂', '帮我总结']
 
 function handleSend() {
   const text = inputText.value.trim()
@@ -26,28 +25,10 @@ function handleKeydown(event: KeyboardEvent) {
     handleSend()
   }
 }
-
-function handleQuickPrompt(prompt: string) {
-  if (props.disabled) return
-  emit('send', prompt)
-  inputText.value = ''
-}
 </script>
 
 <template>
   <div class="chat-input-wrapper">
-    <div class="chat-input-prompts" aria-label="快捷提问">
-      <button
-        v-for="prompt in quickPrompts"
-        :key="prompt"
-        class="chat-input-prompt"
-        type="button"
-        :disabled="disabled"
-        @click="handleQuickPrompt(prompt)"
-      >
-        {{ prompt }}
-      </button>
-    </div>
     <div
       class="chat-input-container"
       :class="{ 'chat-input-container--focused': isFocused, 'chat-input-container--disabled': disabled }"
@@ -93,61 +74,30 @@ function handleQuickPrompt(prompt: string) {
   -webkit-backdrop-filter: none;
 }
 
-.chat-input-prompts {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  margin: 0 0 8px;
-}
-
-.chat-input-prompt {
-  min-height: 28px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
-}
-
-.chat-input-prompt:hover:not(:disabled) {
-  background: transparent;
-  color: var(--accent-primary);
-}
-
-.chat-input-prompt:disabled {
-  cursor: not-allowed;
-  opacity: 0.48;
-}
-
 .chat-input-container {
   display: flex;
   align-items: flex-end;
   gap: 10px;
   width: 100%;
   margin: 0;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid rgba(29, 29, 31, 0.16);
-  border-radius: 0;
-  padding: 8px 0 10px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  padding: 8px 8px 8px 18px;
   transition: all 0.2s ease;
-  box-shadow: none;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .chat-input-container--focused {
-  border-bottom-color: var(--accent-primary);
-  box-shadow: none;
+  border-color: rgba(var(--accent-primary-rgb), 0.36);
+  box-shadow: 0 0 0 4px rgba(var(--accent-primary-rgb), 0.08), 0 8px 24px rgba(15, 23, 42, 0.045);
 }
 
 .chat-input-container--disabled {
   opacity: 0.6;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .chat-input-textarea {

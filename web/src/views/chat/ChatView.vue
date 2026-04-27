@@ -18,6 +18,7 @@ const isGenerating = computed(() => isStreaming.value || isAgentWorking.value)
 const sealRewardAction = ref<LilSealAction | null>(null)
 const sealActionKey = ref(0)
 let rewardTimer: number | undefined
+const quickPrompts = ['解释这段代码', '出一道类似题', '我没听懂', '帮我总结']
 
 const knowledgeLabels: Record<string, string> = {
   array: '数组基础',
@@ -129,6 +130,10 @@ function handleSend(text: string) {
   void chatStore.sendMessage(text)
 }
 
+function handleQuickPrompt(prompt: string) {
+  handleSend(prompt)
+}
+
 function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_USEFUL' }) {
   sealRewardAction.value = payload.feedback === 'USEFUL' ? 'happy' : 'starry'
   sealActionKey.value += 1
@@ -221,6 +226,21 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
             </div>
           </dl>
         </section>
+
+        <section class="learning-status__quick" aria-label="快捷提问">
+          <p>快捷提问</p>
+          <div class="learning-status__quick-list">
+            <button
+              v-for="prompt in quickPrompts"
+              :key="prompt"
+              type="button"
+              :disabled="isGenerating"
+              @click="handleQuickPrompt(prompt)"
+            >
+              {{ prompt }}
+            </button>
+          </div>
+        </section>
       </aside>
     </div>
 
@@ -267,7 +287,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   grid-row: 1 / span 2;
   position: relative;
   display: grid;
-  grid-template-rows: 260px minmax(0, 1fr);
+  grid-template-rows: 260px minmax(0, 1fr) auto;
   gap: 0;
   padding-left: 22px;
   border-left: 1px solid rgba(29, 29, 31, 0.1);
@@ -428,21 +448,62 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
 }
 
+.learning-status__quick {
+  align-self: end;
+  padding-top: 14px;
+  border-top: 1px solid rgba(29, 29, 31, 0.1);
+}
+
+.learning-status__quick p {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.learning-status__quick-list {
+  display: grid;
+  gap: 0;
+}
+
+.learning-status__quick button {
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 0;
+  border: 0;
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.18s ease, opacity 0.18s ease;
+}
+
+.learning-status__quick button:hover:not(:disabled) {
+  color: var(--accent-primary);
+}
+
+.learning-status__quick button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .classroom-input {
   grid-column: 1;
   grid-row: 2;
   min-width: 0;
   align-self: end;
-  padding-top: 14px;
-  border-top: 1px solid rgba(29, 29, 31, 0.1);
+  padding-top: 8px;
+  border-top: 0;
 }
 
 .classroom-input :deep(.chat-input-wrapper) {
   width: 100%;
 }
 
-.classroom-input :deep(.chat-input-container),
-.classroom-input :deep(.chat-input-prompts) {
+.classroom-input :deep(.chat-input-container) {
   width: 100%;
 }
 
@@ -467,7 +528,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   .learning-status {
     grid-column: 1;
     grid-row: 2;
-    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+    grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) minmax(160px, 0.8fr);
     grid-template-rows: 180px;
     padding-left: 0;
     padding-top: 14px;
@@ -489,7 +550,7 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 @media (max-width: 640px) {
   .learning-status {
     grid-template-columns: 1fr;
-    grid-template-rows: 150px auto;
+    grid-template-rows: 150px auto auto;
   }
 
   .learning-status__list div {

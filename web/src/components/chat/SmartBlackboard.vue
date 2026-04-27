@@ -314,15 +314,15 @@ function isTreeDiagram(code: string) {
                   :code="(metadata.mermaid_code as string)"
                 />
               </section>
+
+              <footer v-if="!isGenerating" class="blackboard-feedback">
+                <FeedbackButtons
+                  :message-id="currentMessage.message_id"
+                  @feedback="emit('feedback', $event)"
+                />
+              </footer>
             </div>
           </div>
-
-          <footer v-if="!isGenerating" class="blackboard-feedback">
-            <FeedbackButtons
-              :message-id="currentMessage.message_id"
-              @feedback="emit('feedback', $event)"
-            />
-          </footer>
         </article>
 
         <div v-else key="empty" class="blackboard-state blackboard-state--empty">
@@ -549,8 +549,8 @@ function isTreeDiagram(code: string) {
 }
 
 .blackboard-feedback {
-  flex-shrink: 0;
-  padding-top: 2px;
+  padding: 18px 0 4px;
+  border-top: 1px solid rgba(29, 29, 31, 0.08);
 }
 
 .blackboard-state {
