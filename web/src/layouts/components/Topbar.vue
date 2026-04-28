@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import NotificationBadge from '@/components/notice/NotificationBadge.vue'
 import { useAuthStore } from '@/stores/auth'
+import defaultAvatar from '@/assets/avatar-default.svg'
 import { useNotificationStore } from '@/stores/notification'
 
 const route = useRoute()
@@ -23,7 +24,6 @@ const currentTitle = computed(() => {
 })
 
 const displayName = computed(() => authStore.nickname || '用户')
-const avatarText = computed(() => displayName.value.slice(0, 1).toUpperCase())
 const recommendationText = computed(() => {
   const recommendation = notificationStore.todayRecommendation
   return `${recommendation.title} · ${recommendation.est_minutes} 分钟`
@@ -50,7 +50,9 @@ const recommendationText = computed(() => {
       <NotificationBadge />
 
       <div class="topbar__user">
-        <div class="topbar__user-avatar">{{ avatarText }}</div>
+        <div class="topbar__user-avatar">
+          <img :src="defaultAvatar" :alt="displayName" />
+        </div>
         <strong class="topbar__user-name">{{ displayName }}</strong>
       </div>
     </div>
@@ -161,10 +163,16 @@ const recommendationText = computed(() => {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--accent-primary);
-  color: var(--bg-card);
-  font-size: 12px;
-  font-weight: 700;
+  background: transparent;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.topbar__user-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .topbar__user-name {

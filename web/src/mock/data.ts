@@ -12,7 +12,7 @@ import type {
 // ---- Auth ----
 export const mockUser: AuthUser = {
   user_id: 'usr_a1b2c3d4',
-  nickname: '小明',
+  nickname: '林知夏',
   role: 'STUDENT',
   access_token: 'mock_access_token_xxx',
   refresh_token: 'mock_refresh_token_xxx',
