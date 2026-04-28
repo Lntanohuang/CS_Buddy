@@ -1,14 +1,32 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { Expand, Fold } from '@element-plus/icons-vue'
 import NotificationBadge from '@/components/notice/NotificationBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 import defaultAvatar from '@/assets/avatar-default.svg'
 import { useNotificationStore } from '@/stores/notification'
+import { useLayoutStore } from '@/stores/layout'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const layoutStore = useLayoutStore()
+const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 960 : false)
+
+function handleResize() {
+  if (typeof window === 'undefined') return
+  isMobile.value = window.innerWidth < 960
+}
+
+onMounted(() => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 const pageMetaMap: Record<string, string> = {
   chat: '对话课堂',
@@ -33,6 +51,17 @@ const recommendationText = computed(() => {
 <template>
   <header class="topbar">
     <div class="topbar__left">
+      <button
+        v-if="isMobile"
+        class="topbar__menu"
+        type="button"
+        :aria-label="layoutStore.isCollapse ? '打开侧边栏' : '折叠侧边栏'"
+        @click="layoutStore.toggleCollapse()"
+      >
+        <el-icon :size="18">
+          <component :is="layoutStore.isCollapse ? Expand : Fold" />
+        </el-icon>
+      </button>
       <div class="topbar__brand">
         <span class="topbar__logo">🌿</span>
         <strong class="topbar__brand-name">CS Buddy</strong>
@@ -88,6 +117,25 @@ const recommendationText = computed(() => {
 .topbar__left {
   gap: 12px;
   min-width: 0;
+}
+
+.topbar__menu {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.topbar__menu:hover {
+  background: var(--bg-hover);
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 20%, var(--border));
 }
 
 .topbar__right {
@@ -191,6 +239,12 @@ const recommendationText = computed(() => {
 @media (max-width: 1100px) {
   .topbar__recommend {
     max-width: 250px;
+  }
+}
+
+@media (min-width: 960px) {
+  .topbar__menu {
+    display: none;
   }
 }
 
