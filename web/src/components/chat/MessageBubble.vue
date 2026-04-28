@@ -94,10 +94,9 @@ const userName = computed(() => userStore.userInfo.name || '你')
 <template>
   <div class="message-row" :class="{ 'message-row--user': isUser, 'message-row--assistant': !isUser }">
     <!-- Avatar -->
-    <div class="message-avatar" :class="{ 'message-avatar--user': isUser, 'message-avatar--assistant': !isUser }">
-      <img v-if="isUser && userAvatar" :src="userAvatar" :alt="userName" />
-      <span v-else-if="isUser">你</span>
-      <span v-else>🌿</span>
+    <div v-if="isUser" class="message-avatar message-avatar--user">
+      <img v-if="userAvatar" :src="userAvatar" :alt="userName" />
+      <span v-else>你</span>
     </div>
 
     <!-- Bubble + timestamp -->
@@ -193,18 +192,13 @@ const userName = computed(() => userStore.userInfo.name || '你')
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .message-avatar--user {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-primary);
-}
-
-.message-avatar--assistant {
-  background: var(--accent-secondary);
-  color: var(--bg-card);
 }
 
 .message-avatar img {
@@ -220,17 +214,19 @@ const userName = computed(() => userStore.userInfo.name || '你')
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-top: 6px;
+  margin-top: 0;
 }
 
 .message-row--user .message-body {
   align-items: flex-end;
+  margin-top: 6px;
 }
 
 .message-row--assistant .message-body {
   align-items: stretch;
   width: 100%;
 }
+
 
 /* Bubble */
 .message-bubble {

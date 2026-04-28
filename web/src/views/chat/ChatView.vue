@@ -19,7 +19,6 @@ const chatStore = useChatStore()
 const userStore = useUserStore()
 
 const activeMessages = computed(() => chatStore.activeMessages)
-const activeSessionTitle = computed(() => chatStore.activeSession?.title ?? '新对话')
 const isStreaming = computed(() => chatStore.isStreaming)
 const agentSteps = computed(() => chatStore.agentSteps)
 const isAgentWorking = computed(() => chatStore.isAgentWorking)
@@ -151,10 +150,6 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   <div class="chat-view">
     <div class="classroom-stage">
       <main class="teaching-zone">
-        <div class="chat-session-header">
-          <span class="chat-session-header__label">最近会话</span>
-          <h2 class="chat-session-header__title">{{ activeSessionTitle }}</h2>
-        </div>
         <ChatMessageList
           :messages="activeMessages"
           :is-streaming="isStreaming"
@@ -292,28 +287,6 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-}
-
-.chat-session-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 24px 0;
-}
-
-.chat-session-header__label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-
-.chat-session-header__title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
 }
 
 .learning-status {

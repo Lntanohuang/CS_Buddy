@@ -111,7 +111,10 @@ function formatSessionTime(dateStr: string) {
             <component :is="layoutStore.isCollapse ? Expand : Fold" />
           </el-icon>
         </span>
-        <span class="sidebar__label">导航</span>
+        <span class="sidebar__label sidebar__brand">
+          <span class="sidebar__brand-icon">🌿</span>
+          <span class="sidebar__brand-name">CS Buddy</span>
+        </span>
       </button>
     </div>
 
@@ -306,6 +309,22 @@ function formatSessionTime(dateStr: string) {
   transform: translateX(0);
   transition: opacity 0.18s ease, transform 0.18s ease;
   overflow: hidden;
+}
+
+.sidebar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar__brand-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sidebar__brand-name {
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .sidebar.is-collapse .sidebar__label {

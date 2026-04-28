@@ -7,11 +7,13 @@ import { useAuthStore } from '@/stores/auth'
 import defaultAvatar from '@/assets/avatar-default.svg'
 import { useNotificationStore } from '@/stores/notification'
 import { useLayoutStore } from '@/stores/layout'
+import { useChatStore } from '@/stores/chat'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 const layoutStore = useLayoutStore()
+const chatStore = useChatStore()
 const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 960 : false)
 
 function handleResize() {
@@ -41,6 +43,9 @@ const currentTitle = computed(() => {
   return pageMetaMap[name] ?? 'CS Buddy'
 })
 
+const isChatRoute = computed(() => route.name === 'chat')
+const activeSessionTitle = computed(() => chatStore.activeSession?.title ?? '新对话')
+
 const displayName = computed(() => authStore.nickname || '用户')
 const recommendationText = computed(() => {
   const recommendation = notificationStore.todayRecommendation
@@ -62,12 +67,11 @@ const recommendationText = computed(() => {
           <component :is="layoutStore.isCollapse ? Expand : Fold" />
         </el-icon>
       </button>
-      <div class="topbar__brand">
-        <span class="topbar__logo">🌿</span>
-        <strong class="topbar__brand-name">CS Buddy</strong>
-      </div>
-      <span class="topbar__divider" />
       <h1 class="topbar__title">{{ currentTitle }}</h1>
+      <div v-if="isChatRoute" class="topbar__session">
+        <span class="topbar__session-sep">丨</span>
+        <span class="topbar__session-title">{{ activeSessionTitle }}</span>
+      </div>
     </div>
 
     <div class="topbar__right">
@@ -107,7 +111,6 @@ const recommendationText = computed(() => {
 
 .topbar__left,
 .topbar__right,
-.topbar__brand,
 .topbar__user,
 .topbar__recommend {
   display: flex;
@@ -142,32 +145,34 @@ const recommendationText = computed(() => {
   gap: 12px;
 }
 
-.topbar__brand {
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.topbar__logo {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.topbar__brand-name {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 700;
-}
-
-.topbar__divider {
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-}
-
 .topbar__title {
   margin: 0;
   font-size: 19px;
   line-height: 1.2;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 6px;
+  min-width: 0;
+}
+
+.topbar__session-sep {
+  color: var(--border-strong);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.topbar__session-title {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -253,8 +258,6 @@ const recommendationText = computed(() => {
     padding: 10px 14px;
   }
 
-  .topbar__divider,
-  .topbar__brand-name,
   .topbar__recommend-label,
   .topbar__user-name {
     display: none;
