@@ -12,13 +12,14 @@ import { useChatStore } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
 import type { LilSealAction } from '@/components/pet/types'
 import ChatInput from '@/components/chat/ChatInput.vue'
-import SmartBlackboard from '@/components/chat/SmartBlackboard.vue'
+import ChatMessageList from '@/components/chat/ChatMessageList.vue'
 import LilSealPet from '@/components/pet/LilSealPet.vue'
 
 const chatStore = useChatStore()
 const userStore = useUserStore()
 
 const activeMessages = computed(() => chatStore.activeMessages)
+const activeSessionTitle = computed(() => chatStore.activeSession?.title ?? '新对话')
 const isStreaming = computed(() => chatStore.isStreaming)
 const agentSteps = computed(() => chatStore.agentSteps)
 const isAgentWorking = computed(() => chatStore.isAgentWorking)
@@ -150,12 +151,15 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   <div class="chat-view">
     <div class="classroom-stage">
       <main class="teaching-zone">
-        <SmartBlackboard
-          :current-message="currentResponse"
-          :current-question="currentQuestion"
-          :is-thinking="isAgentWorking"
-          :is-generating="isGenerating"
+        <div class="chat-session-header">
+          <span class="chat-session-header__label">最近会话</span>
+          <h2 class="chat-session-header__title">{{ activeSessionTitle }}</h2>
+        </div>
+        <ChatMessageList
+          :messages="activeMessages"
+          :is-streaming="isStreaming"
           :agent-steps="agentSteps"
+          :is-agent-working="isAgentWorking"
           @feedback="handleFeedback"
         />
       </main>
@@ -284,6 +288,32 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 .teaching-zone {
   grid-column: 1;
   grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-session-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 24px 0;
+}
+
+.chat-session-header__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.chat-session-header__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .learning-status {
