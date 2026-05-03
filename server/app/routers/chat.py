@@ -1,4 +1,5 @@
 import json
+import asyncio
 import time
 from uuid import uuid4
 
@@ -82,20 +83,21 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
         start_time = time.time()
         full_response = ""
         try:
-            async for event in graph.astream_events(initial_state, version="v2", config=config):
-                if await request.is_disconnected():
-                    break
+            async with asyncio.timeout(75):
+                async for event in graph.astream_events(initial_state, version="v2", config=config):
+                    if await request.is_disconnected():
+                        break
 
-                if event.get("event") != "on_chat_model_stream":
-                    continue
+                    if event.get("event") != "on_chat_model_stream":
+                        continue
 
-                chunk = event.get("data", {}).get("chunk")
-                token = _extract_chunk_text(chunk)
-                if not token:
-                    continue
+                    chunk = event.get("data", {}).get("chunk")
+                    token = _extract_chunk_text(chunk)
+                    if not token:
+                        continue
 
-                full_response += token
-                yield _serialize_sse_event(SSEEvent(type="token", content=token))
+                    full_response += token
+                    yield _serialize_sse_event(SSEEvent(type="token", content=token))
 
             latency_ms = int((time.time() - start_time) * 1000)
             try:
@@ -113,8 +115,17 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
             except Exception:
                 pass
 
+            if full_response.strip():
+                yield _serialize_sse_event(
+                    SSEEvent(type="done", data={"message_id": str(uuid4())})
+                )
+            else:
+                yield _serialize_sse_event(
+                    SSEEvent(type="error", content="模型没有返回内容，请稍后重试。")
+                )
+        except TimeoutError:
             yield _serialize_sse_event(
-                SSEEvent(type="done", data={"message_id": str(uuid4())})
+                SSEEvent(type="error", content="模型响应超时，请稍后重试。")
             )
         except Exception as exc:
             yield _serialize_sse_event(

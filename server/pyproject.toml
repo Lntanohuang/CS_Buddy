@@ -13,6 +13,7 @@ dependencies = [
   "faiss-cpu",
   "langgraph",
   "langchain-community",
+  "langchain",
   "langchain-openai",
   "langchain-core",
   "langchain-text-splitters",

@@ -9,6 +9,7 @@ import { streamChat } from '@/api/chat'
 
 const STORAGE_SESSIONS_KEY = 'csbuddy_sessions'
 const STORAGE_MESSAGES_KEY = 'csbuddy_messages'
+const CHAT_STREAM_TIMEOUT_MS = 90000
 
 function loadFromStorage<T>(key: string): T | null {
   try {
@@ -204,6 +205,18 @@ export const useChatStore = defineStore('chat', () => {
     msgArray.push(assistantMsg)
     const assistantIdx = msgArray.length - 1
     isStreaming.value = true
+    let streamSettled = false
+    const abortController = new AbortController()
+    const streamTimeout = window.setTimeout(() => {
+      abortController.abort()
+    }, CHAT_STREAM_TIMEOUT_MS)
+
+    function finishStreaming() {
+      streamSettled = true
+      isStreaming.value = false
+      window.clearTimeout(streamTimeout)
+      persist()
+    }
 
     try {
       await streamChat(
@@ -217,9 +230,8 @@ export const useChatStore = defineStore('chat', () => {
           triggerRef(messagesBySession)
         },
         () => {
-          isStreaming.value = false
           if (session) session.message_count += 1
-          persist()
+          finishStreaming()
         },
         (error) => {
           msgArray[assistantIdx] = {
@@ -227,18 +239,26 @@ export const useChatStore = defineStore('chat', () => {
             content: msgArray[assistantIdx].content + `\n\n⚠️ ${error}`,
           }
           triggerRef(messagesBySession)
-          isStreaming.value = false
-          persist()
+          finishStreaming()
         },
+        abortController.signal,
       )
-    } catch {
+    } catch (error) {
+      const fallbackMessage =
+        error instanceof DOMException && error.name === 'AbortError'
+          ? '\n\n⚠️ 模型响应超时，请稍后重试。'
+          : '\n\n⚠️ 网络连接失败，请检查后端服务是否启动'
+
       msgArray[assistantIdx] = {
         ...msgArray[assistantIdx],
-        content: msgArray[assistantIdx].content + '\n\n⚠️ 网络连接失败，请检查后端服务是否启动',
+        content: msgArray[assistantIdx].content + fallbackMessage,
       }
       triggerRef(messagesBySession)
-      isStreaming.value = false
-      persist()
+      finishStreaming()
+    } finally {
+      if (!streamSettled) {
+        finishStreaming()
+      }
     }
 
     // --- Cross-store side effects ---

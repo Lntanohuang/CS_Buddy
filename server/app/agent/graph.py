@@ -19,6 +19,9 @@ def _create_model() -> ChatOpenAI:
         "api_key": settings.OPENAI_API_KEY,
         "temperature": 0.2,
         "streaming": True,
+        "timeout": 60,
+        "max_retries": 1,
+        "max_tokens": 700,
     }
     if settings.OPENAI_BASE_URL:
         model_kwargs["base_url"] = settings.OPENAI_BASE_URL
@@ -29,7 +32,9 @@ def tutor_node(state: AgentState) -> dict:
     active_skill = state.get("active_skill") or "explain"
     system_prompt = SKILLS.get(active_skill, SKILLS["explain"])
 
-    model = _create_model().bind_tools(TOOLS)
+    # Keep the chat path direct so OpenAI-compatible providers stream visible
+    # tokens promptly; RAG tools can be reintroduced once tool streaming is handled.
+    model = _create_model()
     model_input = [SystemMessage(content=system_prompt), *state.get("messages", [])]
     response = model.invoke(model_input)
 

@@ -107,10 +107,6 @@ const currentRecommendation = computed(() => {
   return recommendationLabels[currentKnowledgeKey.value] ?? '基础概念巩固练习'
 })
 
-const sealSpeechText = computed(() => {
-  return ''
-})
-
 const sealCoachLine = computed(() => {
   if (sealRewardAction.value === 'happy') return '做得很好，我们继续保持这个节奏。'
   if (sealRewardAction.value === 'starry') return '我记下来了，下一版讲解会更贴近你。'
@@ -168,7 +164,6 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
           <LilSealPet
             :action="sealAction"
             :action-key="sealActionKey"
-            :speech-text="sealSpeechText"
             speech-placement="local"
             :position="{
               strategy: 'absolute',
@@ -281,6 +276,9 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 }
 
 .teaching-zone {
+  --chat-input-reserve: 112px;
+  --chat-jump-bottom: 92px;
+
   grid-column: 1;
   grid-row: 1;
   display: flex;
@@ -597,6 +595,9 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   }
 
   .teaching-zone {
+    --chat-input-reserve: 104px;
+    --chat-jump-bottom: 84px;
+
     grid-column: 1;
     grid-row: 1;
   }

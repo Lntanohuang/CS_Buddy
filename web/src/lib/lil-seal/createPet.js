@@ -894,7 +894,7 @@ export function createPet(options = {}) {
 
     return startSpeech({
       ...options,
-      continuous: options.continuous === true,
+      continuous: options.continuous !== false,
     });
   }
 
@@ -908,7 +908,7 @@ export function createPet(options = {}) {
     if (actionId === "talk") {
       return startSpeech({
         ...options,
-        continuous: options.continuous === true,
+        continuous: options.continuous !== false,
       });
     }
 

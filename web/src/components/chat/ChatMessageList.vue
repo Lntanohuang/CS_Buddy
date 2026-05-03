@@ -15,28 +15,73 @@ const emit = defineEmits<{
 }>()
 
 const scrollContainer = ref<HTMLDivElement>()
+const isPinnedToBottom = ref(true)
+const bottomThreshold = 96
 
-function scrollToBottom() {
+function getDistanceFromBottom() {
+  const el = scrollContainer.value
+  if (!el) return 0
+  return el.scrollHeight - el.clientHeight - el.scrollTop
+}
+
+function updatePinnedState() {
+  isPinnedToBottom.value = getDistanceFromBottom() <= bottomThreshold
+}
+
+function scrollToBottom(behavior: ScrollBehavior = 'smooth') {
   nextTick(() => {
-    if (scrollContainer.value) {
-      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight
-    }
+    const el = scrollContainer.value
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+    isPinnedToBottom.value = true
   })
 }
 
-// Watch messages length and streaming state to auto-scroll
+function handleScroll() {
+  updatePinnedState()
+}
+
+function handleJumpToBottom() {
+  scrollToBottom('smooth')
+}
+
+// New user messages reveal the latest turn. Streamed assistant text only follows
+// while the reader is still near the bottom.
 watch(
-  () => [props.messages.length, props.isStreaming] as const,
-  () => {
-    scrollToBottom()
+  () => props.messages.length,
+  (count, previousCount) => {
+    if (count === 0) {
+      isPinnedToBottom.value = true
+      return
+    }
+
+    const latestMessage = props.messages[count - 1]
+    const addedMessage = previousCount === undefined || count > previousCount
+
+    if (addedMessage && latestMessage?.role === 'USER') {
+      scrollToBottom('auto')
+      return
+    }
+
+    if (isPinnedToBottom.value) {
+      scrollToBottom()
+    }
   },
 )
 
-// Also watch last message content changes during streaming
 watch(
   () => props.messages[props.messages.length - 1]?.content,
   () => {
-    if (props.isStreaming) {
+    if (props.isStreaming && isPinnedToBottom.value) {
+      scrollToBottom()
+    }
+  },
+)
+
+watch(
+  () => props.agentSteps?.map((step) => `${step.agent}:${step.status}`).join('|'),
+  () => {
+    if (props.isAgentWorking && isPinnedToBottom.value) {
       scrollToBottom()
     }
   },
@@ -48,11 +93,20 @@ const showTypingIndicator = computed(() => {
   return last?.role === 'USER'
 })
 
+const showJumpToBottom = computed(() => {
+  return (props.isStreaming || props.isAgentWorking) && !isPinnedToBottom.value
+})
+
 const isEmpty = computed(() => props.messages.length === 0)
 </script>
 
 <template>
-  <div ref="scrollContainer" class="chat-message-list">
+  <div class="chat-message-list-shell">
+    <div
+      ref="scrollContainer"
+      class="chat-message-list"
+      @scroll="handleScroll"
+    >
     <!-- Empty state -->
     <div v-if="isEmpty" class="chat-empty">
       <div class="chat-empty__icon">
@@ -101,17 +155,39 @@ const isEmpty = computed(() => props.messages.length === 0)
         </div>
       </div>
     </div>
+    </div>
+
+    <button
+      v-if="showJumpToBottom"
+      class="chat-message-list__jump"
+      type="button"
+      aria-label="回到底部"
+      title="回到底部"
+      @click="handleJumpToBottom"
+    >
+      <span class="chat-message-list__jump-dot" />
+      <span class="chat-message-list__jump-dot" />
+      <span class="chat-message-list__jump-dot" />
+    </button>
   </div>
 </template>
 
 <style scoped>
-.chat-message-list {
+.chat-message-list-shell {
+  position: relative;
   flex: 1;
   min-height: 0;
+}
+
+.chat-message-list {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
   overflow-y: auto;
-  padding: 24px;
+  padding: 24px 24px calc(var(--chat-input-reserve, 112px) + 24px);
   background: transparent;
   scroll-behavior: smooth;
+  scroll-padding-bottom: var(--chat-input-reserve, 112px);
 }
 
 .chat-message-list__inner {
@@ -121,6 +197,62 @@ const isEmpty = computed(() => props.messages.length === 0)
   max-width: 100%;
   margin: 0;
   width: 100%;
+}
+
+.chat-message-list__jump {
+  position: absolute;
+  left: 50%;
+  bottom: var(--chat-jump-bottom, 92px);
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 54px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  color: var(--accent-primary);
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.chat-message-list__jump:hover {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.15);
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.chat-message-list__jump-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: jump-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.chat-message-list__jump-dot:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.chat-message-list__jump-dot:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes jump-dot-pulse {
+  0%, 80%, 100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 /* Empty state */

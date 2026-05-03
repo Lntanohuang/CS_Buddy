@@ -32,6 +32,8 @@ export async function streamChat(
 
   const decoder = new TextDecoder()
   let buffer = ''
+  let receivedToken = false
+  let receivedTerminalEvent = false
 
   while (true) {
     const { done, value } = await reader.read()
@@ -44,20 +46,39 @@ export async function streamChat(
     for (const line of lines) {
       if (!line.startsWith('data:')) continue
       const raw = line.slice(5).trim()
-      if (!raw || raw === '[DONE]') continue
+      if (!raw) continue
+
+      if (raw === '[DONE]') {
+        receivedTerminalEvent = true
+        onDone()
+        return
+      }
 
       try {
         const event: SSEEvent = JSON.parse(raw)
         if (event.type === 'token' && event.content) {
+          receivedToken = true
           onToken(event.content)
         } else if (event.type === 'done') {
+          receivedTerminalEvent = true
           onDone(event.data)
+          return
         } else if (event.type === 'error') {
+          receivedTerminalEvent = true
           onError(event.content ?? '未知错误')
+          return
         }
       } catch {
         // skip malformed lines
       }
+    }
+  }
+
+  if (!receivedTerminalEvent) {
+    if (receivedToken) {
+      onDone()
+    } else {
+      onError('模型没有返回内容，请稍后重试')
     }
   }
 }

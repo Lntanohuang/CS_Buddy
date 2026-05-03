@@ -1,4 +1,6 @@
 .DS_Store
+*.log
+.playwright-cli/
 
 # Python
 __pycache__/
