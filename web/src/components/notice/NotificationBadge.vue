@@ -122,7 +122,7 @@ onBeforeUnmount(() => {
           class="notification-item"
           :class="{ 'notification-item--unread': !message.read }"
         >
-          <div class="notification-item__marker" />
+          <div v-if="!message.read" class="notification-item__marker" />
           <button class="notification-item__main" type="button" @click="openMessage(message)">
             <div class="notification-item__body">
               <div class="notification-item__top">
@@ -180,6 +180,25 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(var(--accent-secondary-rgb), 0.72);
   border-radius: 18px;
   animation: ripple 1.2s ease-out 2;
+}
+
+:global(.notification-popover) {
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: var(--shadow-lg) !important;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+:global(.notification-popover.el-popper) {
+  padding: 16px !important;
+}
+
+:global(.notification-popover .el-popper__arrow::before) {
+  border: 0 !important;
+  background: rgba(255, 255, 255, 0.94) !important;
 }
 
 .notification-badge {
