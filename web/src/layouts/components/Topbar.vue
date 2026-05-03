@@ -1,13 +1,34 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { Expand, Fold } from '@element-plus/icons-vue'
 import NotificationBadge from '@/components/notice/NotificationBadge.vue'
 import { useAuthStore } from '@/stores/auth'
+import defaultAvatar from '@/assets/avatar-default.svg'
 import { useNotificationStore } from '@/stores/notification'
+import { useLayoutStore } from '@/stores/layout'
+import { useChatStore } from '@/stores/chat'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const layoutStore = useLayoutStore()
+const chatStore = useChatStore()
+const isMobile = ref(typeof window !== 'undefined' ? window.innerWidth < 960 : false)
+
+function handleResize() {
+  if (typeof window === 'undefined') return
+  isMobile.value = window.innerWidth < 960
+}
+
+onMounted(() => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 const pageMetaMap: Record<string, string> = {
   chat: '对话课堂',
@@ -22,8 +43,10 @@ const currentTitle = computed(() => {
   return pageMetaMap[name] ?? 'CS Buddy'
 })
 
+const isChatRoute = computed(() => route.name === 'chat')
+const activeSessionTitle = computed(() => chatStore.activeSession?.title ?? '新对话')
+
 const displayName = computed(() => authStore.nickname || '用户')
-const avatarText = computed(() => displayName.value.slice(0, 1).toUpperCase())
 const recommendationText = computed(() => {
   const recommendation = notificationStore.todayRecommendation
   return `${recommendation.title} · ${recommendation.est_minutes} 分钟`
@@ -33,12 +56,22 @@ const recommendationText = computed(() => {
 <template>
   <header class="topbar">
     <div class="topbar__left">
-      <div class="topbar__brand">
-        <span class="topbar__logo">🌿</span>
-        <strong class="topbar__brand-name">CS Buddy</strong>
-      </div>
-      <span class="topbar__divider" />
+      <button
+        v-if="isMobile"
+        class="topbar__menu"
+        type="button"
+        :aria-label="layoutStore.isCollapse ? '打开侧边栏' : '折叠侧边栏'"
+        @click="layoutStore.toggleCollapse()"
+      >
+        <el-icon :size="18">
+          <component :is="layoutStore.isCollapse ? Expand : Fold" />
+        </el-icon>
+      </button>
       <h1 class="topbar__title">{{ currentTitle }}</h1>
+      <div v-if="isChatRoute" class="topbar__session">
+        <span class="topbar__session-sep">丨</span>
+        <span class="topbar__session-title">{{ activeSessionTitle }}</span>
+      </div>
     </div>
 
     <div class="topbar__right">
@@ -50,7 +83,9 @@ const recommendationText = computed(() => {
       <NotificationBadge />
 
       <div class="topbar__user">
-        <div class="topbar__user-avatar">{{ avatarText }}</div>
+        <div class="topbar__user-avatar">
+          <img :src="defaultAvatar" :alt="displayName" />
+        </div>
         <strong class="topbar__user-name">{{ displayName }}</strong>
       </div>
     </div>
@@ -76,7 +111,6 @@ const recommendationText = computed(() => {
 
 .topbar__left,
 .topbar__right,
-.topbar__brand,
 .topbar__user,
 .topbar__recommend {
   display: flex;
@@ -88,36 +122,57 @@ const recommendationText = computed(() => {
   min-width: 0;
 }
 
+.topbar__menu {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.topbar__menu:hover {
+  background: var(--bg-hover);
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 20%, var(--border));
+}
+
 .topbar__right {
   gap: 12px;
-}
-
-.topbar__brand {
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.topbar__logo {
-  font-size: 18px;
-  line-height: 1;
-}
-
-.topbar__brand-name {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 700;
-}
-
-.topbar__divider {
-  width: 1px;
-  height: 18px;
-  background: var(--border);
 }
 
 .topbar__title {
   margin: 0;
   font-size: 19px;
   line-height: 1.2;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar__session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 6px;
+  min-width: 0;
+}
+
+.topbar__session-sep {
+  color: var(--border-strong);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.topbar__session-title {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -161,10 +216,16 @@ const recommendationText = computed(() => {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--accent-primary);
-  color: var(--bg-card);
-  font-size: 12px;
-  font-weight: 700;
+  background: transparent;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.topbar__user-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .topbar__user-name {
@@ -186,13 +247,17 @@ const recommendationText = computed(() => {
   }
 }
 
+@media (min-width: 960px) {
+  .topbar__menu {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .topbar {
     padding: 10px 14px;
   }
 
-  .topbar__divider,
-  .topbar__brand-name,
   .topbar__recommend-label,
   .topbar__user-name {
     display: none;

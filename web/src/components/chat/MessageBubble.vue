@@ -7,6 +7,7 @@ import ResourceCard from './ResourceCard.vue'
 import MindmapViewer from '@/components/resource/MindmapViewer.vue'
 import CodeViewer from '@/components/resource/CodeViewer.vue'
 import VideoCard from '@/components/resource/VideoCard.vue'
+import { useUserStore } from '@/stores/user'
 
 const props = defineProps<{
   message: ChatMessage
@@ -35,6 +36,8 @@ const MermaidRenderer = defineAsyncComponent({
   suspensible: false,
   timeout: 10000,
 })
+
+const userStore = useUserStore()
 
 const isUser = computed(() => props.message.role === 'USER')
 
@@ -84,14 +87,16 @@ const contentParts = computed(() => {
 })
 
 const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 'mermaid'))
+const userAvatar = computed(() => userStore.userInfo.avatar)
+const userName = computed(() => userStore.userInfo.name || '你')
 </script>
 
 <template>
   <div class="message-row" :class="{ 'message-row--user': isUser, 'message-row--assistant': !isUser }">
     <!-- Avatar -->
-    <div class="message-avatar" :class="{ 'message-avatar--user': isUser, 'message-avatar--assistant': !isUser }">
-      <span v-if="isUser">你</span>
-      <span v-else>✦</span>
+    <div v-if="isUser" class="message-avatar message-avatar--user">
+      <img v-if="userAvatar" :src="userAvatar" :alt="userName" />
+      <span v-else>你</span>
     </div>
 
     <!-- Bubble + timestamp -->
@@ -163,16 +168,17 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
 .message-row {
   display: flex;
   gap: 10px;
-  max-width: 80%;
+  width: 100%;
 }
 
 .message-row--user {
   align-self: flex-end;
   flex-direction: row-reverse;
+  max-width: 80%;
 }
 
 .message-row--assistant {
-  align-self: flex-start;
+  align-self: stretch;
 }
 
 /* Avatar */
@@ -186,17 +192,21 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
   flex-shrink: 0;
   font-size: 13px;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .message-avatar--user {
-  background: var(--accent-primary);
-  color: var(--bg-card);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
-.message-avatar--assistant {
-  background: var(--accent-secondary);
-  color: var(--bg-card);
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 /* Body */
@@ -204,16 +214,19 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
   display: flex;
   flex-direction: column;
   min-width: 0;
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .message-row--user .message-body {
   align-items: flex-end;
+  margin-top: 6px;
 }
 
 .message-row--assistant .message-body {
-  align-items: flex-start;
+  align-items: stretch;
+  width: 100%;
 }
+
 
 /* Bubble */
 .message-bubble {
@@ -230,12 +243,12 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
 }
 
 .message-bubble--assistant {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  padding: 14px 18px;
-  border-radius: 16px;
-  border-top-left-radius: 2px;
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
 }
 
 /* Text */
@@ -249,6 +262,7 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
   font-size: 14px;
   line-height: 1.6;
   color: var(--text-primary);
+  width: 100%;
 }
 
 /* Timestamp */

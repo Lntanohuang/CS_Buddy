@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import heroAvatar from '@/assets/hero.png'
+import defaultAvatar from '@/assets/avatar-default.svg'
 import type { DashboardUserInfo, LearningRadarMetric, UserProfile } from '@/types'
 
 type DialoguePayload = {
@@ -108,7 +108,7 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref<DashboardUserInfo>({
     id: userId.value,
     name: '林知夏',
-    avatar: heroAvatar,
+    avatar: defaultAvatar,
     role: 'AI 多模态学习营学员',
     goal: '考试与面试冲刺',
     major: major.value,
@@ -194,7 +194,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo.value = {
       id: userId.value,
       name: '林知夏',
-      avatar: heroAvatar,
+      avatar: defaultAvatar,
       role: 'AI 多模态学习营学员',
       goal: GOAL_LABELS.EXAM_PREP,
       major: major.value,

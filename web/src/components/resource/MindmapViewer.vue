@@ -63,9 +63,10 @@ const pillClass = computed(() => {
   width: max-content;
 }
 
-.mindmap-node--root {
+.mindmap-node {
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .mindmap-pill {
@@ -97,56 +98,56 @@ const pillClass = computed(() => {
 }
 
 .mindmap-children {
-  margin-left: 16px;
-  padding-top: 4px;
-}
-
-.mindmap-children--nested {
-  margin-left: 12px;
-}
-
-.mindmap-branch {
   display: flex;
-  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 40px);
+  padding-top: 24px;
   position: relative;
 }
 
-.mindmap-connector {
-  display: flex;
-  align-items: flex-start;
-  flex-shrink: 0;
-  width: 20px;
-  position: relative;
-  height: 100%;
-  min-height: 32px;
-}
-
-.mindmap-connector__vline {
+.mindmap-children::before {
+  content: '';
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--border);
-}
-
-.mindmap-connector__hline {
-  position: absolute;
-  left: 0;
-  top: 16px;
-  width: 20px;
+  top: 12px;
+  left: 20px;
+  right: 20px;
   height: 1px;
   background: var(--border);
 }
 
-.mindmap-branch:last-child > .mindmap-connector > .mindmap-connector__vline {
-  height: 16px;
+.mindmap-children--nested {
+  gap: clamp(14px, 2.6vw, 32px);
+  padding-top: 20px;
+}
+
+.mindmap-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding-top: 12px;
+}
+
+.mindmap-branch::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+  transform: translateX(-50%);
+}
+
+.mindmap-connector {
+  display: none;
 }
 
 .mindmap-subtree {
   display: flex;
   flex-direction: column;
-  padding: 6px 0;
+  align-items: center;
+  padding: 0;
 }
 
 .mindmap-subtree :deep(.mindmap-node > .mindmap-pill) {

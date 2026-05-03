@@ -12,7 +12,7 @@ import { useChatStore } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
 import type { LilSealAction } from '@/components/pet/types'
 import ChatInput from '@/components/chat/ChatInput.vue'
-import SmartBlackboard from '@/components/chat/SmartBlackboard.vue'
+import ChatMessageList from '@/components/chat/ChatMessageList.vue'
 import LilSealPet from '@/components/pet/LilSealPet.vue'
 
 const chatStore = useChatStore()
@@ -150,12 +150,11 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
   <div class="chat-view">
     <div class="classroom-stage">
       <main class="teaching-zone">
-        <SmartBlackboard
-          :current-message="currentResponse"
-          :current-question="currentQuestion"
-          :is-thinking="isAgentWorking"
-          :is-generating="isGenerating"
+        <ChatMessageList
+          :messages="activeMessages"
+          :is-streaming="isStreaming"
           :agent-steps="agentSteps"
+          :is-agent-working="isAgentWorking"
           @feedback="handleFeedback"
         />
       </main>
@@ -284,6 +283,10 @@ function handleFeedback(payload: { messageId: string; feedback: 'USEFUL' | 'NOT_
 .teaching-zone {
   grid-column: 1;
   grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .learning-status {
