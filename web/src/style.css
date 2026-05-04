@@ -46,8 +46,8 @@
   --score-low-light: var(--status-error-light);
 
   /* 代码块 */
-  --code-bg: #2F3437;
-  --code-text: #E8E6E3;
+  --code-bg: #ECECF1;
+  --code-text: var(--text-primary);
 
   /* 阴影 */
   --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.04);

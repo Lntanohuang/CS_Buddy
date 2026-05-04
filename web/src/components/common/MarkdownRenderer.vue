@@ -9,10 +9,36 @@ const props = defineProps<{
 const { render } = useMarkdown()
 
 const renderedHtml = computed(() => render(props.content))
+
+function onRendererClick(event: MouseEvent) {
+  const target = event.target as HTMLElement | null
+  const btn = target?.closest('.code-block-copy') as HTMLButtonElement | null
+  if (!btn) return
+  const block = btn.closest('.code-block')
+  const code = block?.querySelector('pre code')?.textContent ?? ''
+  if (!code) return
+  const finish = () => {
+    btn.classList.add('is-copied')
+    window.setTimeout(() => btn.classList.remove('is-copied'), 1500)
+  }
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(code).then(finish).catch(() => finish())
+  } else {
+    const ta = document.createElement('textarea')
+    ta.value = code
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.select()
+    try { document.execCommand('copy') } catch { /* ignore */ }
+    document.body.removeChild(ta)
+    finish()
+  }
+}
 </script>
 
 <template>
-  <div class="markdown-renderer" v-html="renderedHtml" />
+  <div class="markdown-renderer" v-html="renderedHtml" @click="onRendererClick" />
 </template>
 
 <style scoped>
@@ -47,8 +73,8 @@ const renderedHtml = computed(() => render(props.content))
 }
 
 .markdown-renderer :deep(pre) {
-  background: var(--text-primary);
-  color: var(--border);
+  background: var(--code-bg);
+  color: var(--code-text);
   padding: 14px 18px;
   border-radius: 8px;
   overflow-x: auto;
@@ -62,6 +88,93 @@ const renderedHtml = computed(() => render(props.content))
   color: inherit;
   padding: 0;
   font-size: inherit;
+}
+
+/* ===== Code block with header + copy button ===== */
+.markdown-renderer :deep(.code-block) {
+  position: relative;
+  margin: 0.75em 0;
+  background: var(--code-bg);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.markdown-renderer :deep(.code-block-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 18px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.markdown-renderer :deep(.code-block-lang) {
+  font-family: var(--font-mono);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.markdown-renderer :deep(.code-block-copy) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.markdown-renderer :deep(.code-block:hover .code-block-copy),
+.markdown-renderer :deep(.code-block-copy:focus-visible) {
+  opacity: 1;
+}
+
+.markdown-renderer :deep(.code-block-copy:hover) {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-primary);
+}
+
+.markdown-renderer :deep(.code-block-copy-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.markdown-renderer :deep(.code-block-copy-icon--check) {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  color: var(--status-success);
+}
+
+.markdown-renderer :deep(.code-block-copy.is-copied) {
+  opacity: 1;
+  color: var(--status-success);
+}
+
+.markdown-renderer :deep(.code-block-copy.is-copied .code-block-copy-icon--copy) {
+  opacity: 0;
+}
+
+.markdown-renderer :deep(.code-block-copy.is-copied .code-block-copy-icon--check) {
+  opacity: 1;
+}
+
+/* Pre inside code-block: drop its own bg/radius so the wrapper takes over */
+.markdown-renderer :deep(.code-block pre) {
+  background: transparent;
+  margin: 0;
+  padding: 0 18px 14px;
+  border-radius: 0;
 }
 
 .markdown-renderer :deep(ul),
