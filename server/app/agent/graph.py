@@ -1,29 +1,28 @@
 from typing import Literal
 
 from langchain_core.messages import AIMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
+from pymongo import MongoClient
+
+# langgraph-checkpoint-mongodb==0.3.1 exposes MongoDBSaver (async-capable methods)
+# but may not export AsyncMongoDBSaver by name in all versions.
+try:
+    from langgraph.checkpoint.mongodb import AsyncMongoDBSaver
+except ImportError:  # pragma: no cover - compatibility fallback
+    from langgraph.checkpoint.mongodb import MongoDBSaver as AsyncMongoDBSaver
 
 from app.agent.skills import SKILLS
 from app.agent.state import AgentState
 from app.agent.tools import get_profile, search_knowledge
+from app.agent.model import create_chat_model
 from app.config import settings
 
 TOOLS = [get_profile, search_knowledge]
 
 
-def _create_model() -> ChatOpenAI:
-    model_kwargs = {
-        "model": settings.OPENAI_MODEL,
-        "api_key": settings.OPENAI_API_KEY,
-        "temperature": 0.2,
-        "streaming": True,
-    }
-    if settings.OPENAI_BASE_URL:
-        model_kwargs["base_url"] = settings.OPENAI_BASE_URL
-    return ChatOpenAI(**model_kwargs)
+def _create_model():
+    return create_chat_model(temperature=0.2)
 
 
 def tutor_node(state: AgentState) -> dict:
@@ -72,5 +71,10 @@ def build_graph():
     )
     graph_builder.add_edge("tools", "tutor")
 
-    checkpointer = MemorySaver()
+    # Replace in-memory checkpoints with MongoDB persistence via settings.MONGO_URI.
+    # settings.MONGO_URI defaults to mongodb://localhost:27017.
+    mongo_client = MongoClient(settings.MONGO_URI)
+    # Use app-level Mongo database name for checkpoint/session state storage.
+    checkpointer = AsyncMongoDBSaver(client=mongo_client, db_name=settings.MONGO_DB)
+    # compile() usage stays the same; async compatibility is handled by saver methods.
     return graph_builder.compile(checkpointer=checkpointer)

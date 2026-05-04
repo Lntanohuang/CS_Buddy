@@ -5,9 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
-from langchain_openai import ChatOpenAI
 
-from app.config import settings
+from app.agent.model import create_chat_model
 from app.db.collections import session_summaries, user_profiles
 
 
@@ -15,15 +14,8 @@ from app.db.collections import session_summaries, user_profiles
 # LLM 工厂（复用 graph.py 的配置）
 # ---------------------------------------------------------------------------
 
-def _create_model() -> ChatOpenAI:
-    kwargs: dict = {
-        "model": settings.OPENAI_MODEL,
-        "api_key": settings.OPENAI_API_KEY,
-        "temperature": 0.3,
-    }
-    if settings.OPENAI_BASE_URL:
-        kwargs["base_url"] = settings.OPENAI_BASE_URL
-    return ChatOpenAI(**kwargs)
+def _create_model():
+    return create_chat_model(temperature=0.3)
 
 
 def _format_messages(messages: list[BaseMessage], limit: int = 20) -> str:
@@ -115,7 +107,8 @@ async def generate_and_store_summary(
 
 
 def should_trigger_summary(message_count: int, interval: int = 10) -> bool:
-    return message_count > 0 and message_count % interval == 0
+    # 触发阈值为 >= interval，比如 message_count=20（10轮对话）时 >= 10 成立
+    return message_count >= interval
 
 
 # ---------------------------------------------------------------------------
