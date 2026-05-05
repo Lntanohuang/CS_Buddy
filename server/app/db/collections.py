@@ -29,3 +29,7 @@ def evaluations() -> AsyncIOMotorCollection:
 
 def learning_paths() -> AsyncIOMotorCollection:
     return get_db()["learning_paths"]
+
+
+def resource_feedbacks() -> AsyncIOMotorCollection:
+    return get_db()["resource_feedbacks"]

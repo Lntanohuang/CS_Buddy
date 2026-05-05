@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -56,3 +56,11 @@ class PathAdjustRequest(BaseModel):
     user_id: str = Field(..., min_length=1)
     knowledge_point: str = Field(..., min_length=1)
     action: str = Field(..., min_length=1)
+
+
+class ResourceFeedbackCreate(BaseModel):
+    resource_id: str = Field(..., min_length=1)
+    message_id: str = Field(..., min_length=1)
+    feedback: Literal["USEFUL", "NOT_USEFUL"]
+    user_id: str | None = None
+    comment: str | None = None
