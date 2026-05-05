@@ -128,7 +128,13 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
         tool_starts: dict[str, tuple[str, float]] = {}
         tool_calls: list[dict[str, Any]] = []
         graph_path: list[str] = []
-        graph_nodes = {"orchestrator", "tutor", "tools"}
+        graph_nodes = {
+            "orchestrator",
+            "explain_agent",
+            "quiz_agent",
+            "clarify_agent",
+            "tools",
+        }
         route_trace: dict[str, Any] = {}
         try:
             async for event in graph.astream_events(initial_state, version="v2", config=config):

@@ -13,7 +13,7 @@ def _route(
 ) -> dict[str, Any]:
     return {
         "router": "deterministic_v1",
-        "selected_node": "tutor",
+        "selected_node": f"{active_skill}_agent",
         "selected_skill": active_skill,
         "intent": intent,
         "active_skill": active_skill,

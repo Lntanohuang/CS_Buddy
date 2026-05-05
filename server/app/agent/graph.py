@@ -46,9 +46,9 @@ async def orchestrator_node(state: AgentState) -> dict:
     }
 
 
-async def tutor_node(state: AgentState) -> dict:
-    active_skill = state.get("active_skill") or "explain"
-    system_prompt = SKILLS.get(active_skill, SKILLS["explain"])
+async def _skill_node(state: AgentState, skill: str) -> dict:
+    active_skill = state.get("active_skill") or skill
+    system_prompt = SKILLS.get(skill, SKILLS["explain"])
 
     memory_block = state.get("memory_context") or ""
     if memory_block:
@@ -69,11 +69,34 @@ async def tutor_node(state: AgentState) -> dict:
 
     return {
         "messages": [response],
-        "active_skill": active_skill,
+        "active_skill": skill,
     }
 
 
-def _route_after_tutor(state: AgentState) -> Literal["tools", "__end__"]:
+async def explain_agent_node(state: AgentState) -> dict:
+    return await _skill_node(state, "explain")
+
+
+async def quiz_agent_node(state: AgentState) -> dict:
+    return await _skill_node(state, "quiz")
+
+
+async def clarify_agent_node(state: AgentState) -> dict:
+    return await _skill_node(state, "clarify")
+
+
+def _route_from_orchestrator(
+    state: AgentState,
+) -> Literal["explain_agent", "quiz_agent", "clarify_agent"]:
+    selected = (state.get("orchestrator_trace") or {}).get("selected_node")
+    if selected == "quiz_agent":
+        return "quiz_agent"
+    if selected == "clarify_agent":
+        return "clarify_agent"
+    return "explain_agent"
+
+
+def _route_after_skill(state: AgentState) -> Literal["tools", "__end__"]:
     messages = state.get("messages", [])
     if not messages:
         return END
@@ -85,23 +108,53 @@ def _route_after_tutor(state: AgentState) -> Literal["tools", "__end__"]:
     return END
 
 
+def _route_after_tools(
+    state: AgentState,
+) -> Literal["explain_agent", "quiz_agent", "clarify_agent"]:
+    active_skill = state.get("active_skill")
+    if active_skill == "quiz":
+        return "quiz_agent"
+    if active_skill == "clarify":
+        return "clarify_agent"
+    return "explain_agent"
+
+
 def build_graph():
     graph_builder = StateGraph(AgentState)
     graph_builder.add_node("orchestrator", orchestrator_node)
-    graph_builder.add_node("tutor", tutor_node)
+    graph_builder.add_node("explain_agent", explain_agent_node)
+    graph_builder.add_node("quiz_agent", quiz_agent_node)
+    graph_builder.add_node("clarify_agent", clarify_agent_node)
     graph_builder.add_node("tools", ToolNode(TOOLS))
 
     graph_builder.set_entry_point("orchestrator")
-    graph_builder.add_edge("orchestrator", "tutor")
     graph_builder.add_conditional_edges(
-        "tutor",
-        _route_after_tutor,
+        "orchestrator",
+        _route_from_orchestrator,
         {
-            "tools": "tools",
-            END: END,
+            "explain_agent": "explain_agent",
+            "quiz_agent": "quiz_agent",
+            "clarify_agent": "clarify_agent",
         },
     )
-    graph_builder.add_edge("tools", "tutor")
+    for node_name in ("explain_agent", "quiz_agent", "clarify_agent"):
+        graph_builder.add_conditional_edges(
+            node_name,
+            _route_after_skill,
+            {
+                "tools": "tools",
+                END: END,
+            },
+        )
+    graph_builder.add_conditional_edges(
+        "tools",
+        _route_after_tools,
+        {
+            "explain_agent": "explain_agent",
+            "quiz_agent": "quiz_agent",
+            "clarify_agent": "clarify_agent",
+        },
+    )
 
     # Replace in-memory checkpoints with MongoDB persistence via settings.MONGO_URI.
     # settings.MONGO_URI defaults to mongodb://localhost:27017.
