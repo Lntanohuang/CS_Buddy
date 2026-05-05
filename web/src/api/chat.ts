@@ -7,6 +7,7 @@ export interface SSEEvent {
 export async function streamChat(
   sessionId: string,
   message: string,
+  userId: string | undefined,
   onToken: (token: string) => void,
   onDone: (data?: Record<string, unknown>) => void,
   onError: (error: string) => void,
@@ -15,7 +16,7 @@ export async function streamChat(
   const res = await fetch('/api/v1/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ session_id: sessionId, message }),
+    body: JSON.stringify({ session_id: sessionId, message, user_id: userId }),
     signal,
   })
 

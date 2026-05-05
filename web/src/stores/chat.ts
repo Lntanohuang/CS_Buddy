@@ -5,6 +5,7 @@ import { mockSessions, mockMessages, mockAgentSteps } from '@/mock/data'
 import { usePathStore } from './path'
 import { useNotificationStore } from './notification'
 import { useProfileStore } from './profile'
+import { useAuthStore } from './auth'
 import { streamChat } from '@/api/chat'
 
 const STORAGE_SESSIONS_KEY = 'csbuddy_sessions'
@@ -140,6 +141,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function sendMessage(content: string) {
+    const authStore = useAuthStore()
     if (!activeSessionId.value) {
       createSession()
     }
@@ -201,6 +203,7 @@ export const useChatStore = defineStore('chat', () => {
       await streamChat(
         sid,
         content,
+        authStore.user?.user_id,
         (token) => {
           msgArray[assistantIdx] = {
             ...msgArray[assistantIdx],

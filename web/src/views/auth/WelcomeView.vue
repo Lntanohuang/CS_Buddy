@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useProfileStore } from '@/stores/profile'
 import { welcomeDialogueScript } from '@/mock/data'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import { upsertUserProfile } from '@/api/profile'
 
 const router = useRouter()
 const route = useRoute()
@@ -143,15 +144,33 @@ function wait(ms: number): Promise<void> {
 
 async function applyProfileUpdateAndRedirect(targetPath: string) {
   const profileStore = useProfileStore()
-  profileStore.initFromDialogue({
+  const dialogueProfile = {
     major: '计算机科学与技术',
     learning_goal: 'EXAM_PREP',
     current_level: 'INTERMEDIATE',
     preferred_style: 'PRACTICE',
-    cognitive_style: 'PRACTICAL',
+    cognitive_style: 'PRACTICAL' as const,
     daily_time_minutes: 60,
     subjects: ['DATA_STRUCTURE', 'ALGORITHM'],
-  })
+  }
+
+  profileStore.initFromDialogue(dialogueProfile)
+  const userId = authStore.user?.user_id
+  if (userId) {
+    try {
+      await upsertUserProfile(userId, {
+        ...dialogueProfile,
+        knowledge_mastery: profileStore.profile.knowledge_mastery,
+        error_patterns: profileStore.profile.error_patterns,
+        weak_points: profileStore.profile.weak_points,
+        style_weights: profileStore.profile.style_weights,
+        profile_complete: true,
+      })
+    } catch (error) {
+      console.warn('Profile persistence failed; continuing with local profile:', error)
+    }
+  }
+
   authStore.completeProfile()
   await router.push(targetPath)
 }

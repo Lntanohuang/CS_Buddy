@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.mongo import close_client
 from app.routers.chat import router as chat_router
+from app.routers.profile import router as profile_router
 
 
 @asynccontextmanager
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(chat_router, prefix="/api/v1")
+app.include_router(profile_router, prefix="/api/v1")
 
 
 @app.get("/health")

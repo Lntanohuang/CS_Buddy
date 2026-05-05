@@ -107,8 +107,8 @@ async def generate_and_store_summary(
 
 
 def should_trigger_summary(message_count: int, interval: int = 10) -> bool:
-    # 触发阈值为 >= interval，比如 message_count=20（10轮对话）时 >= 10 成立
-    return message_count >= interval
+    """每累计 interval 条新消息触发一次摘要。"""
+    return message_count >= interval and message_count % interval == 0
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +125,9 @@ DEFAULT_PROFILE = {
     "daily_time_minutes": 60,
     "knowledge_mastery": {},
     "weak_points": [],
+    "style_weights": {},
+    "subjects": [],
+    "profile_complete": False,
 }
 
 
@@ -149,6 +152,46 @@ async def ensure_default_profile(user_id: str) -> dict:
     await user_profiles().insert_one(profile)
     profile.pop("_id", None)
     return profile
+
+
+async def update_user_profile(user_id: str, updates: dict) -> dict:
+    """Merge a partial profile update into MongoDB and return the latest profile."""
+    profile_updates = {
+        key: value
+        for key, value in updates.items()
+        if value is not None and key != "user_id"
+    }
+    now = datetime.now(timezone.utc)
+    profile = {
+        "user_id": user_id,
+        **DEFAULT_PROFILE,
+        **profile_updates,
+        "updated_at": now,
+    }
+    insert_defaults = {
+        key: value
+        for key, value in DEFAULT_PROFILE.items()
+        if key not in profile_updates
+    }
+
+    await user_profiles().update_one(
+        {"user_id": user_id},
+        {
+            "$set": {
+                **profile_updates,
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "user_id": user_id,
+                **insert_defaults,
+                "created_at": now,
+            },
+        },
+        upsert=True,
+    )
+
+    latest = await load_user_profile(user_id)
+    return latest or profile
 
 
 def _format_profile(profile: dict) -> str:
@@ -237,6 +280,8 @@ async def build_memory_context(
     # 长期记忆：用户画像
     if user_id:
         profile = await load_user_profile(user_id)
+        if profile is None:
+            profile = await ensure_default_profile(user_id)
         if profile:
             parts.append(f"## 用户画像\n{_format_profile(profile)}")
 

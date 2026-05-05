@@ -190,12 +190,13 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
 
             # retrieval log
             try:
+                retrieved_contexts = _build_retrieved_contexts(retrieval_trace)
                 await log_retrieval(
                     session_id=payload.session_id,
-                    user_id=None,
+                    user_id=payload.user_id,
                     query=payload.message,
                     skill=active_skill,
-                    retrieved_chunks=[],
+                    retrieved_chunks=retrieved_contexts,
                     memory_context=memory_context or None,
                     response_length=len(full_response),
                     feedback=None,
