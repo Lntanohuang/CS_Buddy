@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from app.evaluation.service import create_evaluation, get_evaluation, list_evaluations
-from app.models.schemas import EvaluationCreate
+from app.evaluation.service import create_evaluation, get_evaluation, list_evaluations, submit_evaluation
+from app.models.schemas import EvaluationCreate, EvaluationSubmit
 
 router = APIRouter(prefix="/evaluations", tags=["evaluations"])
 
@@ -26,6 +26,18 @@ async def get_evaluations(
 @router.get("/{eval_id}")
 async def get_evaluation_by_id(eval_id: str) -> dict:
     evaluation = await get_evaluation(eval_id)
+    if evaluation is None:
+        raise HTTPException(status_code=404, detail="evaluation not found")
+    return evaluation
+
+
+@router.post("/{eval_id}/submit")
+async def post_evaluation_submit(eval_id: str, payload: EvaluationSubmit) -> dict:
+    evaluation = await submit_evaluation(
+        eval_id=eval_id,
+        answers=payload.answers,
+        time_spent_seconds=payload.time_spent_seconds,
+    )
     if evaluation is None:
         raise HTTPException(status_code=404, detail="evaluation not found")
     return evaluation

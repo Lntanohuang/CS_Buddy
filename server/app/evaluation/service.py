@@ -97,6 +97,20 @@ async def list_evaluations(user_id: str, limit: int = 20) -> list[dict]:
     return [_public_eval_doc(doc) or doc async for doc in cursor]
 
 
+async def submit_evaluation(
+    eval_id: str,
+    answers: list[EvaluationAnswer],
+    time_spent_seconds: int | None = None,
+) -> dict | None:
+    evaluation = await get_evaluation(eval_id)
+    if evaluation is None:
+        return None
+
+    scored = score_evaluation(evaluation, answers, time_spent_seconds)
+    await evaluations().update_one({"eval_id": eval_id}, {"$set": scored})
+    return scored
+
+
 def score_evaluation(evaluation: dict, answers: list[EvaluationAnswer], time_spent_seconds: int | None = None) -> dict:
     answer_map = {item.question_id: item.answer.strip() for item in answers}
     questions = deepcopy(evaluation.get("questions", []))
