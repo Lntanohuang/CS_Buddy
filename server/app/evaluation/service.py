@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.models.schemas import EvaluationAnswer
+from app.db.collections import evaluations
 
 
 DEFAULT_QUESTIONS = [
@@ -65,6 +66,35 @@ def build_evaluation(user_id: str, eval_type: str, knowledge_point: str) -> dict
         "created_at": now,
         "updated_at": now,
     }
+
+
+def _public_eval_doc(document: dict | None) -> dict | None:
+    if document is None:
+        return None
+    public_doc = dict(document)
+    public_doc.pop("_id", None)
+    return public_doc
+
+
+async def create_evaluation(user_id: str, eval_type: str, knowledge_point: str) -> dict:
+    document = build_evaluation(user_id, eval_type, knowledge_point)
+    await evaluations().insert_one(document)
+    return _public_eval_doc(document) or document
+
+
+async def get_evaluation(eval_id: str) -> dict | None:
+    document = await evaluations().find_one({"eval_id": eval_id})
+    return _public_eval_doc(document)
+
+
+async def list_evaluations(user_id: str, limit: int = 20) -> list[dict]:
+    cursor = (
+        evaluations()
+        .find({"user_id": user_id})
+        .sort("created_at", -1)
+        .limit(limit)
+    )
+    return [_public_eval_doc(doc) or doc async for doc in cursor]
 
 
 def score_evaluation(evaluation: dict, answers: list[EvaluationAnswer], time_spent_seconds: int | None = None) -> dict:
