@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notification'
@@ -42,6 +43,10 @@ function formatTime(dateStr: string) {
 
   return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
 }
+
+onMounted(() => {
+  notificationStore.loadNotifications()
+})
 </script>
 
 <template>

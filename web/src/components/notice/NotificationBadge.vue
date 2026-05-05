@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell, Delete } from '@element-plus/icons-vue'
 import { useNotificationStore } from '@/stores/notification'
@@ -76,6 +76,10 @@ onBeforeUnmount(() => {
   if (animationTimer) {
     clearTimeout(animationTimer)
   }
+})
+
+onMounted(() => {
+  notificationStore.loadNotifications()
 })
 </script>
 

@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Notification, NotificationMessage, NotificationType } from '@/types'
+import { listNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notification'
+import { useAuthStore } from './auth'
 
 type IncomingNotification = {
   type: NotificationType
@@ -57,6 +59,23 @@ function buildMessage(payload: IncomingNotification, createdAt = new Date().toIS
   }
 }
 
+function fromNotification(notification: Notification): NotificationMessage {
+  const actionUrl = notification.actionUrl ?? notification.action_url
+  return {
+    id: notification.id,
+    type: notification.type,
+    title: notification.title,
+    content: notification.content,
+    time: notification.createdAt ?? notification.created_at,
+    read: notification.read ?? notification.is_read,
+    createdAt: notification.createdAt ?? notification.created_at,
+    is_read: notification.is_read,
+    created_at: notification.created_at,
+    actionUrl,
+    action_url: actionUrl,
+  }
+}
+
 function syncReadState(message: NotificationMessage, read: boolean) {
   message.read = read
   message.is_read = read
@@ -77,22 +96,46 @@ export const useNotificationStore = defineStore('notification', () => {
 
   const unreadCount = computed(() => messageList.value.filter((message) => !message.read).length)
 
+  function currentUserId() {
+    const authStore = useAuthStore()
+    return authStore.user?.user_id ?? 'usr_a1b2c3d4'
+  }
+
+  async function loadNotifications(limit = 50) {
+    try {
+      const remoteNotifications = await listNotifications(currentUserId(), limit)
+      messageList.value = remoteNotifications.map(fromNotification)
+    } catch {
+      // Keep default/local notifications when the API is temporarily unavailable.
+    }
+  }
+
   function markRead(id: string) {
-    markAsRead(id)
+    void markAsRead(id)
   }
 
   function markAllRead() {
-    markAsRead()
+    void markAsRead()
   }
 
-  function markAsRead(id?: string) {
+  async function markAsRead(id?: string) {
     if (id) {
       const message = messageList.value.find((item) => item.id === id)
       if (message) syncReadState(message, true)
+      try {
+        await markNotificationRead(id)
+      } catch {
+        // Local read state is still useful if persistence fails.
+      }
       return
     }
 
     messageList.value.forEach((message) => syncReadState(message, true))
+    try {
+      await markAllNotificationsRead(currentUserId())
+    } catch {
+      // Local read state is still useful if persistence fails.
+    }
   }
 
   function receiveNewMessage(payload?: Partial<IncomingNotification>) {
@@ -128,6 +171,7 @@ export const useNotificationStore = defineStore('notification', () => {
     notifications,
     todayRecommendation,
     unreadCount,
+    loadNotifications,
     receiveNewMessage,
     markAsRead,
     markRead,
