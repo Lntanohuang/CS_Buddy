@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Query
 
-from app.db.collections import resource_feedbacks
+from app.db.collections import resource_feedbacks, retrieval_logs
 from app.models.schemas import ResourceFeedbackCreate
 
 router = APIRouter(prefix="/resources", tags=["resources"])
@@ -42,6 +42,10 @@ async def post_resource_feedback(payload: ResourceFeedbackCreate) -> dict:
             },
         },
         upsert=True,
+    )
+    await retrieval_logs().update_many(
+        {"message_id": payload.message_id},
+        {"$set": {"feedback": payload.feedback, "feedback_updated_at": now}},
     )
     document = await resource_feedbacks().find_one(selector)
     return _public_doc(document) or {}

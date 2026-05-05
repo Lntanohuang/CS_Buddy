@@ -211,7 +211,15 @@ export const useChatStore = defineStore('chat', () => {
           }
           triggerRef(messagesBySession)
         },
-        () => {
+        (data) => {
+          const messageId = data?.message_id
+          if (typeof messageId === 'string' && messageId.length > 0) {
+            msgArray[assistantIdx] = {
+              ...msgArray[assistantIdx],
+              message_id: messageId,
+            }
+            triggerRef(messagesBySession)
+          }
           isStreaming.value = false
           if (session) session.message_count += 1
           persist()

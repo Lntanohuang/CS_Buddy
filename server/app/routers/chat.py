@@ -198,10 +198,12 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
             }
 
             # retrieval log
+            assistant_message_id = str(uuid4())
             try:
                 retrieved_contexts = _build_retrieved_contexts(retrieval_trace)
                 await log_retrieval(
                     session_id=payload.session_id,
+                    message_id=assistant_message_id,
                     user_id=payload.user_id,
                     query=payload.message,
                     skill=active_skill,
@@ -230,7 +232,7 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                     print(f"[memory] 摘要触发失败: {e}")
 
             yield _serialize_sse_event(
-                SSEEvent(type="done", data={"message_id": str(uuid4()), "trace": trace})
+                SSEEvent(type="done", data={"message_id": assistant_message_id, "trace": trace})
             )
         except Exception as exc:
             yield _serialize_sse_event(

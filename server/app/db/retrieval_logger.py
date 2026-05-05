@@ -6,6 +6,7 @@ from app.db.collections import retrieval_logs
 
 async def log_retrieval(
     session_id: str,
+    message_id: str | None,
     user_id: str | None,
     query: str,
     skill: str,
@@ -17,6 +18,7 @@ async def log_retrieval(
 ) -> None:
     document = {
         "session_id": session_id,
+        "message_id": message_id,
         "user_id": user_id,
         "query": query,
         "skill": skill,
