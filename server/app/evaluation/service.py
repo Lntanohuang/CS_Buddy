@@ -7,6 +7,7 @@ from uuid import uuid4
 from app.models.schemas import EvaluationAnswer
 from app.db.collections import evaluations
 from app.learning_path.service import adjust_active_path
+from app.notifications.service import create_notification
 
 
 DEFAULT_QUESTIONS = [
@@ -122,8 +123,41 @@ async def submit_evaluation(
             "completed_nodes": adjusted_path["completed_nodes"],
             "total_nodes": adjusted_path["total_nodes"],
         }
+    await _create_eval_notifications(scored)
     await evaluations().update_one({"eval_id": eval_id}, {"$set": scored})
     return scored
+
+
+async def _create_eval_notifications(evaluation: dict) -> None:
+    try:
+        score = evaluation.get("score")
+        mastery = evaluation.get("mastery_level")
+        knowledge_point = evaluation.get("knowledge_point", "本次")
+        user_id = evaluation.get("user_id")
+        if not user_id:
+            return
+
+        mastery_label = f"{round(float(mastery) * 100)}%" if mastery is not None else "-"
+        await create_notification(
+            user_id=user_id,
+            notification_type="EVAL_RESULT",
+            title=f"{knowledge_point} 测评已完成",
+            content=f"得分 {score} 分，掌握度 {mastery_label}",
+            action_url="/app/evaluate",
+        )
+
+        recommendation = evaluation.get("recommendation") or {}
+        message = recommendation.get("message")
+        if message:
+            await create_notification(
+                user_id=user_id,
+                notification_type="STUDY_REMINDER",
+                title="学习路径已调整",
+                content=str(message),
+                action_url="/app/path",
+            )
+    except Exception:
+        return
 
 
 def score_evaluation(evaluation: dict, answers: list[EvaluationAnswer], time_spent_seconds: int | None = None) -> dict:
