@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
+import { submitResourceFeedback } from '@/api/resource'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   messageId: string
+  resourceId?: string
 }>()
 
 const emit = defineEmits<{
@@ -10,9 +13,21 @@ const emit = defineEmits<{
 }>()
 
 const submitted = shallowRef(false)
+const authStore = useAuthStore()
 
-function handleFeedback(feedback: 'USEFUL' | 'NOT_USEFUL') {
+async function handleFeedback(feedback: 'USEFUL' | 'NOT_USEFUL') {
   if (submitted.value) return
+  const resourceId = props.resourceId ?? `message:${props.messageId}`
+  try {
+    await submitResourceFeedback({
+      resource_id: resourceId,
+      message_id: props.messageId,
+      feedback,
+      user_id: authStore.user?.user_id,
+    })
+  } catch {
+    // Keep feedback UI responsive even if persistence is temporarily unavailable.
+  }
   submitted.value = true
   emit('feedback', { messageId: props.messageId, feedback })
 }

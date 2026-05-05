@@ -60,6 +60,10 @@ const normalizedResource = computed(() => {
 
 const resourceType = computed(() => normalizedResource.value?.resourceType ?? props.message.resource_type)
 
+const feedbackResourceId = computed(() =>
+  normalizedResource.value?.resourceId ?? `message:${props.message.message_id}`,
+)
+
 const formattedTime = computed(() => {
   const date = new Date(props.message.created_at)
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
@@ -163,7 +167,10 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
             :resource-type="normalizedResource.resourceType as any"
           />
 
-          <FeedbackButtons :message-id="message.message_id" />
+          <FeedbackButtons
+            :message-id="message.message_id"
+            :resource-id="feedbackResourceId"
+          />
         </div>
       </div>
 
