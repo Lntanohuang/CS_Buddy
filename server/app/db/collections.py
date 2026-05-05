@@ -33,3 +33,7 @@ def learning_paths() -> AsyncIOMotorCollection:
 
 def resource_feedbacks() -> AsyncIOMotorCollection:
     return get_db()["resource_feedbacks"]
+
+
+def notifications() -> AsyncIOMotorCollection:
+    return get_db()["notifications"]

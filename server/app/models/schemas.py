@@ -64,3 +64,11 @@ class ResourceFeedbackCreate(BaseModel):
     feedback: Literal["USEFUL", "NOT_USEFUL"]
     user_id: str | None = None
     comment: str | None = None
+
+
+class NotificationCreate(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    type: Literal["DAILY_RECOMMEND", "STUDY_REMINDER", "INACTIVE_RECALL", "EVAL_RESULT", "ACHIEVEMENT"]
+    title: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1)
+    action_url: str | None = None
