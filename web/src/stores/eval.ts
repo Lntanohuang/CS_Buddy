@@ -2,6 +2,8 @@ import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { Evaluation } from '@/types'
 import { mockEvaluation, mockEvalHistory } from '@/mock/data'
+import { createEvaluation, listEvaluations, submitEvaluation } from '@/api/evaluation'
+import { useAuthStore } from './auth'
 import { useProfileStore } from './profile'
 import { usePathStore } from './path'
 import { useNotificationStore } from './notification'
@@ -11,7 +13,27 @@ export const useEvalStore = defineStore('eval', () => {
   const activeEval = ref<Evaluation | null>(null)
   const isSubmitting = shallowRef(false)
 
-  function startEval(knowledgePoint: string) {
+  function currentUserId() {
+    const authStore = useAuthStore()
+    return authStore.user?.user_id ?? 'usr_a1b2c3d4'
+  }
+
+  async function loadHistory(limit = 20) {
+    try {
+      history.value = await listEvaluations(currentUserId(), limit)
+    } catch {
+      history.value = [...mockEvalHistory]
+    }
+  }
+
+  async function startEval(knowledgePoint: string) {
+    try {
+      activeEval.value = await createEvaluation(currentUserId(), knowledgePoint)
+      return
+    } catch {
+      // Keep the assessment flow usable when the API is not available.
+    }
+
     activeEval.value = {
       ...mockEvaluation,
       eval_id: `eval_${Date.now()}`,
@@ -33,6 +55,52 @@ export const useEvalStore = defineStore('eval', () => {
     if (!activeEval.value) return
 
     isSubmitting.value = true
+    try {
+      const submitted = await submitEvaluation(
+        activeEval.value.eval_id,
+        activeEval.value.questions,
+        activeEval.value.time_spent_seconds ?? 180,
+      )
+      activeEval.value = submitted
+
+      const mastery = submitted.mastery_level ?? 0
+      const score = submitted.score ?? Math.round(mastery * 100)
+      const weakPoints = submitted.weak_point_analysis ?? []
+
+      const profileStore = useProfileStore()
+      profileStore.updateMastery(submitted.knowledge_point, mastery)
+      if (weakPoints.length > 0) {
+        const existingPatterns = new Set(profileStore.profile.error_patterns)
+        for (const wp of weakPoints) {
+          existingPatterns.add(wp)
+        }
+        profileStore.updateProfile({ error_patterns: Array.from(existingPatterns) })
+      }
+
+      const pathStore = usePathStore()
+      await pathStore.loadActivePath()
+
+      const notificationStore = useNotificationStore()
+      notificationStore.addNotification({
+        type: 'EVAL_RESULT',
+        title: `${submitted.knowledge_point} 测评已完成`,
+        content: `得分 ${score} 分，掌握度 ${Math.round(mastery * 100)}%`,
+        action_url: '/app/evaluate',
+      })
+      notificationStore.addNotification({
+        type: 'STUDY_REMINDER',
+        title: '学习路径已调整',
+        content: `根据「${submitted.knowledge_point}」测评结果，已优化你的学习路径`,
+        action_url: '/app/path',
+      })
+
+      history.value.unshift({ ...submitted })
+      isSubmitting.value = false
+      return
+    } catch {
+      // Fall through to local scoring so the page remains usable offline.
+    }
+
     // Simulate AI analysis delay
     await new Promise((r) => setTimeout(r, 1000))
 
@@ -151,5 +219,6 @@ export const useEvalStore = defineStore('eval', () => {
     submitAnswer,
     submitEval,
     clearActiveEval,
+    loadHistory,
   }
 })

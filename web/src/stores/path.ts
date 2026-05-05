@@ -2,10 +2,14 @@ import { ref, shallowRef, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { LearningPath, PathNode } from '@/types'
 import { mockPath } from '@/mock/data'
+import { getActiveLearningPath, adjustLearningPath } from '@/api/learningPath'
+import { useAuthStore } from './auth'
 
 export const usePathStore = defineStore('path', () => {
   const path = ref<LearningPath>({ ...mockPath, nodes: mockPath.nodes.map((n) => ({ ...n })) })
   const updateHint = shallowRef('')
+  const isLoading = shallowRef(false)
+  const loadError = shallowRef('')
 
   const progressPercent = computed(() =>
     path.value.total_nodes > 0
@@ -16,6 +20,31 @@ export const usePathStore = defineStore('path', () => {
   const currentNode = computed<PathNode | undefined>(() =>
     path.value.nodes.find((n) => n.status === 'IN_PROGRESS')
   )
+
+  function currentUserId() {
+    const authStore = useAuthStore()
+    return authStore.user?.user_id ?? 'usr_a1b2c3d4'
+  }
+
+  function setPath(nextPath: LearningPath) {
+    path.value = {
+      ...nextPath,
+      nodes: nextPath.nodes.map((node) => ({ ...node })),
+    }
+  }
+
+  async function loadActivePath(userId = currentUserId()) {
+    isLoading.value = true
+    loadError.value = ''
+    try {
+      const remotePath = await getActiveLearningPath(userId)
+      setPath(remotePath)
+    } catch (error) {
+      loadError.value = error instanceof Error ? error.message : '学习路径加载失败'
+    } finally {
+      isLoading.value = false
+    }
+  }
 
   function completeNode(nodeId: string) {
     const node = path.value.nodes.find((n) => n.node_id === nodeId)
@@ -50,7 +79,17 @@ export const usePathStore = defineStore('path', () => {
     setTimeout(() => { updateHint.value = '' }, 5000)
   }
 
-  function reorderAfterEval(knowledgePoint: string, action: 'ADVANCE' | 'SUPPLEMENT' | 'RETREAT') {
+  async function reorderAfterEval(knowledgePoint: string, action: 'ADVANCE' | 'SUPPLEMENT' | 'RETREAT') {
+    try {
+      const remotePath = await adjustLearningPath(currentUserId(), knowledgePoint, action)
+      setPath(remotePath)
+      updateHint.value = '根据测评结果，已更新学习路径'
+      setTimeout(() => { updateHint.value = '' }, 5000)
+      return
+    } catch (error) {
+      loadError.value = error instanceof Error ? error.message : '学习路径调整失败'
+    }
+
     if (action === 'ADVANCE') {
       // Complete the current node for this knowledge point
       const node = path.value.nodes.find(
@@ -89,5 +128,18 @@ export const usePathStore = defineStore('path', () => {
     updateHint.value = ''
   }
 
-  return { path, progressPercent, currentNode, updateHint, completeNode, skipNode, addNodes, reorderAfterEval, dismissHint }
+  return {
+    path,
+    progressPercent,
+    currentNode,
+    updateHint,
+    isLoading,
+    loadError,
+    loadActivePath,
+    completeNode,
+    skipNode,
+    addNodes,
+    reorderAfterEval,
+    dismissHint,
+  }
 })

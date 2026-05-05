@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePathStore } from '@/stores/path'
 import { useEvalStore } from '@/stores/eval'
@@ -29,14 +29,18 @@ function handleSkip(nodeId: string) {
   pathStore.skipNode(nodeId)
 }
 
-function handleStartEval(knowledgePoint: string) {
-  evalStore.startEval(knowledgePoint)
+async function handleStartEval(knowledgePoint: string) {
+  await evalStore.startEval(knowledgePoint)
   router.push('/app/evaluate')
 }
 
 function handleSelect(_nodeId: string) {
   // Could navigate to node detail in the future
 }
+
+onMounted(() => {
+  pathStore.loadActivePath()
+})
 </script>
 
 <template>

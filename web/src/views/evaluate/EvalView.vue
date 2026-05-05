@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useEvalStore } from '@/stores/eval'
 import type { Evaluation } from '@/types'
 import QuizPanel from '@/components/evaluate/QuizPanel.vue'
@@ -26,9 +26,9 @@ function openDialog() {
   dialogVisible.value = true
 }
 
-function confirmStartEval() {
+async function confirmStartEval() {
   if (!selectedKP.value) return
-  evalStore.startEval(selectedKP.value)
+  await evalStore.startEval(selectedKP.value)
   dialogVisible.value = false
 }
 
@@ -77,6 +77,10 @@ const typeLabel: Record<string, string> = {
 const isQuizMode = computed(() => evalStore.activeEval !== null)
 const isPending = computed(() => evalStore.activeEval?.status === 'PENDING' || evalStore.activeEval?.status === 'SUBMITTED')
 const isAnalyzed = computed(() => evalStore.activeEval?.status === 'ANALYZED')
+
+onMounted(() => {
+  evalStore.loadHistory()
+})
 </script>
 
 <template>
