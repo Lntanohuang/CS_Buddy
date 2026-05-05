@@ -8,6 +8,7 @@ from app.routers.chat import router as chat_router
 from app.routers.evaluations import router as evaluations_router
 from app.routers.learning_paths import router as learning_paths_router
 from app.routers.notifications import router as notifications_router
+from app.routers.observability import router as observability_router
 from app.routers.profile import router as profile_router
 from app.routers.resources import router as resources_router
 
@@ -32,6 +33,7 @@ app.include_router(chat_router, prefix="/api/v1")
 app.include_router(evaluations_router, prefix="/api/v1")
 app.include_router(learning_paths_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(observability_router, prefix="/api/v1")
 app.include_router(profile_router, prefix="/api/v1")
 app.include_router(resources_router, prefix="/api/v1")
 
