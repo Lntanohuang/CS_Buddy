@@ -34,11 +34,31 @@ const MermaidRenderer = defineAsyncComponent({
 
 const isUser = computed(() => props.message.role === 'USER')
 
-const hasResourceCard = computed(() => {
-  return props.message.metadata?.type === 'resource_card'
+const normalizedResource = computed(() => {
+  const metadata = props.message.metadata
+  if (metadata?.type !== 'resource_card') return null
+
+  const resourceType = String(metadata.resource_type ?? props.message.resource_type ?? 'doc') as NonNullable<ChatMessage['resource_type']>
+  const knowledgePoint = String(metadata.knowledge_point ?? metadata.knowledgePoint ?? resourceType)
+  const title = String(metadata.title ?? `${knowledgePoint} 学习资源`)
+  const difficulty = String(metadata.difficulty ?? 'INTERMEDIATE')
+  const rawMinutes = metadata.est_minutes ?? metadata.estMinutes
+  const estMinutes = typeof rawMinutes === 'number' && Number.isFinite(rawMinutes) ? rawMinutes : 15
+  const resourceId = String(
+    metadata.resource_id ?? `${props.message.message_id}:${resourceType}:${knowledgePoint}`,
+  )
+
+  return {
+    resourceId,
+    resourceType,
+    title,
+    difficulty,
+    estMinutes,
+    knowledgePoint,
+  }
 })
 
-const resourceType = computed(() => props.message.resource_type)
+const resourceType = computed(() => normalizedResource.value?.resourceType ?? props.message.resource_type)
 
 const formattedTime = computed(() => {
   const date = new Date(props.message.created_at)
@@ -135,12 +155,12 @@ const hasMermaidBlocks = computed(() => contentParts.value.some(p => p.type === 
           />
 
           <ResourceCard
-            v-if="hasResourceCard"
-            :title="(message.metadata!.title as string)"
-            :difficulty="(message.metadata!.difficulty as string)"
-            :est-minutes="(message.metadata!.est_minutes as number)"
-            :knowledge-point="(message.metadata!.knowledge_point as string)"
-            :resource-type="(message.metadata!.resource_type as any)"
+            v-if="normalizedResource"
+            :title="normalizedResource.title"
+            :difficulty="normalizedResource.difficulty"
+            :est-minutes="normalizedResource.estMinutes"
+            :knowledge-point="normalizedResource.knowledgePoint"
+            :resource-type="normalizedResource.resourceType as any"
           />
 
           <FeedbackButtons :message-id="message.message_id" />
