@@ -25,17 +25,6 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 graph = build_graph()
 
 
-def _detect_active_skill(message: str) -> str:
-    lower = message.lower()
-    if "出题" in message or "练习" in message or "quiz" in lower:
-        return "quiz"
-    if any(kw in message for kw in ["讲讲", "解释", "什么是", "原理", "怎么", "如何", "区别"]) or any(
-        kw in lower for kw in ["explain", "how", "what is"]
-    ):
-        return "explain"
-    return "clarify"
-
-
 def _serialize_sse_event(event: SSEEvent) -> dict[str, str]:
     payload = json.dumps(
         event.model_dump(exclude_none=True),
@@ -101,8 +90,6 @@ def _create_langfuse_handler(session_id: str, skill: str) -> CallbackHandler | N
 
 @router.post("/stream")
 async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResponse:
-    active_skill = _detect_active_skill(payload.message)
-
     # 获取当前会话消息数（从 checkpointer state）
     thread_config = {"configurable": {"thread_id": payload.session_id}}
     try:
@@ -123,12 +110,11 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
 
     initial_state = {
         "messages": [HumanMessage(content=payload.message)],
-        "active_skill": active_skill,
     }
     if memory_context:
         initial_state["memory_context"] = memory_context
 
-    langfuse_handler = _create_langfuse_handler(payload.session_id, active_skill)
+    langfuse_handler = _create_langfuse_handler(payload.session_id, "orchestrator")
     config = {"configurable": {"thread_id": payload.session_id}}
     if langfuse_handler:
         config["callbacks"] = [langfuse_handler]
@@ -142,7 +128,8 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
         tool_starts: dict[str, tuple[str, float]] = {}
         tool_calls: list[dict[str, Any]] = []
         graph_path: list[str] = []
-        graph_nodes = {"tutor", "tools"}
+        graph_nodes = {"orchestrator", "tutor", "tools"}
+        route_trace: dict[str, Any] = {}
         try:
             async for event in graph.astream_events(initial_state, version="v2", config=config):
                 if await request.is_disconnected():
@@ -154,6 +141,12 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
 
                 if event_type == "on_chain_start" and event_name in graph_nodes:
                     graph_path.append(event_name)
+                elif event_type == "on_chain_end" and event_name == "orchestrator":
+                    output = event.get("data", {}).get("output") or {}
+                    if isinstance(output, dict):
+                        route = output.get("orchestrator_trace") or output
+                        if isinstance(route, dict):
+                            route_trace = route
                 elif event_type == "on_tool_start":
                     tool_starts[run_id] = (event_name, time.monotonic())
                 elif event_type == "on_tool_end":
@@ -180,8 +173,18 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                 yield _serialize_sse_event(SSEEvent(type="token", content=token))
 
             latency_ms = int((time.time() - start_time) * 1000)
+            active_skill = str(route_trace.get("active_skill") or "explain")
             trace = {
                 "skill_id": active_skill,
+                "intent": route_trace.get("intent"),
+                "resource_type": route_trace.get("resource_type"),
+                "intent_confidence": route_trace.get("confidence"),
+                "intent_reason": route_trace.get("reason"),
+                "orchestrator": {
+                    "router": route_trace.get("router"),
+                    "selected_node": route_trace.get("selected_node"),
+                    "selected_skill": route_trace.get("selected_skill"),
+                },
                 "tool_calls": tool_calls,
                 "retrieved_contexts": _build_retrieved_contexts(retrieval_trace),
                 "graph_path": graph_path,

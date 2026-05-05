@@ -1,6 +1,6 @@
 from typing import Literal
 
-from langchain_core.messages import AIMessage, SystemMessage, message_chunk_to_message
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, message_chunk_to_message
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 from pymongo import MongoClient
@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover - compatibility fallback
 from app.agent.skills import SKILLS
 from app.agent.state import AgentState
 from app.agent.tools import get_profile, search_knowledge
+from app.agent.intent import classify_intent
 from app.agent.model import create_chat_model
 from app.config import settings
 
@@ -23,6 +24,26 @@ TOOLS = [get_profile, search_knowledge]
 
 def _create_model():
     return create_chat_model(temperature=0.2)
+
+
+async def orchestrator_node(state: AgentState) -> dict:
+    messages = state.get("messages", [])
+    latest_user_text = ""
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage):
+            content = message.content
+            latest_user_text = content if isinstance(content, str) else str(content)
+            break
+
+    route = classify_intent(latest_user_text)
+    return {
+        "active_skill": route["active_skill"],
+        "intent": route["intent"],
+        "resource_type": route["resource_type"],
+        "intent_confidence": route["confidence"],
+        "intent_reason": route["reason"],
+        "orchestrator_trace": route,
+    }
 
 
 async def tutor_node(state: AgentState) -> dict:
@@ -66,10 +87,12 @@ def _route_after_tutor(state: AgentState) -> Literal["tools", "__end__"]:
 
 def build_graph():
     graph_builder = StateGraph(AgentState)
+    graph_builder.add_node("orchestrator", orchestrator_node)
     graph_builder.add_node("tutor", tutor_node)
     graph_builder.add_node("tools", ToolNode(TOOLS))
 
-    graph_builder.set_entry_point("tutor")
+    graph_builder.set_entry_point("orchestrator")
+    graph_builder.add_edge("orchestrator", "tutor")
     graph_builder.add_conditional_edges(
         "tutor",
         _route_after_tutor,
