@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Request
@@ -10,6 +11,7 @@ from langfuse.langchain import CallbackHandler
 from sse_starlette.sse import EventSourceResponse
 
 from app.agent.graph import build_graph
+from app.agent.tools import RETRIEVAL_TRACE
 from app.config import settings
 from app.db.retrieval_logger import log_retrieval
 from app.memory.service import (
@@ -35,7 +37,11 @@ def _detect_active_skill(message: str) -> str:
 
 
 def _serialize_sse_event(event: SSEEvent) -> dict[str, str]:
-    payload = json.dumps(event.model_dump(exclude_none=True), ensure_ascii=False)
+    payload = json.dumps(
+        event.model_dump(exclude_none=True),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     return {"data": payload}
 
 
@@ -56,6 +62,25 @@ def _extract_chunk_text(chunk: object) -> str:
         return "".join(parts)
 
     return ""
+
+
+def _build_retrieved_contexts(retrieval_trace: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    contexts: list[dict[str, Any]] = []
+    for trace_entry in retrieval_trace:
+        for result in trace_entry.get("results", []):
+            if not isinstance(result, dict):
+                continue
+            contexts.append(
+                {
+                    "source": result.get("source", ""),
+                    "course": result.get("course", ""),
+                    "header_1": result.get("header_1", ""),
+                    "header_2": result.get("header_2", ""),
+                    "header_3": result.get("header_3", ""),
+                    "score": result.get("score"),
+                }
+            )
+    return contexts
 
 
 _langfuse_env_set = False
@@ -110,13 +135,40 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
 
     async def event_generator():
         start_time = time.time()
+        monotonic_start = time.monotonic()
         full_response = ""
+        retrieval_trace: list[dict[str, Any]] = []
+        retrieval_token = RETRIEVAL_TRACE.set(retrieval_trace)
+        tool_starts: dict[str, tuple[str, float]] = {}
+        tool_calls: list[dict[str, Any]] = []
+        graph_path: list[str] = []
+        graph_nodes = {"tutor", "tools"}
         try:
             async for event in graph.astream_events(initial_state, version="v2", config=config):
                 if await request.is_disconnected():
                     break
 
-                if event.get("event") != "on_chat_model_stream":
+                event_type = event.get("event")
+                event_name = event.get("name", "")
+                run_id = str(event.get("run_id", ""))
+
+                if event_type == "on_chain_start" and event_name in graph_nodes:
+                    graph_path.append(event_name)
+                elif event_type == "on_tool_start":
+                    tool_starts[run_id] = (event_name, time.monotonic())
+                elif event_type == "on_tool_end":
+                    tool_name, tool_start = tool_starts.pop(
+                        run_id,
+                        (event_name, time.monotonic()),
+                    )
+                    tool_calls.append(
+                        {
+                            "name": tool_name,
+                            "duration_ms": int((time.monotonic() - tool_start) * 1000),
+                        }
+                    )
+
+                if event_type != "on_chat_model_stream":
                     continue
 
                 chunk = event.get("data", {}).get("chunk")
@@ -128,6 +180,13 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                 yield _serialize_sse_event(SSEEvent(type="token", content=token))
 
             latency_ms = int((time.time() - start_time) * 1000)
+            trace = {
+                "skill_id": active_skill,
+                "tool_calls": tool_calls,
+                "retrieved_contexts": _build_retrieved_contexts(retrieval_trace),
+                "graph_path": graph_path,
+                "latency_ms": int((time.monotonic() - monotonic_start) * 1000),
+            }
 
             # retrieval log
             try:
@@ -161,13 +220,14 @@ async def chat_stream(request: Request, payload: ChatRequest) -> EventSourceResp
                     print(f"[memory] 摘要触发失败: {e}")
 
             yield _serialize_sse_event(
-                SSEEvent(type="done", data={"message_id": str(uuid4())})
+                SSEEvent(type="done", data={"message_id": str(uuid4()), "trace": trace})
             )
         except Exception as exc:
             yield _serialize_sse_event(
                 SSEEvent(type="error", content=f"服务暂时不可用：{exc}")
             )
         finally:
+            RETRIEVAL_TRACE.reset(retrieval_token)
             if langfuse_handler:
                 get_client().flush()
 

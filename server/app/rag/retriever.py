@@ -35,6 +35,9 @@ def retrieve(query: str, top_k: int = 3, max_l2_distance: float = 250.0) -> list
                 "content": doc.page_content,
                 "source": doc.metadata.get("source", ""),
                 "course": doc.metadata.get("course", ""),
+                "header_1": doc.metadata.get("header_1", ""),
+                "header_2": doc.metadata.get("header_2", ""),
+                "header_3": doc.metadata.get("header_3", ""),
                 "score": float(distance),
             }
         )

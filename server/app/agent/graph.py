@@ -1,6 +1,6 @@
 from typing import Literal
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, message_chunk_to_message
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 from pymongo import MongoClient
@@ -25,7 +25,7 @@ def _create_model():
     return create_chat_model(temperature=0.2)
 
 
-def tutor_node(state: AgentState) -> dict:
+async def tutor_node(state: AgentState) -> dict:
     active_skill = state.get("active_skill") or "explain"
     system_prompt = SKILLS.get(active_skill, SKILLS["explain"])
 
@@ -35,7 +35,16 @@ def tutor_node(state: AgentState) -> dict:
 
     model = _create_model().bind_tools(TOOLS)
     model_input = [SystemMessage(content=system_prompt), *state.get("messages", [])]
-    response = model.invoke(model_input)
+
+    response_chunk = None
+    async for chunk in model.astream(model_input):
+        response_chunk = chunk if response_chunk is None else response_chunk + chunk
+
+    response = (
+        message_chunk_to_message(response_chunk)
+        if response_chunk is not None
+        else AIMessage(content="")
+    )
 
     return {
         "messages": [response],

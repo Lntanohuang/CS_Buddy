@@ -1,6 +1,13 @@
 import asyncio
+from contextvars import ContextVar
+from typing import Any
 
 from langchain_core.tools import tool
+
+RETRIEVAL_TRACE: ContextVar[list[dict[str, Any]] | None] = ContextVar(
+    "RETRIEVAL_TRACE",
+    default=None,
+)
 
 
 @tool
@@ -21,6 +28,10 @@ def search_knowledge(query: str) -> str:
     from app.rag.retriever import retrieve
 
     results = retrieve(query)
+    trace = RETRIEVAL_TRACE.get()
+    if trace is not None:
+        trace.append({"query": query, "results": results})
+
     if not results:
         return "知识库中未找到与该查询高度相关的内容。"
 

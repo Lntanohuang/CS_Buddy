@@ -1,0 +1,126 @@
+cases:
+  - id: q01
+    query: "讲讲快速排序的原理"
+    expected_skill: explain
+    tags: [explain, sorting]
+    expected_facts:
+      - "O(n log n)"
+      # 改自"分治":LLM 一会儿说"分治"一会儿说"分而治之",substring 匹配不稳;
+      # "基准/pivot"在任何快排解释里都几乎必出现,作为更稳的指纹
+      - "基准"
+    must_not_contain: []
+    must_format: markdown
+    expected_contexts:
+      # TODO: 用户标注 source+header_1/2 路径
+      - {source: "TODO_FILL_SOURCE_MD", header_1: "TODO"}
+    difficulty: easy
+    enabled: true
+  - id: q02
+    query: "什么是二叉搜索树？和普通二叉树有什么区别？"
+    expected_skill: explain
+    tags: [explain, tree]
+    expected_facts:
+      - "左子树"
+      - "右子树"
+      - "普通二叉树"
+    must_not_contain: []
+    must_format: markdown
+    expected_contexts:
+      # TODO: 用户标注 source+header_1/2 路径
+      - {source: "TODO_FILL_SOURCE_MD", header_1: "TODO"}
+    difficulty: easy
+    enabled: true
+  - id: q03
+    query: "解释一下哈希冲突的解决方法"
+    expected_skill: explain
+    tags: [explain, hash]
+    expected_facts:
+      - "链"
+      - "开放"
+    must_not_contain: []
+    must_format: markdown
+    expected_contexts:
+      # TODO: 用户标注 source+header_1/2 路径
+      - {source: "TODO_FILL_SOURCE_MD", header_1: "TODO"}
+    difficulty: easy
+    enabled: true
+  - id: q04
+    query: "给我出几道排序算法的练习题"
+    expected_skill: quiz
+    tags: [quiz, sorting]
+    expected_facts:
+      - "question_id"
+      - "correct_answer"
+      - "explanation"
+    must_not_contain: []
+    must_format: json_array
+    expected_contexts:
+      # TODO: 用户标注 source+header_1/2 路径
+      - {source: "TODO_FILL_SOURCE_MD", header_1: "TODO"}
+    difficulty: medium
+    enabled: true
+  - id: q05
+    query: "出题：链表相关"
+    expected_skill: quiz
+    tags: [quiz, linked-list]
+    expected_facts:
+      - "question_id"
+      - "链表"
+      - "correct_answer"
+    must_not_contain: []
+    must_format: json_array
+    expected_contexts:
+      # TODO: 用户标注 source+header_1/2 路径
+      - {source: "TODO_FILL_SOURCE_MD", header_1: "TODO"}
+    difficulty: medium
+    enabled: true
+  - id: q06
+    query: "练习二叉树"
+    expected_skill: quiz
+    tags: [quiz, tree]
+    expected_facts:
+      - "question_id"
+      - "二叉树"
+      - "correct_answer"
+    must_not_contain: []
+    must_format: json_array
+    expected_contexts:
+      # TODO: 用户标注 source+header_1/2 路径
+      - {source: "TODO_FILL_SOURCE_MD", header_1: "TODO"}
+    difficulty: medium
+    enabled: true
+  - id: q07
+    query: "帮我学习"
+    expected_skill: clarify
+    tags: [clarify]
+    expected_facts:
+      - "学习"
+    must_not_contain: []
+    must_format: none
+    expected_contexts: []
+    difficulty: easy
+    enabled: true
+  - id: q08
+    query: "我想提高编程能力"
+    expected_skill: clarify
+    tags: [clarify, programming]
+    expected_facts:
+      - "编程"
+    must_not_contain: []
+    must_format: none
+    expected_contexts: []
+    difficulty: easy
+    enabled: true
+  - id: q09
+    query: "数据结构"
+    expected_skill: clarify
+    tags: [clarify, data-structure]
+    expected_facts:
+      - "数据结构"
+    must_not_contain: []
+    must_format: none
+    expected_contexts: []
+    difficulty: easy
+    enabled: true
+
+# TODO: add 3 more cases to reach N=12 (user fills)
