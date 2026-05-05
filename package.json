@@ -1,0 +1,13 @@
+{
+  "name": "learnpal-e2e",
+  "private": true,
+  "description": "Root package — only for Playwright e2e tests. Web app deps live in web/.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

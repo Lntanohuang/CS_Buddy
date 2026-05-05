@@ -1,0 +1,22 @@
+{
+  "_comment": "冒烟测试固定数据。修改前请告知用户——这是契约。",
+  "auth": {
+    "user": {
+      "user_id": "smoke_test_user",
+      "nickname": "smoke_tester",
+      "role": "STUDENT",
+      "access_token": "smoke_access_token",
+      "refresh_token": "smoke_refresh_token",
+      "expires_in": 7200,
+      "has_profile": true
+    }
+  },
+  "chat": {
+    "prompt": "什么是进程",
+    "expectations": {
+      "first_chunk_ms_max": 10000,
+      "min_visible_chars": 5,
+      "input_placeholder": "输入你的学习问题..."
+    }
+  }
+}
