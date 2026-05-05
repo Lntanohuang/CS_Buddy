@@ -21,3 +21,11 @@ def retrieval_logs() -> AsyncIOMotorCollection:
 
 def chat_messages() -> AsyncIOMotorCollection:
     return get_db()["chat_messages"]
+
+
+def evaluations() -> AsyncIOMotorCollection:
+    return get_db()["evaluations"]
+
+
+def learning_paths() -> AsyncIOMotorCollection:
+    return get_db()["learning_paths"]

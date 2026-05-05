@@ -28,3 +28,25 @@ class ProfileUpdate(BaseModel):
     style_weights: dict[str, float] | None = None
     subjects: list[str] | None = None
     profile_complete: bool | None = None
+
+
+class EvaluationCreate(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    type: str = "MINI_QUIZ"
+    knowledge_point: str = Field(..., min_length=1)
+
+
+class EvaluationAnswer(BaseModel):
+    question_id: str = Field(..., min_length=1)
+    answer: str = ""
+
+
+class EvaluationSubmit(BaseModel):
+    answers: list[EvaluationAnswer]
+    time_spent_seconds: int | None = None
+
+
+class PathAdjustRequest(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    knowledge_point: str = Field(..., min_length=1)
+    action: str = Field(..., min_length=1)
