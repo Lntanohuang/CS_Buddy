@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from app.models.schemas import EvaluationAnswer
 from app.db.collections import evaluations
+from app.learning_path.service import adjust_active_path
 
 
 DEFAULT_QUESTIONS = [
@@ -107,6 +108,20 @@ async def submit_evaluation(
         return None
 
     scored = score_evaluation(evaluation, answers, time_spent_seconds)
+    recommendation = scored.get("recommendation") or {}
+    action = recommendation.get("action")
+    if action:
+        adjusted_path = await adjust_active_path(
+            user_id=scored["user_id"],
+            knowledge_point=scored["knowledge_point"],
+            action=action,
+        )
+        scored["path_adjustment"] = {
+            "path_id": adjusted_path["path_id"],
+            "action": action,
+            "completed_nodes": adjusted_path["completed_nodes"],
+            "total_nodes": adjusted_path["total_nodes"],
+        }
     await evaluations().update_one({"eval_id": eval_id}, {"$set": scored})
     return scored
 

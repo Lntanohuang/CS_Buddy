@@ -4,6 +4,8 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from app.db.collections import learning_paths
+
 
 DEFAULT_PATH_NODES = [
     {
@@ -60,6 +62,46 @@ def build_default_path(user_id: str, subject: str = "数据结构", goal: str = 
     }
 
 
+def _public_path_doc(document: dict | None) -> dict | None:
+    if document is None:
+        return None
+    public_doc = dict(document)
+    public_doc.pop("_id", None)
+    return public_doc
+
+
+async def create_learning_path(user_id: str, subject: str = "数据结构", goal: str = "考试与面试冲刺") -> dict:
+    document = build_default_path(user_id=user_id, subject=subject, goal=goal)
+    await learning_paths().insert_one(document)
+    return _public_path_doc(document) or document
+
+
+async def get_active_path(user_id: str) -> dict | None:
+    document = await learning_paths().find_one(
+        {"user_id": user_id, "status": "ACTIVE"},
+        sort=[("updated_at", -1)],
+    )
+    return _public_path_doc(document)
+
+
+async def get_or_create_active_path(
+    user_id: str,
+    subject: str = "数据结构",
+    goal: str = "考试与面试冲刺",
+) -> dict:
+    existing = await get_active_path(user_id)
+    if existing is not None:
+        return existing
+    return await create_learning_path(user_id=user_id, subject=subject, goal=goal)
+
+
+async def adjust_active_path(user_id: str, knowledge_point: str, action: str) -> dict:
+    path = await get_or_create_active_path(user_id=user_id)
+    adjusted = adjust_path_after_eval(path, knowledge_point=knowledge_point, action=action)
+    await learning_paths().update_one({"path_id": adjusted["path_id"]}, {"$set": adjusted})
+    return adjusted
+
+
 def adjust_path_after_eval(path: dict, knowledge_point: str, action: str) -> dict:
     updated = deepcopy(path)
     nodes = updated.get("nodes", [])
@@ -76,7 +118,11 @@ def adjust_path_after_eval(path: dict, knowledge_point: str, action: str) -> dic
                 break
     elif action == "SUPPLEMENT":
         base_node = next((node for node in nodes if node.get("knowledge_point") == knowledge_point), None)
-        if base_node:
+        has_existing_supplement = any(
+            node.get("knowledge_point") == knowledge_point and node.get("is_supplement")
+            for node in nodes
+        )
+        if base_node and not has_existing_supplement:
             nodes.append({
                 "node_id": f"node_sup_{uuid4().hex}",
                 "title": f"{knowledge_point} 补充练习",

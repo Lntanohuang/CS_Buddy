@@ -46,6 +46,12 @@ class EvaluationSubmit(BaseModel):
     time_spent_seconds: int | None = None
 
 
+class LearningPathCreate(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    subject: str = "数据结构"
+    goal: str = "考试与面试冲刺"
+
+
 class PathAdjustRequest(BaseModel):
     user_id: str = Field(..., min_length=1)
     knowledge_point: str = Field(..., min_length=1)
