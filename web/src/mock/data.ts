@@ -52,19 +52,96 @@ export const mockProfile: UserProfile = {
   updated_at: '2026-04-13T14:30:00Z',
 }
 
-// ---- Welcome dialogue script ----
-export const welcomeDialogueScript: { role: 'USER' | 'ASSISTANT'; content: string; delay: number }[] = [
-  { role: 'ASSISTANT', content: '你好！欢迎来到CS Buddy 🌿\n\n我是你的 AI 学习搭档，接下来我会通过几个简单的问题来了解你，以便为你提供最适合的学习体验。\n\n**你目前是什么专业/领域？**', delay: 800 },
-  { role: 'USER', content: '我是计算机科学与技术专业的大二学生', delay: 0 },
-  { role: 'ASSISTANT', content: '计算机专业，很棒！💻\n\n**你目前最想学习或提升的方向是什么？**\n比如：备考期末、准备面试、学习新技术...', delay: 600 },
-  { role: 'USER', content: '主要是备战秋招面试，想系统复习数据结构和算法', delay: 0 },
-  { role: 'ASSISTANT', content: '明白了，秋招备战是很多同学的刚需。\n\n**你觉得自己目前的数据结构基础怎么样？**\n可以简单说说你已经学过哪些内容、哪些部分比较薄弱。', delay: 600 },
-  { role: 'USER', content: '数组、链表、栈这些基础的还行，但是树和图相关的比较薄弱，递归的题经常写不对', delay: 0 },
-  { role: 'ASSISTANT', content: '了解了！树、图和递归确实是面试高频考点，我们会重点关注这些。\n\n**你更喜欢哪种学习方式？**\n- 看代码示例边学边练\n- 先看理论再做题\n- 看视频讲解\n- 都可以，混合着来', delay: 600 },
-  { role: 'USER', content: '我比较喜欢看代码示例，纯理论看不下去', delay: 0 },
-  { role: 'ASSISTANT', content: '好的，我记住了 ✨\n\n**最后一个问题——你每天大概能投入多少时间学习？**', delay: 600 },
-  { role: 'USER', content: '大概一个小时吧', delay: 0 },
-  { role: 'ASSISTANT', content: '完美！我已经了解你的情况了：\n\n- 📚 **专业**：计算机科学\n- 🎯 **目标**：秋招面试备战\n- 📊 **基础**：基础数据结构掌握良好，树/图/递归待加强\n- 💡 **偏好**：代码示例驱动学习\n- ⏰ **时间**：每天约 1 小时\n\n我已经为你创建了个性化学习画像，接下来会据此为你规划学习路径和推荐资源。\n\n**准备好开始学习了吗？** 🚀', delay: 800 },
+// ---- Welcome questions ----
+export type WelcomeAnswerType = 'text' | 'number' | 'single' | 'multi'
+
+export interface WelcomeOption {
+  value: string
+  label: string
+}
+
+export interface WelcomeQuestion {
+  id: string
+  prompt: string
+  type: WelcomeAnswerType
+  options?: WelcomeOption[]
+  placeholder?: string
+  min?: number
+  max?: number
+  required?: boolean
+}
+
+export const welcomeQuestions: WelcomeQuestion[] = [
+  {
+    id: 'major',
+    prompt: '你目前学的是什么专业?',
+    type: 'text',
+    placeholder: '例如:计算机科学',
+  },
+  {
+    id: 'learning_goal',
+    prompt: '现在主要的学习目标?',
+    type: 'single',
+    options: [
+      { value: 'EXAM_PREP', label: '备考(期末/秋招/考研)' },
+      { value: 'CAREER', label: '求职/转行' },
+      { value: 'INTEREST', label: '兴趣自学' },
+      { value: 'SKILL_UP', label: '工作技能提升' },
+    ],
+  },
+  {
+    id: 'current_level',
+    prompt: '对计算机基础(数据结构/算法/OS/网络)的掌握程度?',
+    type: 'single',
+    options: [
+      { value: 'BEGINNER', label: '入门' },
+      { value: 'INTERMEDIATE', label: '进阶中' },
+      { value: 'ADVANCED', label: '已较熟练' },
+    ],
+  },
+  {
+    id: 'subjects',
+    prompt: '想重点学习哪些方向?(可多选,至少 1)',
+    type: 'multi',
+    options: [
+      { value: 'DATA_STRUCTURE', label: '数据结构' },
+      { value: 'ALGORITHM', label: '算法' },
+      { value: 'OS', label: '操作系统' },
+      { value: 'NETWORK', label: '计算机网络' },
+      { value: 'DATABASE', label: '数据库' },
+      { value: 'SYSTEM_DESIGN', label: '系统设计' },
+    ],
+  },
+  {
+    id: 'preferred_style',
+    prompt: '更喜欢哪种学习方式?',
+    type: 'single',
+    options: [
+      { value: 'CODE_FIRST', label: '看代码示例边学边练' },
+      { value: 'THEORY_FIRST', label: '先看理论再做题' },
+      { value: 'VIDEO', label: '看视频讲解' },
+      { value: 'MIXED', label: '混合' },
+    ],
+  },
+  {
+    id: 'cognitive_style',
+    prompt: '认知偏好上你更接近哪一种?',
+    type: 'single',
+    options: [
+      { value: 'THEORETICAL', label: '偏理论推导' },
+      { value: 'PRACTICAL', label: '偏实战应用' },
+      { value: 'VISUAL', label: '偏图示直觉' },
+      { value: 'MIXED', label: '都可以' },
+    ],
+  },
+  {
+    id: 'daily_time_minutes',
+    prompt: '每天大概能投入多少分钟学习?',
+    type: 'number',
+    placeholder: '如 60',
+    min: 10,
+    max: 600,
+  },
 ]
 
 // ---- Chat Sessions ----
