@@ -44,6 +44,14 @@ echo ""
 
 # 1. 启动 uvicorn
 echo "🚀 启动 server..."
+# 端口被占?fail-loud 让用户处理,绝不擅自 kill —— 可能是用户 dev 中的 BE
+# uvicorn --reload 是 reloader+worker 双 PID,看到双 PID 也别误判为遗留
+if lsof -ti :8010 >/dev/null 2>&1; then
+  echo "❌ 端口 8010 已被占用" >&2
+  echo "   可能是你 dev 的 BE 在跑。先停掉它再跑 smoke:" >&2
+  echo "   lsof -ti :8010 | xargs kill" >&2
+  exit 1
+fi
 > "$SERVER_LOG"
 PY="${LEARNPAL_PYTHON:-/opt/anaconda3/envs/Langchain-sgg/bin/python}"
 (
